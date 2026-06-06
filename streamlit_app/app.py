@@ -108,13 +108,14 @@ def _extract_json_from_text(text):
     return None
 
 
-def ai_qa_real(question, config, timeout=30):
+def ai_qa_real(question, config, timeout=30, history=None):
     """真实 LLM 调用 (SenseNova / DeepSeek / Qwen)
 
     Args:
         question: 用户问题
         config: get_llm_config() 返回的配置
         timeout: 超时秒数
+        history: 对话历史 (list of {role, content, ...}), 最多 5 轮
 
     Returns:
         dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str, 'reasoning': str}
@@ -130,19 +131,25 @@ def ai_qa_real(question, config, timeout=30):
   "recommendation": "2-3 条投资建议"
 }"""
 
-    user_prompt = f"问题: {question}"
-
     headers = {
         'Authorization': f'Bearer {config["api_key"]}',
         'Content-Type': 'application/json',
     }
 
+    # 构建 messages (含历史上下文)
+    messages = [{'role': 'system', 'content': system_prompt}]
+    if history:
+        for msg in history:
+            if msg['role'] == 'user':
+                messages.append({'role': 'user', 'content': msg['content']})
+            else:  # assistant - 转为简化文本保持上下文
+                content = f"上轮标题: {msg.get('title', '')}\n摘要: {msg.get('summary', '')}\n建议: {msg.get('recommendation', '')}"
+                messages.append({'role': 'assistant', 'content': content})
+    messages.append({'role': 'user', 'content': question})
+
     payload = {
         'model': config['model'],
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_prompt},
-        ],
+        'messages': messages,
         'temperature': 0.7,
         'max_tokens': 2000,
     }
@@ -229,6 +236,21 @@ st.markdown("""
     border-left: 4px solid #2E86AB;
     margin: 1rem 0;
 }
+
+/* 移动端适配 (< 768px) */
+@media (max-width: 768px) {
+    .main-header { font-size: 1.5rem !important; }
+    .sub-header { font-size: 0.95rem !important; }
+    .stMarkdown h1 { font-size: 1.5rem !important; }
+    .stMarkdown h2 { font-size: 1.2rem !important; }
+    .stMarkdown h3 { font-size: 1.05rem !important; }
+    [data-testid="column"] { width: 100% !important; flex: 100% !important; min-width: 100% !important; }
+    .stButton > button { width: 100% !important; }
+    .metric-card { padding: 0.5rem !important; }
+    .feature-card { padding: 1rem !important; }
+    [data-testid="stSidebar"] { min-width: 200px !important; max-width: 250px !important; }
+    .stChatMessage { padding: 0.5rem !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -250,6 +272,23 @@ def load_cyb():
     df = ak.stock_zh_index_daily(symbol='sz399006')
     df['date'] = pd.to_datetime(df['date'])
     return df
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_index(symbol):
+    """统一指数加载 (缓存 1 小时), 替代直接 ak.stock_zh_index_daily 调用"""
+    df = ak.stock_zh_index_daily(symbol=symbol)
+    df['date'] = pd.to_datetime(df['date'])
+    return df
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_industry_cons(symbol):
+    """行业成分股加载 (缓存 1 小时)"""
+    return ak.stock_board_industry_cons_em(symbol=symbol)
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def load_sw_index():
+    """申万三级行业 (缓存 24 小时, 静态更新)"""
+    return ak.sw_index_third_info()
 
 @st.cache_data(ttl=3600)
 def load_stock_pool():
@@ -507,12 +546,53 @@ if page == '🏠 首页':
 # ============== 页面：AI 投研问答 ==============
 elif page == '🤖 AI 投研问答':
     st.markdown('# 🤖 AI 投研问答')
-    st.markdown('**基于自研金融大模型，支持自然语言投研分析**')
+    st.markdown('**基于自研金融大模型，支持自然语言投研分析 + 多轮对话**')
 
     st.markdown('---')
 
+    # 初始化 session state
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []  # list of {role, content, title, summary, data, recommendation, reasoning}
+    if 'question_input' not in st.session_state:
+        st.session_state.question_input = ''
+
+    # 顶部工具栏: 消息数 + 清空按钮
+    col_info, col_clear = st.columns([5, 1])
+    with col_info:
+        st.caption(f'💬 对话轮数: {len(st.session_state.chat_history) // 2} / 5 (最近 5 轮保留为上下文)')
+    with col_clear:
+        if st.button('🗑️ 清空对话', use_container_width=True):
+            st.session_state.chat_history = []
+            st.session_state.question_input = ''
+            st.rerun()
+
+    # 显示历史对话
+    if st.session_state.chat_history:
+        st.markdown('### 📜 对话历史')
+        for i, msg in enumerate(st.session_state.chat_history):
+            if msg['role'] == 'user':
+                with st.chat_message('user', avatar='👤'):
+                    st.markdown(msg['content'])
+            else:  # assistant
+                with st.chat_message('assistant', avatar='🤖'):
+                    st.markdown(f'## 📄 {msg["title"]}')
+                    st.markdown('### 📋 分析摘要')
+                    st.markdown(msg['summary'])
+                    if msg.get('data'):
+                        st.markdown('### 📊 关键数据')
+                        cols = st.columns(len(msg['data']))
+                        for (k, v), col in zip(msg['data'].items(), cols):
+                            with col:
+                                st.metric(k, v)
+                    st.markdown('### 💡 投资建议')
+                    st.success(msg['recommendation'])
+                    if msg.get('reasoning'):
+                        with st.expander('🧠 AI 思考过程', expanded=False):
+                            st.caption(msg['reasoning'])
+        st.markdown('---')
+
     # 快捷问题
-    st.markdown('### 💡 试试这些问题')
+    st.markdown('### 💡 试试这些问题 (单轮模式, 清空对话后使用)')
     col1, col2, col3 = st.columns(3)
     quick_questions = [
         '分析近期新能源行业投资机会',
@@ -520,25 +600,24 @@ elif page == '🤖 AI 投研问答':
         '消费板块是否到了底部布局时机',
     ]
     cols = [col1, col2, col3]
-    if 'question_input' not in st.session_state:
-        st.session_state.question_input = ''
 
     for i, (q, col) in enumerate(zip(quick_questions, cols)):
         with col:
-            if st.button(f'📌 {q}', key=f'quick_{i}'):
+            if st.button(f'📌 {q}', key=f'quick_{i}', use_container_width=True):
                 st.session_state.question_input = q
+                st.rerun()
 
     st.markdown('---')
 
     # 输入框
     question = st.text_area(
-        '💬 请输入您的投研问题',
+        '💬 请输入您的投研问题 (支持多轮, 上文会作为上下文)',
         value=st.session_state.question_input,
         height=100,
-        placeholder='例如：分析近期 A 股市场热点板块及投资机会'
+        placeholder='例如：基于上面分析, 哪些标的值得关注?'
     )
 
-    col1, col2 = st.columns([1, 4])
+    col1, col2 = st.columns([1, 5])
     with col1:
         analyze_btn = st.button('🚀 智能分析', type='primary', use_container_width=True)
 
@@ -548,7 +627,7 @@ elif page == '🤖 AI 投研问答':
         use_real_llm = llm_config['api_key'] is not None
 
         if use_real_llm:
-            spinner_text = f'🤖 {llm_config["provider"].upper()} AI 正在生成分析报告...'
+            spinner_text = f'🤖 {llm_config["provider"].upper()} AI 正在生成分析报告 (含上下文)...'
         else:
             spinner_text = '🤖 AI 正在生成分析报告 (Mock 模式, 配置 API key 可启用真实 LLM)...'
 
@@ -558,7 +637,7 @@ elif page == '🤖 AI 投研问答':
 
             if use_real_llm:
                 try:
-                    result = ai_qa_real(question, llm_config)
+                    result = ai_qa_real(question, llm_config, history=st.session_state.chat_history[-10:])
                     st.success(f'✅ 真实 LLM ({llm_config["provider"].upper()} {llm_config["model"]}) 推理完成, 耗时 {time.time()-t0:.1f}s')
                 except Exception as e:
                     st.warning(f'⚠️ 真实 LLM 调用失败: {e}, 回退到 Mock 模式')
@@ -567,28 +646,25 @@ elif page == '🤖 AI 投研问答':
                 time.sleep(1.0)  # 模拟推理时间
                 result = ai_qa_mock(question)
 
-            st.markdown('---')
-            st.markdown(f'## 📄 {result["title"]}')
+            # 保存到对话历史
+            st.session_state.chat_history.append({'role': 'user', 'content': question})
+            st.session_state.chat_history.append({
+                'role': 'assistant',
+                'title': result['title'],
+                'summary': result['summary'],
+                'data': result.get('data', {}),
+                'recommendation': result['recommendation'],
+                'reasoning': result.get('reasoning', ''),
+            })
 
-            st.markdown('### 📋 分析摘要')
-            st.markdown(result['summary'])
+            # 限制历史长度: 最近 5 轮 (10 条消息)
+            if len(st.session_state.chat_history) > 10:
+                st.session_state.chat_history = st.session_state.chat_history[-10:]
 
-            if result.get('data'):
-                st.markdown('### 📊 关键数据')
-                cols = st.columns(len(result['data']))
-                for (k, v), col in zip(result['data'].items(), cols):
-                    with col:
-                        st.metric(k, v)
+            st.session_state.question_input = ''
+            st.rerun()
 
-            st.markdown('### 💡 投资建议')
-            st.success(result['recommendation'])
-
-            if result.get('reasoning'):
-                with st.expander('🧠 AI 思考过程 (SenseNova/DeepSeek-R1 推理链)', expanded=False):
-                    st.caption(result['reasoning'])
-
-            st.markdown('---')
-            st.caption('⚠️ 本回答基于公开数据 + AI 模型生成，仅供参考，不构成投资建议')
+    st.caption('⚠️ 本回答基于公开数据 + AI 模型生成，仅供参考，不构成投资建议')
 
 # ============== 页面：另类数据仪表盘 ==============
 elif page == '📡 另类数据仪表盘':
@@ -699,44 +775,89 @@ elif page == '📡 另类数据仪表盘':
 # ============== 页面：量化策略回测 ==============
 elif page == '📈 量化策略回测':
     st.markdown('# 📈 量化策略回测')
-    st.markdown('**基于公开 A 股数据的真实回测，可复现方法学**')
+    st.markdown('**基于公开 A 股数据的真实回测, 11.4 年回测期, 可调参数**')
 
     st.markdown('---')
 
+    # 第 1 行: 标的选择 + 策略类型
     col1, col2, col3 = st.columns(3)
     with col1:
-        index_choice = st.selectbox('📊 标的指数', ['沪深300', '中证500', '创业板指'])
+        index_choice = st.selectbox('📊 标的指数', ['沪深300', '中证500', '创业板指'], key='bt_index')
     with col2:
-        strategy_choice = st.selectbox('🧠 策略类型', ['双均线动量', '布林带均值回归', '多因子合成'])
+        strategy_choice = st.selectbox('🧠 策略类型', ['双均线动量', '布林带均值回归', '多因子合成'], key='bt_strategy')
     with col3:
-        start_date = st.date_input('📅 起始日期', value=pd.to_datetime('2020-01-01'))
+        start_date = st.date_input('📅 起始日期', value=pd.to_datetime('2020-01-01'), key='bt_start')
 
-    run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
+    # 第 2 行: 策略参数 (根据策略类型动态显示)
+    if strategy_choice == '双均线动量':
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            fast_ma = st.slider('⚡ 短均线周期', min_value=5, max_value=60, value=20, step=5, help='默认 20, 越小越敏感')
+        with col2:
+            slow_ma = st.slider('🐢 长均线周期', min_value=20, max_value=250, value=60, step=10, help='默认 60, 必须大于短均线')
+        with col3:
+            cost = st.slider('💰 手续费率', min_value=0.0, max_value=0.003, value=0.0015, step=0.0001, format='%.4f', help='默认 0.15%')
+        # 校验
+        if fast_ma >= slow_ma:
+            st.error('❌ 短均线必须小于长均线')
+            st.stop()
+    elif strategy_choice == '布林带均值回归':
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            window = st.slider('📏 布林带窗口', min_value=10, max_value=60, value=20, step=5, help='默认 20 日')
+        with col2:
+            std_dev = st.slider('📊 标准差倍数', min_value=1.0, max_value=3.0, value=2.0, step=0.1, help='默认 2.0 σ')
+        with col3:
+            cost = st.slider('💰 手续费率', min_value=0.0, max_value=0.003, value=0.0015, step=0.0001, format='%.4f')
+    else:  # 多因子
+        col1, col2 = st.columns(2)
+        with col1:
+            cost = st.slider('💰 手续费率', min_value=0.0, max_value=0.003, value=0.0015, step=0.0001, format='%.4f')
+        with col2:
+            st.info('💡 多因子策略内部参数固定 (20日动量 + 5日反转 + 60日排名)')
+
+    st.markdown('---')
+
+    col_run, col_reset = st.columns([1, 5])
+    with col_run:
+        run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
 
     if run_btn:
-        with st.spinner('正在加载数据和计算回测...'):
+        with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
-            df = ak.stock_zh_index_daily(symbol=symbol_map[index_choice])
-            df['date'] = pd.to_datetime(df['date'])
-            df = df[df['date'] >= pd.to_datetime(start_date)].copy()
+            df_raw = load_index(symbol_map[index_choice])
+            df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
             df.set_index('date', inplace=True)
 
             if strategy_choice == '双均线动量':
-                result = strategy_dual_ma(df)
+                result = strategy_dual_ma(df, fast=fast_ma, slow=slow_ma, cost=cost)
+                param_desc = f'快线 {fast_ma} 日 / 慢线 {slow_ma} 日'
             elif strategy_choice == '布林带均值回归':
-                result = strategy_mean_reversion(df)
+                result = strategy_mean_reversion(df, window=window, std=std_dev, cost=cost)
+                param_desc = f'{window} 日窗口 / {std_dev:.1f}σ'
             else:
-                result = strategy_multi_factor(df)
+                result = strategy_multi_factor(df, cost=cost)
+                param_desc = '20 日动量 + 5 日反转 + 60 日排名'
 
             metrics = calc_metrics(result['nav'], result['benchmark'])
 
             st.markdown('---')
-            st.markdown('### 📊 回测结果')
+            st.markdown(f'### 📊 回测结果 ({param_desc}, 手续费 {cost*100:.2f}%)')
 
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             for (k, v), col in zip(metrics.items(), [col1, col2, col3, col4, col5, col6]):
                 with col:
                     st.metric(k, v)
+
+            # 关键提示
+            sharpe = float(metrics['夏普比率'].replace('%', '').replace('+', '').replace('-', '')) if metrics['夏普比率'] != 'N/A' else 0
+            annual_ret = float(metrics['年化收益'].replace('%', '').replace('+', ''))
+            if annual_ret > 5 and sharpe > 0.5:
+                st.success(f'✅ 策略有效: 年化收益 {metrics["年化收益"]} > 5%, 夏普 {sharpe:.2f} > 0.5')
+            elif annual_ret < 0:
+                st.warning(f'⚠️ 策略亏损: 年化 {metrics["年化收益"]}, 建议调整参数')
+            else:
+                st.info(f'ℹ️ 策略中性: 年化 {metrics["年化收益"]}, 夏普 {sharpe:.2f}')
 
             # NAV 曲线
             fig = go.Figure()
@@ -747,7 +868,7 @@ elif page == '📈 量化策略回测':
                                      mode='lines', name='基准净值',
                                      line=dict(color='#A23B72', width=2, dash='dash')))
             fig.update_layout(
-                title=f'{index_choice} - {strategy_choice} vs 基准',
+                title=f'{index_choice} - {strategy_choice} ({param_desc}) vs 基准',
                 yaxis_title='净值 (NAV)',
                 hovermode='x unified',
                 height=500,
@@ -772,8 +893,10 @@ elif page == '📈 量化策略回测':
             st.plotly_chart(fig, use_container_width=True)
 
             # 关键统计
-            st.markdown('### 📋 详细数据')
+            st.markdown('### 📋 详细数据 (最近 30 个交易日)')
             st.dataframe(result[['close', 'signal', 'nav', 'benchmark']].tail(30), use_container_width=True)
+
+            st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(df)} 个交易日')
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -801,9 +924,9 @@ elif page == '📊 行业分析':
     industry_code = industry_options[selected_industry]
 
     try:
-        # 获取行业成分股
-        with st.spinner('加载行业数据...'):
-            df_industry = ak.stock_board_industry_cons_em(symbol=industry_code)
+        # 获取行业成分股 (使用缓存)
+        with st.spinner('加载行业数据 (1 小时缓存)...'):
+            df_industry = load_industry_cons(industry_code)
 
         st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
 
@@ -828,10 +951,10 @@ elif page == '📊 行业分析':
         st.warning(f'行业数据加载失败：{type(e).__name__}: {str(e)[:100]}')
         st.info('请检查网络连接或稍后重试')
 
-        # Fallback: 显示申万行业静态信息
+        # Fallback: 显示申万行业静态信息 (使用缓存)
         try:
-            st.markdown('### 📚 申万三级行业（静态信息）')
-            df_sw = ak.sw_index_third_info()
+            st.markdown('### 📚 申万三级行业 (24 小时缓存)')
+            df_sw = load_sw_index()
             st.dataframe(df_sw.head(30), use_container_width=True)
         except:
             pass

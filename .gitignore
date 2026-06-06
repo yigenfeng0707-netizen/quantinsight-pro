@@ -36,6 +36,10 @@ _test_*.py
 _test_*.ps1
 _test_sensenova*.py
 _streamlit_test*.log
+_gen_*.py
+_broll_frames/
+_t33_*
+_push_via_api.py
 
 # 中间产物 (frames/segments 大量小文件)
 _video_frames/
