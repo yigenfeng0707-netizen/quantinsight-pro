@@ -269,7 +269,7 @@ QuantInsight_Pro_提交包_v1.0/
 **慧点资本 (InsightQuant) 量化研究部**
 - 项目编号: 2026FINTECH-FINT-0093
 - 推荐单位: 杭州永字资产管理有限公司
-- 创始团队: 冯亦根 (CEO) / 薛永再 (COO/合规) / 黄成选 (CTO) / 冯思涵 (数据/产品)
+- 参赛团队: Robert (CEO) / 薛永再 (COO/合规) / 黄成选 (CTO) / Martin (数据/产品)
 
 ---
 
