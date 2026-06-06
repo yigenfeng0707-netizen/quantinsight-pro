@@ -32,6 +32,10 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.log
+_test_*.py
+_test_*.ps1
+_test_sensenova*.py
+_streamlit_test*.log
 
 # 中间产物 (frames/segments 大量小文件)
 _video_frames/

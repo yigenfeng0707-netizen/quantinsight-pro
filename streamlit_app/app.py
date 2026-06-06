@@ -23,11 +23,22 @@ import json
 def get_llm_config():
     """从 Streamlit Secrets 或环境变量读取 LLM 配置
 
-    支持 DeepSeek + Qwen 双 API, 优先 DeepSeek (成本低, 中文好)
+    支持 3 家 LLM (优先级: SenseNova > DeepSeek > Qwen)
     """
     config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None}
 
-    # 优先 Streamlit Secrets (部署后)
+    # 1. SenseNova (商汤日日新, 国内访问快) - 最高优先级
+    try:
+        if 'SENSENOVA_API_KEY' in st.secrets:
+            config['provider'] = 'sensenova'
+            config['api_key'] = st.secrets['SENSENOVA_API_KEY']
+            config['model'] = st.secrets.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
+            config['base_url'] = st.secrets.get('SENSENOVA_BASE_URL', 'https://token.sensenova.cn/v1/chat/completions')
+            return config
+    except Exception:
+        pass
+
+    # 2. DeepSeek
     try:
         if 'DEEPSEEK_API_KEY' in st.secrets:
             config['provider'] = 'deepseek'
@@ -38,6 +49,7 @@ def get_llm_config():
     except Exception:
         pass
 
+    # 3. Qwen
     try:
         if 'QWEN_API_KEY' in st.secrets:
             config['provider'] = 'qwen'
@@ -49,7 +61,12 @@ def get_llm_config():
         pass
 
     # 备选环境变量 (本地测试)
-    if os.environ.get('DEEPSEEK_API_KEY'):
+    if os.environ.get('SENSENOVA_API_KEY'):
+        config['provider'] = 'sensenova'
+        config['api_key'] = os.environ['SENSENOVA_API_KEY']
+        config['model'] = os.environ.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
+        config['base_url'] = os.environ.get('SENSENOVA_BASE_URL', 'https://token.sensenova.cn/v1/chat/completions')
+    elif os.environ.get('DEEPSEEK_API_KEY'):
         config['provider'] = 'deepseek'
         config['api_key'] = os.environ['DEEPSEEK_API_KEY']
         config['model'] = 'deepseek-chat'
@@ -63,8 +80,36 @@ def get_llm_config():
     return config
 
 
+def _extract_json_from_text(text):
+    """从文本中提取 JSON 块 (处理 markdown 代码块 + 纯文本)"""
+    if not text:
+        return None
+    text = text.strip()
+    # 尝试 1: 直接解析
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    # 尝试 2: 提取 ```json ... ``` 代码块
+    import re
+    m = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except Exception:
+            pass
+    # 尝试 3: 提取第一个 {...} 块
+    m = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except Exception:
+            pass
+    return None
+
+
 def ai_qa_real(question, config, timeout=30):
-    """真实 LLM 调用 (DeepSeek / Qwen)
+    """真实 LLM 调用 (SenseNova / DeepSeek / Qwen)
 
     Args:
         question: 用户问题
@@ -72,20 +117,20 @@ def ai_qa_real(question, config, timeout=30):
         timeout: 超时秒数
 
     Returns:
-        dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str}
+        dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str, 'reasoning': str}
     """
     system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由慧点资本 (InsightQuant) 联合杭州永字资管打造.
 请基于公开数据和金融专业知识, 用结构化方式回答用户的投研问题.
 
-回答格式要求 (Markdown):
-1. 标题: 一句话概括分析主题
-2. 摘要: 3-5 个关键点 (基于事实 + 数据)
-3. 关键数据: 3-5 个量化指标
-4. 投资建议: 2-3 条具体建议
+回答格式 (严格 JSON, 不要 markdown 代码块):
+{
+  "title": "一句话标题",
+  "summary": "3-5 个关键点 (Markdown 格式)",
+  "data": {"指标1": "值1", "指标2": "值2", "指标3": "值3"},
+  "recommendation": "2-3 条投资建议"
+}"""
 
-请用 JSON 格式返回, 字段: title, summary, data (dict), recommendation."""
-
-    user_prompt = f"问题: {question}\n\n请按 JSON 格式返回分析结果."
+    user_prompt = f"问题: {question}"
 
     headers = {
         'Authorization': f'Bearer {config["api_key"]}',
@@ -99,23 +144,49 @@ def ai_qa_real(question, config, timeout=30):
             {'role': 'user', 'content': user_prompt},
         ],
         'temperature': 0.7,
-        'max_tokens': 1500,
-        'response_format': {'type': 'json_object'},
+        'max_tokens': 2000,
     }
+
+    # DeepSeek / Qwen 支持 response_format: json_object
+    # SenseNova 不支持, 靠 prompt + 后处理
+    if config['provider'] in ('deepseek', 'qwen'):
+        payload['response_format'] = {'type': 'json_object'}
 
     try:
         resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=timeout)
         resp.raise_for_status()
         result = resp.json()
 
-        content = result['choices'][0]['message']['content']
-        parsed = json.loads(content)
+        msg = result['choices'][0]['message']
+        content = msg.get('content', '')
+        reasoning = msg.get('reasoning_content', '')  # SenseNova / DeepSeek-R1 特有
+
+        # 解析 JSON
+        parsed = _extract_json_from_text(content)
+        if parsed is None:
+            # 解析失败, 用纯文本 fallback
+            return {
+                'title': 'AI 投研分析',
+                'summary': content if content else reasoning[:500] if reasoning else 'AI 响应解析失败',
+                'data': {},
+                'recommendation': '请参考上述摘要内容',
+                'reasoning': reasoning[:300] if reasoning else '',
+            }
+
+        # 兼容 list / str 类型的 summary / recommendation
+        def _to_str(v, default=''):
+            if v is None:
+                return default
+            if isinstance(v, list):
+                return '\n'.join(str(x) for x in v)
+            return str(v)
 
         return {
-            'title': parsed.get('title', 'AI 投研分析'),
-            'summary': parsed.get('summary', content),
-            'data': parsed.get('data', {}),
-            'recommendation': parsed.get('recommendation', '请参考摘要中的具体分析'),
+            'title': _to_str(parsed.get('title'), 'AI 投研分析'),
+            'summary': _to_str(parsed.get('summary'), content),
+            'data': parsed.get('data', {}) if isinstance(parsed.get('data'), dict) else {},
+            'recommendation': _to_str(parsed.get('recommendation'), '请参考摘要中的具体分析'),
+            'reasoning': reasoning[:300] if reasoning else '',
         }
     except Exception as e:
         raise RuntimeError(f"LLM 调用失败 ({config['provider']}): {e}")
@@ -502,14 +573,19 @@ elif page == '🤖 AI 投研问答':
             st.markdown('### 📋 分析摘要')
             st.markdown(result['summary'])
 
-            st.markdown('### 📊 关键数据')
-            cols = st.columns(len(result['data']))
-            for (k, v), col in zip(result['data'].items(), cols):
-                with col:
-                    st.metric(k, v)
+            if result.get('data'):
+                st.markdown('### 📊 关键数据')
+                cols = st.columns(len(result['data']))
+                for (k, v), col in zip(result['data'].items(), cols):
+                    with col:
+                        st.metric(k, v)
 
             st.markdown('### 💡 投资建议')
             st.success(result['recommendation'])
+
+            if result.get('reasoning'):
+                with st.expander('🧠 AI 思考过程 (SenseNova/DeepSeek-R1 推理链)', expanded=False):
+                    st.caption(result['reasoning'])
 
             st.markdown('---')
             st.caption('⚠️ 本回答基于公开数据 + AI 模型生成，仅供参考，不构成投资建议')

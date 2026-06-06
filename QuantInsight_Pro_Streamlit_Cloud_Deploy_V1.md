@@ -63,11 +63,26 @@
 
 Streamlit Cloud → App settings → Secrets:
 
+**推荐配置 (SenseNova, V2 新增, 含思考链)**:
 ```toml
-# .streamlit/secrets.toml
-DEEPSEEK_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxx"
-QWEN_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxx"
+SENSENOVA_API_KEY = "sk-v24McU1SzzMxNuuckNWoP8solabzknK9"
+SENSENOVA_MODEL = "sensenova-6.7-flash-lite"
+SENSENOVA_BASE_URL = "https://token.sensenova.cn/v1/chat/completions"
 ```
+
+**备选配置 (DeepSeek)**:
+```toml
+DEEPSEEK_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxx"
+DEEPSEEK_MODEL = "deepseek-chat"
+```
+
+**备选配置 (Qwen)**:
+```toml
+QWEN_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxx"
+QWEN_MODEL = "qwen-turbo"
+```
+
+**优先级**: SenseNova > DeepSeek > Qwen (3 选 1, 配第一个即可)
 
 ### 4.2 自定义域名 (可选)
 
