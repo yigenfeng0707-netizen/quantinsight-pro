@@ -16,6 +16,109 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import akshare as ak
 import os
+import requests
+import json
+
+# ============== 真实 LLM 接入 (B7) ==============
+def get_llm_config():
+    """从 Streamlit Secrets 或环境变量读取 LLM 配置
+
+    支持 DeepSeek + Qwen 双 API, 优先 DeepSeek (成本低, 中文好)
+    """
+    config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None}
+
+    # 优先 Streamlit Secrets (部署后)
+    try:
+        if 'DEEPSEEK_API_KEY' in st.secrets:
+            config['provider'] = 'deepseek'
+            config['api_key'] = st.secrets['DEEPSEEK_API_KEY']
+            config['model'] = st.secrets.get('DEEPSEEK_MODEL', 'deepseek-chat')
+            config['base_url'] = 'https://api.deepseek.com/v1/chat/completions'
+            return config
+    except Exception:
+        pass
+
+    try:
+        if 'QWEN_API_KEY' in st.secrets:
+            config['provider'] = 'qwen'
+            config['api_key'] = st.secrets['QWEN_API_KEY']
+            config['model'] = st.secrets.get('QWEN_MODEL', 'qwen-turbo')
+            config['base_url'] = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+            return config
+    except Exception:
+        pass
+
+    # 备选环境变量 (本地测试)
+    if os.environ.get('DEEPSEEK_API_KEY'):
+        config['provider'] = 'deepseek'
+        config['api_key'] = os.environ['DEEPSEEK_API_KEY']
+        config['model'] = 'deepseek-chat'
+        config['base_url'] = 'https://api.deepseek.com/v1/chat/completions'
+    elif os.environ.get('QWEN_API_KEY'):
+        config['provider'] = 'qwen'
+        config['api_key'] = os.environ['QWEN_API_KEY']
+        config['model'] = 'qwen-turbo'
+        config['base_url'] = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+
+    return config
+
+
+def ai_qa_real(question, config, timeout=30):
+    """真实 LLM 调用 (DeepSeek / Qwen)
+
+    Args:
+        question: 用户问题
+        config: get_llm_config() 返回的配置
+        timeout: 超时秒数
+
+    Returns:
+        dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str}
+    """
+    system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由慧点资本 (InsightQuant) 联合杭州永字资管打造.
+请基于公开数据和金融专业知识, 用结构化方式回答用户的投研问题.
+
+回答格式要求 (Markdown):
+1. 标题: 一句话概括分析主题
+2. 摘要: 3-5 个关键点 (基于事实 + 数据)
+3. 关键数据: 3-5 个量化指标
+4. 投资建议: 2-3 条具体建议
+
+请用 JSON 格式返回, 字段: title, summary, data (dict), recommendation."""
+
+    user_prompt = f"问题: {question}\n\n请按 JSON 格式返回分析结果."
+
+    headers = {
+        'Authorization': f'Bearer {config["api_key"]}',
+        'Content-Type': 'application/json',
+    }
+
+    payload = {
+        'model': config['model'],
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt},
+        ],
+        'temperature': 0.7,
+        'max_tokens': 1500,
+        'response_format': {'type': 'json_object'},
+    }
+
+    try:
+        resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=timeout)
+        resp.raise_for_status()
+        result = resp.json()
+
+        content = result['choices'][0]['message']['content']
+        parsed = json.loads(content)
+
+        return {
+            'title': parsed.get('title', 'AI 投研分析'),
+            'summary': parsed.get('summary', content),
+            'data': parsed.get('data', {}),
+            'recommendation': parsed.get('recommendation', '请参考摘要中的具体分析'),
+        }
+    except Exception as e:
+        raise RuntimeError(f"LLM 调用失败 ({config['provider']}): {e}")
 
 # ============== 页面配置 ==============
 st.set_page_config(
@@ -252,6 +355,24 @@ st.sidebar.code(
     language='text'
 )
 
+# LLM 状态显示 (B7)
+llm_config_status = get_llm_config()
+if llm_config_status['api_key']:
+    st.sidebar.markdown('### 🤖 AI 引擎')
+    st.sidebar.success(
+        f'**{llm_config_status["provider"].upper()}** ✅\n\n'
+        f'模型: {llm_config_status["model"]}\n\n'
+        f'模式: 真实 LLM 推理'
+    )
+else:
+    st.sidebar.markdown('### 🤖 AI 引擎')
+    st.sidebar.warning(
+        '**Mock 模式** ⚠️\n\n'
+        '当前使用关键词匹配\n\n'
+        '配置 DEEPSEEK_API_KEY 或 QWEN_API_KEY\n\n'
+        '可启用真实 AI 推理'
+    )
+
 # ============== 页面：首页 ==============
 if page == '🏠 首页':
     st.markdown('<h1 class="main-header">QuantInsight Pro</h1>', unsafe_allow_html=True)
@@ -351,11 +472,29 @@ elif page == '🤖 AI 投研问答':
         analyze_btn = st.button('🚀 智能分析', type='primary', use_container_width=True)
 
     if analyze_btn and question:
-        with st.spinner('🤖 AI 正在生成分析报告...'):
-            import time
-            time.sleep(1.5)  # 模拟推理时间
+        # 检测 LLM 配置 (B7)
+        llm_config = get_llm_config()
+        use_real_llm = llm_config['api_key'] is not None
 
-            result = ai_qa_mock(question)
+        if use_real_llm:
+            spinner_text = f'🤖 {llm_config["provider"].upper()} AI 正在生成分析报告...'
+        else:
+            spinner_text = '🤖 AI 正在生成分析报告 (Mock 模式, 配置 API key 可启用真实 LLM)...'
+
+        with st.spinner(spinner_text):
+            import time
+            t0 = time.time()
+
+            if use_real_llm:
+                try:
+                    result = ai_qa_real(question, llm_config)
+                    st.success(f'✅ 真实 LLM ({llm_config["provider"].upper()} {llm_config["model"]}) 推理完成, 耗时 {time.time()-t0:.1f}s')
+                except Exception as e:
+                    st.warning(f'⚠️ 真实 LLM 调用失败: {e}, 回退到 Mock 模式')
+                    result = ai_qa_mock(question)
+            else:
+                time.sleep(1.0)  # 模拟推理时间
+                result = ai_qa_mock(question)
 
             st.markdown('---')
             st.markdown(f'## 📄 {result["title"]}')
