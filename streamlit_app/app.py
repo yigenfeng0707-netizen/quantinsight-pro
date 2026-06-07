@@ -502,11 +502,23 @@ if page == '🏠 首页':
     # 核心指标卡片
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric('沪深300', f'{load_hs300()["close"].iloc[-1]:.2f}', f'{load_hs300()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_hs300 = load_hs300()
+            st.metric('沪深300', f'{df_hs300["close"].iloc[-1]:.2f}', f'{df_hs300["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('沪深300', '加载中', '')
     with col2:
-        st.metric('中证500', f'{load_zz500()["close"].iloc[-1]:.2f}', f'{load_zz500()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_zz500 = load_zz500()
+            st.metric('中证500', f'{df_zz500["close"].iloc[-1]:.2f}', f'{df_zz500["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('中证500', '加载中', '')
     with col3:
-        st.metric('创业板指', f'{load_cyb()["close"].iloc[-1]:.2f}', f'{load_cyb()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_cyb = load_cyb()
+            st.metric('创业板指', f'{df_cyb["close"].iloc[-1]:.2f}', f'{df_cyb["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('创业板指', '加载中', '')
     with col4:
         # 北向资金: 尝试从 akshare 实时获取, 失败则显示提示
         try:
@@ -534,7 +546,7 @@ if page == '🏠 首页':
         st.markdown("""
         <div class="feature-card">
             <h3>🤖 AI 投研问答</h3>
-            <p>基于开源大模型微调+RAG，支持自然语言投研分析、智能问答、报告生成</p>
+            <p>基于开源大模型微调+RAG<br/>支持自然语言投研分析、智能问答、报告生成</p>
             <p><strong>特色：</strong>专业金融知识理解、深度行业研究</p>
         </div>
         """, unsafe_allow_html=True)
@@ -543,7 +555,7 @@ if page == '🏠 首页':
         st.markdown("""
         <div class="feature-card">
             <h3>📡 另类数据中心</h3>
-            <p>整合卫星图像、舆情分析、供应链数据等多维数据，构建数据壁垒</p>
+            <p>整合卫星图像、舆情分析、供应链数据<br/>构建另类数据壁垒</p>
             <p><strong>特色：</strong>多源数据融合、实时信号捕捉</p>
         </div>
         """, unsafe_allow_html=True)
@@ -552,7 +564,7 @@ if page == '🏠 首页':
         st.markdown("""
         <div class="feature-card">
             <h3>📈 量化策略平台</h3>
-            <p>支持多策略回测、参数优化、绩效归因、组合管理</p>
+            <p>支持多策略回测、参数优化<br/>绩效归因、组合管理</p>
             <p><strong>特色：</strong>可复现方法学、真实历史数据</p>
         </div>
         """, unsafe_allow_html=True)
@@ -568,7 +580,7 @@ if page == '🏠 首页':
 # ============== 页面：AI 投研问答 ==============
 elif page == '🤖 AI 投研问答':
     st.markdown('# 🤖 AI 投研问答')
-    st.markdown('**基于自研金融大模型，支持自然语言投研分析 + 多轮对话**')
+    st.markdown('**基于开源大模型微调+RAG，支持自然语言投研分析 + 多轮对话**')
 
     st.markdown('---')
 
@@ -869,7 +881,8 @@ elif page == '📈 量化策略回测':
         run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
 
     if run_btn:
-        with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
+        try:
+          with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
             df_raw = load_index(symbol_map[index_choice])
             bt_df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
@@ -929,12 +942,14 @@ elif page == '📈 量化策略回测':
             # NAV 曲线
             nav_series = bt_result.nav_series
             benchmark_nav = bh_result.nav_series
+            # nav_series 的 index 是整数, 需要用 bt_df 的日期作为 x 轴
+            bt_dates = bt_df['date'].values
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=nav_series.index, y=nav_series.values,
+            fig.add_trace(go.Scatter(x=bt_dates, y=nav_series.values,
                                      mode='lines', name='策略净值',
                                      line=dict(color='#1F4E78', width=2.5)))
-            fig.add_trace(go.Scatter(x=benchmark_nav.index, y=benchmark_nav.values,
+            fig.add_trace(go.Scatter(x=bt_dates, y=benchmark_nav.values,
                                      mode='lines', name='基准净值',
                                      line=dict(color='#A23B72', width=2, dash='dash')))
             fig.update_layout(
@@ -950,7 +965,7 @@ elif page == '📈 量化策略回测':
             dd = (nav_series - cummax) / cummax
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=dd.index, y=dd * 100,
+            fig.add_trace(go.Scatter(x=bt_dates, y=dd * 100,
                                      mode='lines', name='回撤',
                                      line=dict(color='#D62246', width=2),
                                      fill='tozeroy', fillcolor='rgba(214, 34, 70, 0.2)'))
@@ -965,14 +980,18 @@ elif page == '📈 量化策略回测':
             # 详细数据
             st.markdown('### 📋 详细数据 (最近 30 个交易日)')
             detail_df = pd.DataFrame({
+                '日期': bt_dates,
                 'close': bt_df['close'].values,
-                'signal': bt_result.signal_series.values,
+                'signal': bt_result.signal_series.values if bt_result.signal_series is not None else [0]*len(bt_df),
                 'nav': nav_series.values,
                 'benchmark': benchmark_nav.values,
-            }, index=bt_df['date'].values)
+            })
             st.dataframe(detail_df.tail(30), use_container_width=True)
 
             st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(bt_df)} 个交易日')
+        except Exception as e:
+            st.error(f'❌ 回测运行失败: {type(e).__name__}: {str(e)[:200]}')
+            st.info('💡 请检查: 1) 网络连接 2) 起始日期是否太早导致数据不足 3) 稍后重试')
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -1004,36 +1023,38 @@ elif page == '📊 行业分析':
         with st.spinner('加载行业数据 (1 小时缓存)...'):
             df_industry = load_industry_cons(industry_code)
 
-        st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
+        if df_industry is None or len(df_industry) == 0:
+            st.warning('行业数据为空, 请稍后重试')
+        else:
+            st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
 
-        # 数据预处理
-        if '涨跌幅' in df_industry.columns:
-            df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
-            fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
-                         color='涨跌幅', color_continuous_scale='RdYlGn',
-                         title=f'{selected_industry} 涨跌幅 TOP 20',
-                         hover_data=['代码', '最新价', '市盈率-动态'])
-            fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
-            st.plotly_chart(fig, use_container_width=True)
+            # 数据预处理
+            if '涨跌幅' in df_industry.columns:
+                df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
+                fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
+                             color='涨跌幅', color_continuous_scale='RdYlGn',
+                             title=f'{selected_industry} 涨跌幅 TOP 20',
+                             hover_data=['代码', '最新价', '市盈率-动态'] if '市盈率-动态' in df_sorted.columns else ['代码', '最新价'])
+                fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+                st.plotly_chart(fig, use_container_width=True)
 
-        # 完整数据表
-        st.markdown('### 📋 完整成分股数据')
-        st.dataframe(
-            df_industry[['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态']].head(50),
-            use_container_width=True
-        )
+            # 完整数据表
+            st.markdown('### 📋 完整成分股数据')
+            display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
+            st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
 
     except Exception as e:
         st.warning(f'行业数据加载失败：{type(e).__name__}: {str(e)[:100]}')
-        st.info('请检查网络连接或稍后重试')
+        st.info('💡 网络不稳定时可能加载失败, 请稍后重试或检查网络连接')
 
         # Fallback: 显示申万行业静态信息 (使用缓存)
         try:
             st.markdown('### 📚 申万三级行业 (24 小时缓存)')
             df_sw = load_sw_index()
-            st.dataframe(df_sw.head(30), use_container_width=True)
+            if df_sw is not None and len(df_sw) > 0:
+                st.dataframe(df_sw.head(30), use_container_width=True)
         except Exception:
-            pass
+            st.caption('申万行业数据也无法加载')
 
 # ============== 页脚 ==============
 st.markdown('---')
