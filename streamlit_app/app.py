@@ -1,5 +1,5 @@
 """
-QuantInsight Pro - 可运行 Demo 原型
+QuantInsight Pro - AI 驱动的另类数据量化投研平台
 3 大模块：
 1. AI 投研问答
 2. 另类数据仪表盘
