@@ -1,0 +1,62 @@
+# QuantInsight Pro - .gitignore
+
+# 密码和密钥文件 (安全)
+_pwd_*.txt
+_pwd_*.key
+*.key
+*.pem
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Windows 系统文件
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.bak
+*.log
+_test_*.py
+_test_*.ps1
+_test_sensenova*.py
+_streamlit_test*.log
+_gen_*.py
+_broll_frames/
+_t33_*
+_push_via_api.py
+
+# 中间产物 (frames/segments 大量小文件)
+_video_frames/
+_video_segments/
+_t11_frames/
+_t11_segments/
+_t12_frames/
+_t12_segments/
+_t1*_frames/
+_t1*_segments/
+_evidence_pack/
+_narration*.wav
+_narration*.mp3
+_tts_text.txt
+
+# Streamlit 缓存
+.streamlit/secrets.toml
+
+# 临时数据 (akshare 可重新下载)
+_data_*
