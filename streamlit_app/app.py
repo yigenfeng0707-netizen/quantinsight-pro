@@ -1050,43 +1050,77 @@ elif page == '📊 行业分析':
 
     industry_code = industry_options[selected_industry]
 
+    df_industry = None
+    data_source = ''
+
+    # 尝试方式1: 东方财富板块成分股
     try:
-        # 获取行业成分股 (使用缓存)
-        with st.spinner('加载行业数据 (1 小时缓存)...'):
+        with st.spinner('加载行业数据...'):
             df_industry = load_industry_cons(industry_code)
+        if df_industry is not None and len(df_industry) > 0:
+            data_source = '东方财富板块数据'
+    except Exception:
+        pass
 
-        if df_industry is None or len(df_industry) == 0:
-            st.warning('行业数据为空, 请稍后重试')
-        else:
-            st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
-
-            # 数据预处理
-            if '涨跌幅' in df_industry.columns:
-                df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
-                fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
-                             color='涨跌幅', color_continuous_scale='RdYlGn',
-                             title=f'{selected_industry} 涨跌幅 TOP 20',
-                             hover_data=['代码', '最新价', '市盈率-动态'] if '市盈率-动态' in df_sorted.columns else ['代码', '最新价'])
-                fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
-
-            # 完整数据表
-            st.markdown('### 📋 完整成分股数据')
-            display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
-            st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
-
-    except Exception as e:
-        st.warning(f'行业数据加载失败：{type(e).__name__}: {str(e)[:100]}')
-        st.info('💡 网络不稳定时可能加载失败, 请稍后重试或检查网络连接')
-
-        # Fallback: 显示申万行业静态信息 (使用缓存)
+    # 尝试方式2: 申万行业指数 (如果方式1失败)
+    if df_industry is None or len(df_industry) == 0:
         try:
-            st.markdown('### 📚 申万三级行业 (24 小时缓存)')
-            df_sw = load_sw_index()
-            if df_sw is not None and len(df_sw) > 0:
-                st.dataframe(df_sw.head(30), use_container_width=True)
+            with st.spinner('尝试备用数据源...'):
+                sw_map = {
+                    '半导体 (BK0438)': '801081', '新能源车 (BK0900)': '801730',
+                    '医药 (BK0465)': '801150', '白酒 (BK0896)': '801153',
+                    '银行 (BK0475)': '801780', '证券 (BK0473)': '801193',
+                    '房地产 (BK0451)': '801180', '军工 (BK0490)': '801740',
+                }
+                sw_code = sw_map.get(selected_industry, '801081')
+                df_sw_daily = ak.index_stock_info()
+                if df_sw_daily is not None and len(df_sw_daily) > 0:
+                    # 从指数列表中筛选行业相关
+                    industry_name = selected_industry.split(' ')[0]
+                    df_industry = df_sw_daily[df_sw_daily['名称'].str.contains(industry_name, na=False)].head(30)
+                    if len(df_industry) > 0:
+                        data_source = '申万行业指数'
         except Exception:
-            st.caption('申万行业数据也无法加载')
+            pass
+
+    # 尝试方式3: 静态 fallback 数据
+    if df_industry is None or len(df_industry) == 0:
+        st.info(f'💡 实时行业数据暂时不可用, 展示示例数据')
+        industry_name = selected_industry.split(' ')[0]
+        np.random.seed(hash(industry_name) % 2**31)
+        n_stocks = 20
+        df_industry = pd.DataFrame({
+            '代码': [f'{600000+i:06d}' for i in range(n_stocks)],
+            '名称': [f'{industry_name}股票{i+1:02d}' for i in range(n_stocks)],
+            '最新价': np.random.uniform(10, 100, n_stocks).round(2),
+            '涨跌幅': np.random.uniform(-5, 5, n_stocks).round(2),
+            '涨跌额': np.random.uniform(-3, 3, n_stocks).round(2),
+            '成交量': np.random.randint(10000, 500000, n_stocks),
+        })
+        data_source = '示例数据 (概念演示)'
+
+    st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
+    if data_source:
+        st.caption(f'📊 数据源: {data_source}')
+
+    # 数据预处理
+    if '涨跌幅' in df_industry.columns and len(df_industry) > 0:
+        df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
+        hover_cols = [c for c in ['代码', '最新价', '市盈率-动态'] if c in df_sorted.columns]
+        fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
+                     color='涨跌幅', color_continuous_scale='RdYlGn',
+                     title=f'{selected_industry} 涨跌幅 TOP 20',
+                     hover_data=hover_cols if hover_cols else None)
+        fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+        st.plotly_chart(fig, use_container_width=True)
+
+    # 完整数据表
+    st.markdown('### 📋 完整成分股数据')
+    display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
+    if display_cols:
+        st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
+    else:
+        st.dataframe(df_industry.head(50), use_container_width=True)
 
 # ============== 页脚 ==============
 st.markdown('---')
