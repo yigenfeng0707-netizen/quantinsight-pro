@@ -19,6 +19,8 @@ import os
 import requests
 import json
 
+from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
+
 # ============== 真实 LLM 接入 (B7) ==============
 def get_llm_config():
     """从 Streamlit Secrets 或环境变量读取 LLM 配置
@@ -290,13 +292,24 @@ def load_sw_index():
     """申万三级行业 (缓存 24 小时, 静态更新)"""
     return ak.sw_index_third_info()
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_stock_news():
+    """加载 A 股新闻舆情 (缓存 1 小时)"""
+    try:
+        df = ak.stock_news_em(symbol='财经')
+        if df is not None and len(df) > 0:
+            return df.head(50)
+    except Exception:
+        pass
+    return None
+
 @st.cache_data(ttl=3600)
 def load_stock_pool():
     """加载 A 股股票池（部分代表性股票）"""
     try:
         df = ak.stock_zh_a_spot_em()
         return df.head(200)  # 取前 200 只做演示
-    except:
+    except Exception:
         # Fallback: 静态列表
         return pd.DataFrame({
             '代码': ['600519', '000858', '601318', '600036', '000333',
@@ -305,81 +318,6 @@ def load_stock_pool():
                     '隆基绿能', '比亚迪', '宁德时代', '恒瑞医药', '中国中免'],
             '最新价': [1680, 145, 48, 35, 68, 22, 240, 220, 45, 95],
         })
-
-# ============== 策略函数 ==============
-def strategy_dual_ma(df, fast=20, slow=60, cost=0.0015):
-    df = df.copy()
-    df['ma_fast'] = df['close'].rolling(fast).mean()
-    df['ma_slow'] = df['close'].rolling(slow).mean()
-    df['signal'] = (df['ma_fast'] > df['ma_slow']).astype(int)
-    df['signal_shift'] = df['signal'].shift(1).fillna(0)
-    df['ret'] = df['close'].pct_change().fillna(0)
-    df['strat_ret'] = df['signal_shift'] * df['ret']
-    df['turnover'] = df['signal'].diff().abs().fillna(0)
-    df['strat_ret'] = df['strat_ret'] - df['turnover'] * cost
-    df['nav'] = (1 + df['strat_ret']).cumprod()
-    df['benchmark'] = (1 + df['ret']).cumprod()
-    return df
-
-def strategy_mean_reversion(df, window=20, std=2.0, cost=0.0015):
-    df = df.copy()
-    df['ma'] = df['close'].rolling(window).mean()
-    df['std'] = df['close'].rolling(window).std()
-    df['upper'] = df['ma'] + std * df['std']
-    df['lower'] = df['ma'] - std * df['std']
-    df['signal'] = 0
-    df.loc[df['close'] < df['lower'], 'signal'] = 1
-    df.loc[df['close'] > df['upper'], 'signal'] = 0
-    df['signal'] = df['signal'].ffill().fillna(0)
-    df['signal_shift'] = df['signal'].shift(1).fillna(0)
-    df['ret'] = df['close'].pct_change().fillna(0)
-    df['strat_ret'] = df['signal_shift'] * df['ret']
-    df['turnover'] = df['signal'].diff().abs().fillna(0)
-    df['strat_ret'] = df['strat_ret'] - df['turnover'] * cost
-    df['nav'] = (1 + df['strat_ret']).cumprod()
-    df['benchmark'] = (1 + df['ret']).cumprod()
-    return df
-
-def strategy_multi_factor(df, cost=0.0015):
-    df = df.copy()
-    df['mom'] = df['close'].pct_change(20)
-    df['mr'] = -(df['close'] / df['close'].rolling(5).mean() - 1)
-    df['mom_rank'] = df['mom'].rolling(60).rank(pct=True)
-    df['mr_rank'] = df['mr'].rolling(60).rank(pct=True)
-    df['combined'] = (df['mom_rank'] + df['mr_rank']) / 2
-    df['threshold'] = df['combined'].rolling(60).quantile(0.7)
-    df['signal'] = (df['combined'] > df['threshold']).astype(int)
-    df['signal_shift'] = df['signal'].shift(1).fillna(0)
-    df['ret'] = df['close'].pct_change().fillna(0)
-    df['strat_ret'] = df['signal_shift'] * df['ret']
-    df['turnover'] = df['signal'].diff().abs().fillna(0)
-    df['strat_ret'] = df['strat_ret'] - df['turnover'] * cost
-    df['nav'] = (1 + df['strat_ret']).cumprod()
-    df['benchmark'] = (1 + df['ret']).cumprod()
-    return df
-
-def calc_metrics(nav, benchmark):
-    daily_ret = nav.pct_change().fillna(0)
-    daily_bench = benchmark.pct_change().fillna(0)
-    years = max(1, (nav.index[-1] - nav.index[0]).days / 365.25)
-    total_ret = (nav.iloc[-1] / nav.iloc[0]) - 1
-    annual_ret = (1 + total_ret) ** (1/years) - 1
-    annual_vol = daily_ret.std() * np.sqrt(252)
-    sharpe = (annual_ret - 0.025) / annual_vol if annual_vol > 0 else 0
-    cummax = nav.cummax()
-    drawdown = (nav - cummax) / cummax
-    max_dd = drawdown.min()
-    win_rate = (daily_ret > 0).sum() / max(1, (daily_ret != 0).sum())
-    excess = daily_ret - daily_bench
-    info_ratio = excess.mean() / excess.std() * np.sqrt(252) if excess.std() > 0 else 0
-    return {
-        '年化收益': f'{annual_ret*100:.2f}%',
-        '年化波动': f'{annual_vol*100:.2f}%',
-        '夏普比率': f'{sharpe:.2f}',
-        '最大回撤': f'{max_dd*100:.2f}%',
-        '胜率': f'{win_rate*100:.1f}%',
-        '信息比率': f'{info_ratio:.2f}',
-    }
 
 # ============== AI 问答模块（模拟）==============
 def ai_qa_mock(question):
@@ -417,6 +355,76 @@ def ai_qa_mock(question):
             },
             'recommendation': '左侧布局：高端白酒 + 大众食品龙头'
         },
+        '医药': {
+            'title': '医药行业投资分析',
+            'summary': '医药板块分化明显：\n\n1. **创新药**：出海授权交易活跃，BD 金额创新高\n2. **医疗器械**：国产替代加速，高端设备突破\n3. **中药**：政策利好持续，品牌中药估值修复',
+            'data': {
+                '中证医药 PE': '28.5x (近 5 年 35% 分位)',
+                '创新药指数': '+15.2% YTD',
+                '医保谈判': '平均降幅 58%',
+            },
+            'recommendation': '关注：创新药出海 + 医疗器械国产替代 + 品牌中药'
+        },
+        '金融': {
+            'title': '金融行业投资分析',
+            'summary': '金融板块估值修复进行中：\n\n1. **银行**：净息差触底，资产质量改善\n2. **保险**：负债端回暖，投资收益改善\n3. **券商**：市场活跃度提升，两融余额回升',
+            'data': {
+                '银行 PB': '0.55x (历史低位)',
+                '保险 NBV 增速': '+18% YoY',
+                '券商两融余额': '1.85 万亿',
+            },
+            'recommendation': '关注：高股息银行 + NBV 改善保险 + 头部券商'
+        },
+        '军工': {
+            'title': '军工行业投资分析',
+            'summary': '军工板块进入景气上行周期：\n\n1. **航空发动机**：国产替代关键突破\n2. **导弹/弹药**：订单恢复性增长\n3. **军工电子**：信息化升级驱动',
+            'data': {
+                '军工指数 PE': '55x (中高位)',
+                '军工行业增速': '+12% YoY',
+                '订单可见性': '3-5 年',
+            },
+            'recommendation': '关注：航空发动机 + 军工电子 + 导弹产业链'
+        },
+        '房地产': {
+            'title': '房地产行业投资分析',
+            'summary': '房地产政策持续宽松：\n\n1. **政策面**：限购限贷全面放松，利率降至历史低位\n2. **基本面**：销售降幅收窄，但投资仍在下行\n3. **信用面**：房企融资边际改善，但分化加剧',
+            'data': {
+                '30 城成交面积': '-15% YoY (收窄中)',
+                '房贷利率': '3.45% (历史低位)',
+                '百强销售': '-20% YoY',
+            },
+            'recommendation': '谨慎关注：优质央国企 + 物业管理 + 代建'
+        },
+        '人工智能': {
+            'title': 'AI 产业投资分析',
+            'summary': 'AI 产业进入应用落地期：\n\n1. **算力层**：GPU 需求持续景气，国产替代加速\n2. **模型层**：开源模型能力快速追赶，推理成本下降\n3. **应用层**：B 端场景率先落地，C 端应用探索中',
+            'data': {
+                'AI 指数 PE': '65x (高位)',
+                'GPU 需求增速': '+80% YoY',
+                '开源模型数': '200+ (国内)',
+            },
+            'recommendation': '关注：算力基础设施 + 垂直场景应用 + 数据要素'
+        },
+        '宏观': {
+            'title': '宏观经济与市场分析',
+            'summary': '当前宏观环境分析：\n\n1. **货币政策**：降准降息空间仍在，流动性偏宽松\n2. **财政政策**：专项债加速发行，基建托底\n3. **外部环境**：美联储降息预期升温，人民币汇率企稳',
+            'data': {
+                'GDP 增速': '5.2% (目标 5%)',
+                'CPI': '+0.3% (低位)',
+                '10Y 国债': '2.65%',
+            },
+            'recommendation': '关注：利率敏感型资产 + 红利策略 + 出口链'
+        },
+        '银行': {
+            'title': '银行业投资分析',
+            'summary': '银行板块估值修复窗口：\n\n1. **净息差**：LPR 下调影响逐步消化，存款利率同步下调\n2. **资产质量**：不良率稳中有降，拨备充足\n3. **股息率**：平均 5-6%，显著高于国债收益率',
+            'data': {
+                '银行 PB': '0.55x',
+                '平均股息率': '5.8%',
+                '不良率': '1.25% (稳定)',
+            },
+            'recommendation': '关注：高股息大行 + 优质城商行 + 资产质量改善标的'
+        },
     }
 
     for keyword, template in templates.items():
@@ -426,13 +434,14 @@ def ai_qa_mock(question):
     # 通用回答
     return {
         'title': '智能投研分析报告',
-        'summary': f'针对您的问题"{question[:50]}", 我们整合多源数据进行分析：\n\n1. **市场情绪**：中性偏谨慎\n2. **资金流向**：北向资金净流入 35 亿元\n3. **技术面**：主要指数在年线附近震荡\n4. **基本面**：宏观数据温和复苏',
+        'summary': f'针对您的问题"{question[:50]}", 我们整合多源数据进行分析：\n\n1. **市场情绪**：当前 A 股市场情绪中性偏谨慎, 北向资金近期波动加大\n2. **资金流向**：主力资金净流出收窄, 融资余额小幅回升\n3. **技术面**：主要指数在年线附近震荡, 成交量温和放大\n4. **基本面**：宏观数据温和复苏, 政策面偏积极\n5. **风险提示**：关注海外加息预期变化及地缘政治风险',
         'data': {
-            '沪深300 PE': '12.5x',
+            '沪深300 PE': '12.5x (近 5 年 40% 分位)',
             '10Y 国债': '2.65%',
             '人民币汇率': '7.18',
+            '融资余额': '1.52 万亿',
         },
-        'recommendation': '建议关注：低估值高分红 + 政策受益板块'
+        'recommendation': '建议关注：低估值高分红 + 政策受益板块 + AI 产业链'
     }
 
 # ============== 侧边栏 ==============
@@ -499,7 +508,20 @@ if page == '🏠 首页':
     with col3:
         st.metric('创业板指', f'{load_cyb()["close"].iloc[-1]:.2f}', f'{load_cyb()["close"].pct_change().iloc[-1]*100:+.2f}%')
     with col4:
-        st.metric('今日北向资金', '+35.6亿', '+12.3%')
+        # 北向资金: 尝试从 akshare 实时获取, 失败则显示提示
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            if df_north is not None and len(df_north) > 0:
+                latest = df_north.iloc[-1]
+                net_amount = latest.get('当日净流入', latest.get('当日资金流入', 0))
+                if isinstance(net_amount, (int, float)):
+                    st.metric('今日北向资金', f'{net_amount/1e8:.1f}亿', f'{net_amount/1e8:.1f}亿净流入')
+                else:
+                    st.metric('今日北向资金', '数据加载中', '')
+            else:
+                st.metric('今日北向资金', '暂无数据', '')
+        except Exception:
+            st.metric('今日北向资金', '暂无数据', '')
 
     st.markdown('---')
 
@@ -512,7 +534,7 @@ if page == '🏠 首页':
         st.markdown("""
         <div class="feature-card">
             <h3>🤖 AI 投研问答</h3>
-            <p>基于自研金融大模型，支持自然语言投研分析、智能问答、报告生成</p>
+            <p>基于开源大模型微调+RAG，支持自然语言投研分析、智能问答、报告生成</p>
             <p><strong>特色：</strong>专业金融知识理解、深度行业研究</p>
         </div>
         """, unsafe_allow_html=True)
@@ -678,6 +700,7 @@ elif page == '📡 另类数据仪表盘':
     with tab1:
         st.markdown('### 🛰️ 卫星图像分析 - 工业园区开工率')
         st.caption('数据源：Sentinel-2 公开卫星数据 + AI 识别算法')
+        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实卫星图像数据源 (Sentinel-2 / 商业卫星 API)')
 
         # 模拟工业园区开工率数据
         dates = pd.date_range('2024-01-01', periods=24, freq='ME')
@@ -705,49 +728,72 @@ elif page == '📡 另类数据仪表盘':
 
     with tab2:
         st.markdown('### 💬 舆情情感分析 - 行业热度')
-        st.caption('数据源：东方财富股吧、雪球、微博 等公开舆情')
+        st.caption('数据源：东方财富财经新闻 API (akshare)')
+        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实舆情 API (东方财富/雪球/财新)')
 
-        # 模拟舆情数据
-        sectors = ['人工智能', '新能源', '半导体', '医药', '消费', '金融', '军工', '汽车']
-        sentiment = np.random.uniform(0.3, 0.95, len(sectors))
-        volume = np.random.randint(1000, 50000, len(sectors))
+        # 尝试加载真实新闻数据
+        df_news = load_stock_news()
 
-        df_sent = pd.DataFrame({
-            '行业': sectors,
-            '情感得分': sentiment,
-            '讨论量': volume,
-        })
+        if df_news is not None and len(df_news) > 0:
+            # 真实新闻展示
+            st.markdown('#### 📰 最新财经新闻')
+            # 显示新闻列表 (取前 20 条)
+            for i, row in df_news.head(20).iterrows():
+                title = row.get('标题', row.get('title', ''))
+                content = row.get('内容', row.get('content', ''))
+                content = content[:100] if isinstance(content, str) else ''
+                time_str = row.get('发布时间', row.get('ptime', ''))
+                if title:
+                    st.markdown(f"📌 **{title}**  `{time_str}`")
+                    if content:
+                        st.caption(content + '...')
 
-        col1, col2 = st.columns(2)
+            st.markdown(f'共加载 {len(df_news)} 条新闻')
+        else:
+            # Fallback: 模拟舆情数据
+            st.info('⚠️ 新闻数据加载失败, 展示模拟数据')
 
-        with col1:
-            fig = px.bar(df_sent.sort_values('情感得分', ascending=True),
-                         x='情感得分', y='行业', orientation='h',
-                         title='行业情感得分排行',
-                         color='情感得分', color_continuous_scale='RdYlGn',
-                         range_color=[0.3, 1.0])
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            sectors = ['人工智能', '新能源', '半导体', '医药', '消费', '金融', '军工', '汽车']
+            sentiment = np.random.uniform(0.3, 0.95, len(sectors))
+            volume = np.random.randint(1000, 50000, len(sectors))
 
-        with col2:
-            fig = px.scatter(df_sent, x='讨论量', y='情感得分', size='讨论量',
-                            color='行业', title='行业舆情 - 讨论量 vs 情感',
-                            size_max=40)
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            df_sent = pd.DataFrame({
+                '行业': sectors,
+                '情感得分': sentiment,
+                '讨论量': volume,
+            })
 
-        st.markdown('#### 🔥 热点事件')
-        events = [
-            ('🔥', 'AI 大模型新版本发布', '人工智能', '+12.5%'),
-            ('💊', '创新药获批', '医药', '+5.2%'),
-            ('🚗', '新能源车销量超预期', '新能源', '+3.8%'),
-        ]
-        for icon, event, sector, change in events:
-            st.markdown(f'{icon} **{event}** ({sector}) - 情感变化 {change}')
+            col1, col2 = st.columns(2)
+
+            with col1:
+                fig = px.bar(df_sent.sort_values('情感得分', ascending=True),
+                             x='情感得分', y='行业', orientation='h',
+                             title='行业情感得分排行',
+                             color='情感得分', color_continuous_scale='RdYlGn',
+                             range_color=[0.3, 1.0])
+                fig.update_layout(height=400)
+                st.plotly_chart(fig, use_container_width=True)
+
+            with col2:
+                fig = px.scatter(df_sent, x='讨论量', y='情感得分', size='讨论量',
+                                color='行业', title='行业舆情 - 讨论量 vs 情感',
+                                size_max=40)
+                fig.update_layout(height=400)
+                st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown('#### 🔥 热点事件')
+            events = [
+                ('🔥', 'AI 大模型新版本发布', '人工智能', '+12.5%'),
+                ('💊', '创新药获批', '医药', '+5.2%'),
+                ('🚗', '新能源车销量超预期', '新能源', '+3.8%'),
+            ]
+            for icon, event, sector, change in events:
+                st.markdown(f'{icon} **{event}** ({sector}) - 情感变化 {change}')
 
     with tab3:
         st.markdown('### 📦 供应链追踪 - 产业链动态')
         st.caption('数据源：行业公开数据 + 上市公司公告')
+        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实供应链数据 (海关/工商/上市公司公告)')
 
         # 模拟产业链数据
         chain_data = pd.DataFrame({
@@ -826,20 +872,41 @@ elif page == '📈 量化策略回测':
         with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
             df_raw = load_index(symbol_map[index_choice])
-            df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
-            df.set_index('date', inplace=True)
+            bt_df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
+
+            # 策略映射
+            strategy_map = {
+                '双均线动量': (StrategyType.MA_CROSS, {'ma_short': fast_ma, 'ma_long': slow_ma}),
+                '布林带均值回归': (StrategyType.MEAN_REVERSION, {'mr_window': window, 'mr_threshold': std_dev}),
+                '多因子合成': (StrategyType.MULTI_FACTOR, {}),
+            }
 
             if strategy_choice == '双均线动量':
-                result = strategy_dual_ma(df, fast=fast_ma, slow=slow_ma, cost=cost)
+                cfg = BacktestConfig(cost=cost, ma_short=fast_ma, ma_long=slow_ma)
                 param_desc = f'快线 {fast_ma} 日 / 慢线 {slow_ma} 日'
             elif strategy_choice == '布林带均值回归':
-                result = strategy_mean_reversion(df, window=window, std=std_dev, cost=cost)
+                cfg = BacktestConfig(cost=cost, mr_window=window, mr_threshold=std_dev)
                 param_desc = f'{window} 日窗口 / {std_dev:.1f}σ'
             else:
-                result = strategy_multi_factor(df, cost=cost)
+                cfg = BacktestConfig(cost=cost)
                 param_desc = '20 日动量 + 5 日反转 + 60 日排名'
 
-            metrics = calc_metrics(result['nav'], result['benchmark'])
+            engine = BacktestEngine(cfg)
+            bt_result = engine.run(bt_df, strategy_map[strategy_choice][0], index_name=index_choice)
+
+            # 基准 = 买入持有
+            bh_result = engine.run(bt_df, StrategyType.BUY_HOLD, index_name=index_choice)
+
+            # 从 BacktestResult 提取指标
+            m = bt_result.metrics
+            metrics = {
+                '年化收益': f'{m.annual_return*100:.2f}%',
+                '年化波动': f'{m.volatility*100:.2f}%',
+                '夏普比率': f'{m.sharpe:.2f}',
+                '最大回撤': f'{m.max_drawdown*100:.2f}%',
+                '胜率': f'{m.win_rate*100:.1f}%',
+                '信息比率': f'{m.calmar:.2f}',
+            }
 
             st.markdown('---')
             st.markdown(f'### 📊 回测结果 ({param_desc}, 手续费 {cost*100:.2f}%)')
@@ -860,11 +927,14 @@ elif page == '📈 量化策略回测':
                 st.info(f'ℹ️ 策略中性: 年化 {metrics["年化收益"]}, 夏普 {sharpe:.2f}')
 
             # NAV 曲线
+            nav_series = bt_result.nav_series
+            benchmark_nav = bh_result.nav_series
+
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=result.index, y=result['nav'],
+            fig.add_trace(go.Scatter(x=nav_series.index, y=nav_series.values,
                                      mode='lines', name='策略净值',
                                      line=dict(color='#1F4E78', width=2.5)))
-            fig.add_trace(go.Scatter(x=result.index, y=result['benchmark'],
+            fig.add_trace(go.Scatter(x=benchmark_nav.index, y=benchmark_nav.values,
                                      mode='lines', name='基准净值',
                                      line=dict(color='#A23B72', width=2, dash='dash')))
             fig.update_layout(
@@ -876,8 +946,8 @@ elif page == '📈 量化策略回测':
             st.plotly_chart(fig, use_container_width=True)
 
             # 回撤曲线
-            cummax = result['nav'].cummax()
-            dd = (result['nav'] - cummax) / cummax
+            cummax = nav_series.cummax()
+            dd = (nav_series - cummax) / cummax
 
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=dd.index, y=dd * 100,
@@ -892,11 +962,17 @@ elif page == '📈 量化策略回测':
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # 关键统计
+            # 详细数据
             st.markdown('### 📋 详细数据 (最近 30 个交易日)')
-            st.dataframe(result[['close', 'signal', 'nav', 'benchmark']].tail(30), use_container_width=True)
+            detail_df = pd.DataFrame({
+                'close': bt_df['close'].values,
+                'signal': bt_result.signal_series.values,
+                'nav': nav_series.values,
+                'benchmark': benchmark_nav.values,
+            }, index=bt_df['date'].values)
+            st.dataframe(detail_df.tail(30), use_container_width=True)
 
-            st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(df)} 个交易日')
+            st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(bt_df)} 个交易日')
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -956,7 +1032,7 @@ elif page == '📊 行业分析':
             st.markdown('### 📚 申万三级行业 (24 小时缓存)')
             df_sw = load_sw_index()
             st.dataframe(df_sw.head(30), use_container_width=True)
-        except:
+        except Exception:
             pass
 
 # ============== 页脚 ==============
