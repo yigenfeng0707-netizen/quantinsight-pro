@@ -87,7 +87,7 @@ QuantInsight Pro 是面向中国资管行业的下一代智能投研平台，旨
 │  算法层 (Algorithm Layer)                               │
 │  ├─ 因子库 (50+ 学术因子)                                │
 │  ├─ 策略库 (6 大内置策略)                                 │
-│  ├─ LLM 模型 (30 亿参数金融大模型 + RAG)                │
+│  ├─ LLM 模型 (基于开源大模型微调+RAG的金融投研智能体)     │
 │  └─ NLP 引擎 (FinBERT + 自训练舆情模型)                  │
 ├─────────────────────────────────────────────────────────┤
 │  数据层 (Data Layer)                                    │
@@ -102,6 +102,20 @@ QuantInsight Pro 是面向中国资管行业的下一代智能投研平台，旨
 │  └─ 多云部署 (阿里云主 + 腾讯云备)                        │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### 2.1.1 当前 Demo 与生产架构说明
+
+> **重要说明**: 当前在线 Demo (Streamlit Cloud) 为 **MVP (最小可行产品)** 阶段, 采用轻量级技术栈 (Streamlit + akshare + Plotly), 旨在验证核心功能可行性. 上文 5 层架构为**生产环境目标架构**, 两者对应关系如下:
+>
+> | 层级 | 生产架构 (目标) | 当前 Demo (MVP) | 差距 |
+> |------|----------------|-----------------|------|
+> | 应用层 | React + TypeScript | Streamlit | 功能等价, 交互简化 |
+> | 服务层 | 微服务 + K8s | 单体 Streamlit | 逻辑等价, 部署简化 |
+> | 算法层 | 自研因子库 + LLM | 5 策略 + 开源 LLM API | 核心已实现 |
+> | 数据层 | ClickHouse + PostgreSQL | akshare API + 缓存 | 数据源等价, 存储简化 |
+> | 基础设施 | K8s + GPU + 多云 | Streamlit Cloud | 部署简化, 功能验证 |
+>
+> **核心逻辑一致**: 回测引擎、AI 问答、策略信号等核心功能在 MVP 和生产架构中逻辑完全一致, 差异仅在部署规模和数据量级.
 
 ### 2.2 核心设计原则
 
@@ -120,7 +134,7 @@ QuantInsight Pro 是面向中国资管行业的下一代智能投研平台，旨
 | 后端语言 | Python 3.12 | Go/Rust | 量化研究生态成熟 |
 | 前端框架 | React 18 | Vue | 团队熟悉 |
 | 行情 DB | ClickHouse | TimescaleDB | 列式压缩 + 10x 查询速度 |
-| LLM | 自研 30 亿参数 | GPT-4 API | 数据不出客户内网 |
+| LLM | 开源大模型微调+RAG | GPT-4 API | 数据不出客户内网(私有化部署) |
 | 向量 DB | Milvus | Pinecone | 开源 + 国产化 |
 | 消息队列 | Kafka | RabbitMQ | 高吞吐 + 持久化 |
 | 容器 | K8s | Docker Swarm | 行业标准 |
@@ -244,7 +258,7 @@ class BacktestEngine:
     ↓
 [Prompt 组装] (问题 + 检索结果 + 历史对话)
     ↓
-[LLM 推理] (自研 30 亿参数金融模型)
+[LLM 推理] (基于开源大模型微调的金融投研模型)
     ↓
 [后处理] (数据源标注 + 置信度评估)
     ↓
@@ -875,7 +889,7 @@ Response 200 OK:
 | 数据库 | ClickHouse 23.x, PostgreSQL 14, Redis 7 |
 | 消息队列 | Apache Kafka 3.5 |
 | 容器 | Docker 24, Kubernetes 1.28 |
-| LLM | 自研 3B + Hugging Face Transformers |
+| LLM | 基于开源大模型(6-7B参数)微调 + Hugging Face Transformers |
 | 监控 | Prometheus 2.45, Grafana 10, ELK 8 |
 | CI/CD | GitLab CI, ArgoCD |
 | 云服务 | 阿里云 (主), 腾讯云 (备) |
