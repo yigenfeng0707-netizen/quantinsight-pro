@@ -259,38 +259,56 @@ st.markdown("""
 # ============== 数据加载（缓存）==============
 @st.cache_data(ttl=3600)
 def load_hs300():
-    df = ak.stock_zh_index_daily(symbol='sh000300')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sh000300')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600)
 def load_zz500():
-    df = ak.stock_zh_index_daily(symbol='sh000905')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sh000905')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600)
 def load_cyb():
-    df = ak.stock_zh_index_daily(symbol='sz399006')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sz399006')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_index(symbol):
     """统一指数加载 (缓存 1 小时), 替代直接 ak.stock_zh_index_daily 调用"""
-    df = ak.stock_zh_index_daily(symbol=symbol)
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol=symbol)
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_industry_cons(symbol):
     """行业成分股加载 (缓存 1 小时)"""
-    return ak.stock_board_industry_cons_em(symbol=symbol)
+    try:
+        return ak.stock_board_industry_cons_em(symbol=symbol)
+    except Exception:
+        return None
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def load_sw_index():
     """申万三级行业 (缓存 24 小时, 静态更新)"""
-    return ak.sw_index_third_info()
+    try:
+        return ak.sw_index_third_info()
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_stock_news():
@@ -846,6 +864,11 @@ elif page == '📈 量化策略回测':
     with col3:
         start_date = st.date_input('📅 起始日期', value=pd.to_datetime('2020-01-01'), key='bt_start')
 
+    # 策略参数默认值 (防止分支外引用未定义变量)
+    fast_ma, slow_ma = 20, 60
+    window, std_dev = 20, 2.0
+    cost = 0.0015
+
     # 第 2 行: 策略参数 (根据策略类型动态显示)
     if strategy_choice == '双均线动量':
         col1, col2, col3 = st.columns(3)
@@ -885,7 +908,11 @@ elif page == '📈 量化策略回测':
           with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
             df_raw = load_index(symbol_map[index_choice])
+            if df_raw is None or len(df_raw) == 0:
+                raise RuntimeError(f'{index_choice} 数据加载失败, 请检查网络后重试')
             bt_df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
+            if len(bt_df) < 80:
+                raise RuntimeError(f'回测数据不足 ({len(bt_df)} 天), 请选择更早的起始日期')
 
             # 策略映射
             strategy_map = {
