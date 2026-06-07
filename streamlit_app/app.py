@@ -238,6 +238,11 @@ st.markdown("""
     border-left: 4px solid #2E86AB;
     margin: 1rem 0;
 }
+.feature-card h4 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: #1F4E78;
+}
 
 /* 移动端适配 (< 768px) */
 @media (max-width: 768px) {
@@ -563,7 +568,7 @@ if page == '🏠 首页':
     with col1:
         st.markdown("""
         <div class="feature-card">
-            <h3>🤖 AI 投研问答</h3>
+            <h4>🤖 AI 投研问答</h4>
             <p>基于开源大模型微调+RAG<br/>支持自然语言投研分析、智能问答、报告生成</p>
             <p><strong>特色：</strong>专业金融知识理解、深度行业研究</p>
         </div>
@@ -572,7 +577,7 @@ if page == '🏠 首页':
     with col2:
         st.markdown("""
         <div class="feature-card">
-            <h3>📡 另类数据中心</h3>
+            <h4>📡 另类数据中心</h4>
             <p>整合卫星图像、舆情分析、供应链数据<br/>构建另类数据壁垒</p>
             <p><strong>特色：</strong>多源数据融合、实时信号捕捉</p>
         </div>
@@ -581,7 +586,7 @@ if page == '🏠 首页':
     with col3:
         st.markdown("""
         <div class="feature-card">
-            <h3>📈 量化策略平台</h3>
+            <h4>📈 量化策略平台</h4>
             <p>支持多策略回测、参数优化<br/>绩效归因、组合管理</p>
             <p><strong>特色：</strong>可复现方法学、真实历史数据</p>
         </div>
