@@ -20,6 +20,20 @@ import requests
 import json
 
 from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
+from data_cache import get_data_cache
+from ai.agent_orchestrator import MainAgent
+from ai.data_grounder import DataGrounder
+from ai.citation_system import CitationTracker
+from features.stock_screener import NaturalLanguageScreener
+from features.factor_scorer import MultiFactorScorer
+from features.stock_comparison import StockComparator
+from features.portfolio_manager import PortfolioManager
+from features.alert_system import SmartAlertEngine
+from features.market_dashboard import MarketDashboard
+from features.trade_simulator import TradeSimulator, RiskControlEngine
+from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator
+from features.sentiment_analyzer import SentimentAnalyzer
+from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
 
 # ============== 真实 LLM 接入 (B7) ==============
 def get_llm_config():
@@ -238,6 +252,11 @@ st.markdown("""
     border-left: 4px solid #2E86AB;
     margin: 1rem 0;
 }
+.feature-card h4 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: #1F4E78;
+}
 
 /* 移动端适配 (< 768px) */
 @media (max-width: 768px) {
@@ -259,38 +278,56 @@ st.markdown("""
 # ============== 数据加载（缓存）==============
 @st.cache_data(ttl=3600)
 def load_hs300():
-    df = ak.stock_zh_index_daily(symbol='sh000300')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sh000300')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600)
 def load_zz500():
-    df = ak.stock_zh_index_daily(symbol='sh000905')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sh000905')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600)
 def load_cyb():
-    df = ak.stock_zh_index_daily(symbol='sz399006')
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol='sz399006')
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_index(symbol):
     """统一指数加载 (缓存 1 小时), 替代直接 ak.stock_zh_index_daily 调用"""
-    df = ak.stock_zh_index_daily(symbol=symbol)
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    try:
+        df = ak.stock_zh_index_daily(symbol=symbol)
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_industry_cons(symbol):
     """行业成分股加载 (缓存 1 小时)"""
-    return ak.stock_board_industry_cons_em(symbol=symbol)
+    try:
+        return ak.stock_board_industry_cons_em(symbol=symbol)
+    except Exception:
+        return None
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def load_sw_index():
     """申万三级行业 (缓存 24 小时, 静态更新)"""
-    return ak.sw_index_third_info()
+    try:
+        return ak.sw_index_third_info()
+    except Exception:
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_stock_news():
@@ -452,6 +489,11 @@ st.sidebar.markdown('---')
 page = st.sidebar.radio('选择功能模块', [
     '🏠 首页',
     '🤖 AI 投研问答',
+    '🎯 智能选股',
+    '📡 智能盯盘',
+    '💼 我的组合',
+    '📈 模拟交易',
+    '⚡ 智能指令',
     '📡 另类数据仪表盘',
     '📈 量化策略回测',
     '📊 行业分析',
@@ -502,11 +544,23 @@ if page == '🏠 首页':
     # 核心指标卡片
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric('沪深300', f'{load_hs300()["close"].iloc[-1]:.2f}', f'{load_hs300()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_hs300 = load_hs300()
+            st.metric('沪深300', f'{df_hs300["close"].iloc[-1]:.2f}', f'{df_hs300["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('沪深300', '加载中', '')
     with col2:
-        st.metric('中证500', f'{load_zz500()["close"].iloc[-1]:.2f}', f'{load_zz500()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_zz500 = load_zz500()
+            st.metric('中证500', f'{df_zz500["close"].iloc[-1]:.2f}', f'{df_zz500["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('中证500', '加载中', '')
     with col3:
-        st.metric('创业板指', f'{load_cyb()["close"].iloc[-1]:.2f}', f'{load_cyb()["close"].pct_change().iloc[-1]*100:+.2f}%')
+        try:
+            df_cyb = load_cyb()
+            st.metric('创业板指', f'{df_cyb["close"].iloc[-1]:.2f}', f'{df_cyb["close"].pct_change().iloc[-1]*100:+.2f}%')
+        except Exception:
+            st.metric('创业板指', '加载中', '')
     with col4:
         # 北向资金: 尝试从 akshare 实时获取, 失败则显示提示
         try:
@@ -525,35 +579,44 @@ if page == '🏠 首页':
 
     st.markdown('---')
 
-    # 三大功能介绍
-    st.markdown('### 🎯 平台核心功能')
+    # 核心功能介绍
+    st.markdown('### 🎯 平台核心功能 — 对标 AI涨乐')
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.markdown("""
         <div class="feature-card">
-            <h3>🤖 AI 投研问答</h3>
-            <p>基于开源大模型微调+RAG，支持自然语言投研分析、智能问答、报告生成</p>
-            <p><strong>特色：</strong>专业金融知识理解、深度行业研究</p>
+            <h4>🎯 智能选股</h4>
+            <p>自然语言选股<br/>多因子评分<br/>个股对比</p>
+            <p><strong>特色：</strong>“低估值高成长消费股”</p>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
         <div class="feature-card">
-            <h3>📡 另类数据中心</h3>
-            <p>整合卫星图像、舆情分析、供应链数据等多维数据，构建数据壁垒</p>
-            <p><strong>特色：</strong>多源数据融合、实时信号捕捉</p>
+            <h4>📡 智能盯盘</h4>
+            <p>7×24h 市场监控<br/>智能预警<br/>北向资金追踪</p>
+            <p><strong>特色：</strong>“茅台跌破1600提醒”</p>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
         st.markdown("""
         <div class="feature-card">
-            <h3>📈 量化策略平台</h3>
-            <p>支持多策略回测、参数优化、绩效归因、组合管理</p>
-            <p><strong>特色：</strong>可复现方法学、真实历史数据</p>
+            <h4>📈 模拟交易</h4>
+            <p>语音/文字下单<br/>风控引擎<br/>反情绪化交易</p>
+            <p><strong>特色：</strong>仓位限制 + 冷却期</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown("""
+        <div class="feature-card">
+            <h4>⚡ 智能指令</h4>
+            <p>周期性投研任务<br/>自动报告生成<br/>晨报/盘后总结</p>
+            <p><strong>特色：</strong>Plan-Execute-Reflect</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -568,7 +631,7 @@ if page == '🏠 首页':
 # ============== 页面：AI 投研问答 ==============
 elif page == '🤖 AI 投研问答':
     st.markdown('# 🤖 AI 投研问答')
-    st.markdown('**基于自研金融大模型，支持自然语言投研分析 + 多轮对话**')
+    st.markdown('**基于开源大模型微调+RAG，支持自然语言投研分析 + 多轮对话**')
 
     st.markdown('---')
 
@@ -648,7 +711,12 @@ elif page == '🤖 AI 投研问答':
         llm_config = get_llm_config()
         use_real_llm = llm_config['api_key'] is not None
 
-        if use_real_llm:
+        # 尝试使用 MainAgent (多智能体协作)
+        use_multi_agent = use_real_llm and st.checkbox('🧠 启用 Multi-Agent 协作模式', value=True, key='use_ma')
+
+        if use_multi_agent:
+            spinner_text = f'🤖 Multi-Agent 协作分析中 (含数据接地 + RAG)...'
+        elif use_real_llm:
             spinner_text = f'🤖 {llm_config["provider"].upper()} AI 正在生成分析报告 (含上下文)...'
         else:
             spinner_text = '🤖 AI 正在生成分析报告 (Mock 模式, 配置 API key 可启用真实 LLM)...'
@@ -657,13 +725,36 @@ elif page == '🤖 AI 投研问答':
             import time
             t0 = time.time()
 
-            if use_real_llm:
+            if use_multi_agent:
                 try:
-                    result = ai_qa_real(question, llm_config, history=st.session_state.chat_history[-10:])
-                    st.success(f'✅ 真实 LLM ({llm_config["provider"].upper()} {llm_config["model"]}) 推理完成, 耗时 {time.time()-t0:.1f}s')
+                    # 初始化 MainAgent
+                    if 'main_agent' not in st.session_state:
+                        st.session_state.main_agent = MainAgent(llm_config)
+                    agent = st.session_state.main_agent
+                    # 构建历史格式
+                    agent_history = []
+                    for msg in st.session_state.chat_history[-10:]:
+                        agent_history.append({'role': msg['role'], 'content': msg.get('content', msg.get('summary', ''))})
+                    orch_result = agent.process_query(question, agent_history)
+                    result = {
+                        'title': orch_result.get('title', 'Multi-Agent 分析'),
+                        'summary': orch_result.get('summary', ''),
+                        'data': orch_result.get('data', {}),
+                        'recommendation': orch_result.get('recommendation', ''),
+                        'reasoning': orch_result.get('reasoning', ''),
+                    }
+                    st.success(f'✅ Multi-Agent 协作完成, 耗时 {time.time()-t0:.1f}s')
+                    # 显示 Agent 执行过程
+                    if orch_result.get('agent_results'):
+                        with st.expander('🧩 Agent 执行详情'):
+                            for name, output in orch_result['agent_results'].items():
+                                st.markdown(f'**{name}**: {str(output)[:200]}')
                 except Exception as e:
-                    st.warning(f'⚠️ 真实 LLM 调用失败: {e}, 回退到 Mock 模式')
-                    result = ai_qa_mock(question)
+                    st.warning(f'⚠️ Multi-Agent 失败: {e}, 回退单 Agent')
+                    try:
+                        result = ai_qa_real(question, llm_config, history=st.session_state.chat_history[-10:])
+                    except Exception:
+                        result = ai_qa_mock(question)
             else:
                 time.sleep(1.0)  # 模拟推理时间
                 result = ai_qa_mock(question)
@@ -727,44 +818,51 @@ elif page == '📡 另类数据仪表盘':
         st.info('• 2024 年 2-3 月春节后开工率明显回落\n• 5-9 月旺季开工率维持在 80% 以上\n• 10 月后进入季节性回落期')
 
     with tab2:
-        st.markdown('### 💬 舆情情感分析 - 行业热度')
-        st.caption('数据源：东方财富财经新闻 API (akshare)')
-        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实舆情 API (东方财富/雪球/财新)')
+        st.markdown('### 💬 舆情情感分析 - 实时 NLP')
+        st.caption('数据源：东方财富财经新闻 + SnowNLP 情感分析')
 
-        # 尝试加载真实新闻数据
+        # 尝试加载真实新闻并做 NLP 分析
         df_news = load_stock_news()
+        analyzer = SentimentAnalyzer()
 
         if df_news is not None and len(df_news) > 0:
-            # 真实新闻展示
-            st.markdown('#### 📰 最新财经新闻')
-            # 显示新闻列表 (取前 20 条)
-            for i, row in df_news.head(20).iterrows():
-                title = row.get('标题', row.get('title', ''))
-                content = row.get('内容', row.get('content', ''))
-                content = content[:100] if isinstance(content, str) else ''
-                time_str = row.get('发布时间', row.get('ptime', ''))
-                if title:
-                    st.markdown(f"📌 **{title}**  `{time_str}`")
-                    if content:
-                        st.caption(content + '...')
+            # 真实新闻 + NLP 情感分析
+            title_col = '标题' if '标题' in df_news.columns else 'title'
+            news_list = df_news.head(30).to_dict('records')
+            results = analyzer.analyze_batch(
+                [{'title': r.get(title_col, r.get('title', '')), 'source': 'eastmoney', 'time': ''} for r in news_list]
+            )
+            summary = analyzer.summarize(results)
 
-            st.markdown(f'共加载 {len(df_news)} 条新闻')
+            # 汇总指标
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric('新闻总数', summary.total_articles)
+            with col2:
+                st.metric('正面', summary.positive_count, f'{summary.positive_count/max(summary.total_articles,1)*100:.0f}%')
+            with col3:
+                st.metric('负面', summary.negative_count, f'{summary.negative_count/max(summary.total_articles,1)*100:.0f}%')
+            with col4:
+                trend_cn = {'bullish': '偏多', 'bearish': '偏空', 'neutral': '中性'}.get(summary.sentiment_trend, '中性')
+                st.metric('舆情趋势', trend_cn, f'均分 {summary.avg_score:.2f}')
+
+            # 热词
+            if summary.hot_keywords:
+                st.markdown('#### 🔥 热词')
+                st.write(' | '.join([f'**{kw}** ({c})' for kw, c in summary.hot_keywords[:8]]))
+
+            # 新闻列表
+            st.markdown('#### 📰 新闻情感明细')
+            for r in results[:15]:
+                emoji = {'positive': '🟢', 'negative': '🔴', 'neutral': '🟡'}.get(r.label, '⚪')
+                st.markdown(f'{emoji} [{r.score:.2f}] {r.text[:80]}')
         else:
-            # Fallback: 模拟舆情数据
             st.info('⚠️ 新闻数据加载失败, 展示模拟数据')
-
             sectors = ['人工智能', '新能源', '半导体', '医药', '消费', '金融', '军工', '汽车']
             sentiment = np.random.uniform(0.3, 0.95, len(sectors))
             volume = np.random.randint(1000, 50000, len(sectors))
-
-            df_sent = pd.DataFrame({
-                '行业': sectors,
-                '情感得分': sentiment,
-                '讨论量': volume,
-            })
-
+            df_sent = pd.DataFrame({'行业': sectors, '情感得分': sentiment, '讨论量': volume})
             col1, col2 = st.columns(2)
-
             with col1:
                 fig = px.bar(df_sent.sort_values('情感得分', ascending=True),
                              x='情感得分', y='行业', orientation='h',
@@ -773,7 +871,6 @@ elif page == '📡 另类数据仪表盘':
                              range_color=[0.3, 1.0])
                 fig.update_layout(height=400)
                 st.plotly_chart(fig, use_container_width=True)
-
             with col2:
                 fig = px.scatter(df_sent, x='讨论量', y='情感得分', size='讨论量',
                                 color='行业', title='行业舆情 - 讨论量 vs 情感',
@@ -781,42 +878,58 @@ elif page == '📡 另类数据仪表盘':
                 fig.update_layout(height=400)
                 st.plotly_chart(fig, use_container_width=True)
 
-            st.markdown('#### 🔥 热点事件')
-            events = [
-                ('🔥', 'AI 大模型新版本发布', '人工智能', '+12.5%'),
-                ('💊', '创新药获批', '医药', '+5.2%'),
-                ('🚗', '新能源车销量超预期', '新能源', '+3.8%'),
-            ]
-            for icon, event, sector, change in events:
-                st.markdown(f'{icon} **{event}** ({sector}) - 情感变化 {change}')
-
     with tab3:
-        st.markdown('### 📦 供应链追踪 - 产业链动态')
-        st.caption('数据源：行业公开数据 + 上市公司公告')
-        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实供应链数据 (海关/工商/上市公司公告)')
+        st.markdown('### 📦 产业链追踪 - 上下游传导')
+        st.caption('数据源：申万行业分类 + 产业链关系图谱')
 
-        # 模拟产业链数据
-        chain_data = pd.DataFrame({
-            '环节': ['上游材料', '中游制造', '下游应用', '终端销售'],
-            '景气度': [85, 72, 65, 78],
-            '环比变化': [-2, +5, +8, +3],
-            '代表公司': ['材料A/材料B', '制造A/制造B', '应用A/应用B', '销售A/销售B'],
-        })
+        tracker = SupplyChainTracker()
+        chains = tracker.get_available_chains()
 
-        fig = go.Figure()
-        fig.add_trace(go.Bar(name='景气度', x=chain_data['环节'], y=chain_data['景气度'],
-                            marker_color='#2E86AB', text=chain_data['景气度'],
-                            textposition='outside'))
-        fig.add_trace(go.Scatter(name='环比变化', x=chain_data['环节'], y=chain_data['环比变化'] + 70,
-                                mode='lines+markers', marker=dict(size=15, color='#A23B72'),
-                                yaxis='y2'))
-        fig.update_layout(
-            title='产业链各环节景气度',
-            yaxis=dict(title='景气度'),
-            yaxis2=dict(title='环比变化 (%)', overlaying='y', side='right'),
-            height=400,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            selected_chain = st.selectbox('选择产业链', chains, key='chain_select')
+
+        chain = tracker.get_chain(selected_chain)
+        if chain:
+            # Sankey 图
+            st.markdown(f'#### 🔀 {selected_chain} 产业链 Sankey 图')
+            try:
+                import plotly.graph_objects as go
+                sankey = chain.sankey_data
+                node_names = [n['name'] for n in sankey['nodes']]
+                node_idx = {name: i for i, name in enumerate(node_names)}
+                sources = [node_idx[l['source']] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
+                targets = [node_idx[l['target']] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
+                values = [l['value'] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
+                fig = go.Figure(data=[go.Sankey(
+                    node=dict(label=node_names, pad=20, thickness=20),
+                    link=dict(source=sources, target=targets, value=values)
+                )])
+                fig.update_layout(title=f'{selected_chain} 产业链传导', height=400)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.warning(f'Sankey 图渲染失败: {e}')
+
+            # 相关股票
+            st.markdown('#### 📈 产业链相关股票')
+            chain_stocks = tracker.get_chain_stocks(selected_chain)
+            if not chain_stocks.empty:
+                st.dataframe(chain_stocks, use_container_width=True)
+
+            # 上游影响分析
+            st.markdown('#### 🔍 上游变动传导分析')
+            upstream_list = INDUSTRY_CHAINS.get(selected_chain, {}).get('upstream', [])
+            if upstream_list:
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    up_ind = st.selectbox('上游行业', upstream_list, key='up_ind')
+                with col_b:
+                    impact = st.slider('影响程度', -1.0, 1.0, 0.5, 0.1, key='up_impact')
+                analysis = tracker.analyze_upstream_impact(selected_chain, up_ind, impact)
+                if 'error' not in analysis:
+                    st.info(analysis.get('conclusion', ''))
+        else:
+            st.warning('产业链数据加载失败')
 
 # ============== 页面：量化策略回测 ==============
 elif page == '📈 量化策略回测':
@@ -833,6 +946,11 @@ elif page == '📈 量化策略回测':
         strategy_choice = st.selectbox('🧠 策略类型', ['双均线动量', '布林带均值回归', '多因子合成'], key='bt_strategy')
     with col3:
         start_date = st.date_input('📅 起始日期', value=pd.to_datetime('2020-01-01'), key='bt_start')
+
+    # 策略参数默认值 (防止分支外引用未定义变量)
+    fast_ma, slow_ma = 20, 60
+    window, std_dev = 20, 2.0
+    cost = 0.0015
 
     # 第 2 行: 策略参数 (根据策略类型动态显示)
     if strategy_choice == '双均线动量':
@@ -869,10 +987,15 @@ elif page == '📈 量化策略回测':
         run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
 
     if run_btn:
-        with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
+        try:
+          with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
             df_raw = load_index(symbol_map[index_choice])
+            if df_raw is None or len(df_raw) == 0:
+                raise RuntimeError(f'{index_choice} 数据加载失败, 请检查网络后重试')
             bt_df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
+            if len(bt_df) < 80:
+                raise RuntimeError(f'回测数据不足 ({len(bt_df)} 天), 请选择更早的起始日期')
 
             # 策略映射
             strategy_map = {
@@ -929,12 +1052,14 @@ elif page == '📈 量化策略回测':
             # NAV 曲线
             nav_series = bt_result.nav_series
             benchmark_nav = bh_result.nav_series
+            # nav_series 的 index 是整数, 需要用 bt_df 的日期作为 x 轴
+            bt_dates = bt_df['date'].values
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=nav_series.index, y=nav_series.values,
+            fig.add_trace(go.Scatter(x=bt_dates, y=nav_series.values,
                                      mode='lines', name='策略净值',
                                      line=dict(color='#1F4E78', width=2.5)))
-            fig.add_trace(go.Scatter(x=benchmark_nav.index, y=benchmark_nav.values,
+            fig.add_trace(go.Scatter(x=bt_dates, y=benchmark_nav.values,
                                      mode='lines', name='基准净值',
                                      line=dict(color='#A23B72', width=2, dash='dash')))
             fig.update_layout(
@@ -950,7 +1075,7 @@ elif page == '📈 量化策略回测':
             dd = (nav_series - cummax) / cummax
 
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=dd.index, y=dd * 100,
+            fig.add_trace(go.Scatter(x=bt_dates, y=dd * 100,
                                      mode='lines', name='回撤',
                                      line=dict(color='#D62246', width=2),
                                      fill='tozeroy', fillcolor='rgba(214, 34, 70, 0.2)'))
@@ -965,14 +1090,18 @@ elif page == '📈 量化策略回测':
             # 详细数据
             st.markdown('### 📋 详细数据 (最近 30 个交易日)')
             detail_df = pd.DataFrame({
+                '日期': bt_dates,
                 'close': bt_df['close'].values,
-                'signal': bt_result.signal_series.values,
+                'signal': bt_result.signal_series.values if bt_result.signal_series is not None else [0]*len(bt_df),
                 'nav': nav_series.values,
                 'benchmark': benchmark_nav.values,
-            }, index=bt_df['date'].values)
+            })
             st.dataframe(detail_df.tail(30), use_container_width=True)
 
             st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(bt_df)} 个交易日')
+        except Exception as e:
+            st.error(f'❌ 回测运行失败: {type(e).__name__}: {str(e)[:200]}')
+            st.info('💡 请检查: 1) 网络连接 2) 起始日期是否太早导致数据不足 3) 稍后重试')
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -999,41 +1128,393 @@ elif page == '📊 行业分析':
 
     industry_code = industry_options[selected_industry]
 
+    df_industry = None
+    data_source = ''
+
+    # 尝试方式1: 东方财富板块成分股
     try:
-        # 获取行业成分股 (使用缓存)
-        with st.spinner('加载行业数据 (1 小时缓存)...'):
+        with st.spinner('加载行业数据...'):
             df_industry = load_industry_cons(industry_code)
+        if df_industry is not None and len(df_industry) > 0:
+            data_source = '东方财富板块数据'
+    except Exception:
+        pass
 
-        st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
-
-        # 数据预处理
-        if '涨跌幅' in df_industry.columns:
-            df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
-            fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
-                         color='涨跌幅', color_continuous_scale='RdYlGn',
-                         title=f'{selected_industry} 涨跌幅 TOP 20',
-                         hover_data=['代码', '最新价', '市盈率-动态'])
-            fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
-            st.plotly_chart(fig, use_container_width=True)
-
-        # 完整数据表
-        st.markdown('### 📋 完整成分股数据')
-        st.dataframe(
-            df_industry[['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态']].head(50),
-            use_container_width=True
-        )
-
-    except Exception as e:
-        st.warning(f'行业数据加载失败：{type(e).__name__}: {str(e)[:100]}')
-        st.info('请检查网络连接或稍后重试')
-
-        # Fallback: 显示申万行业静态信息 (使用缓存)
+    # 尝试方式2: 申万行业指数 (如果方式1失败)
+    if df_industry is None or len(df_industry) == 0:
         try:
-            st.markdown('### 📚 申万三级行业 (24 小时缓存)')
-            df_sw = load_sw_index()
-            st.dataframe(df_sw.head(30), use_container_width=True)
+            with st.spinner('尝试备用数据源...'):
+                sw_map = {
+                    '半导体 (BK0438)': '801081', '新能源车 (BK0900)': '801730',
+                    '医药 (BK0465)': '801150', '白酒 (BK0896)': '801153',
+                    '银行 (BK0475)': '801780', '证券 (BK0473)': '801193',
+                    '房地产 (BK0451)': '801180', '军工 (BK0490)': '801740',
+                }
+                sw_code = sw_map.get(selected_industry, '801081')
+                df_sw_daily = ak.index_stock_info()
+                if df_sw_daily is not None and len(df_sw_daily) > 0:
+                    # 从指数列表中筛选行业相关
+                    industry_name = selected_industry.split(' ')[0]
+                    df_industry = df_sw_daily[df_sw_daily['名称'].str.contains(industry_name, na=False)].head(30)
+                    if len(df_industry) > 0:
+                        data_source = '申万行业指数'
         except Exception:
             pass
+
+    # 尝试方式3: 静态 fallback 数据
+    if df_industry is None or len(df_industry) == 0:
+        st.info(f'💡 实时行业数据暂时不可用, 展示示例数据')
+        industry_name = selected_industry.split(' ')[0]
+        np.random.seed(hash(industry_name) % 2**31)
+        n_stocks = 20
+        df_industry = pd.DataFrame({
+            '代码': [f'{600000+i:06d}' for i in range(n_stocks)],
+            '名称': [f'{industry_name}股票{i+1:02d}' for i in range(n_stocks)],
+            '最新价': np.random.uniform(10, 100, n_stocks).round(2),
+            '涨跌幅': np.random.uniform(-5, 5, n_stocks).round(2),
+            '涨跌额': np.random.uniform(-3, 3, n_stocks).round(2),
+            '成交量': np.random.randint(10000, 500000, n_stocks),
+        })
+        data_source = '示例数据 (概念演示)'
+
+    st.markdown(f'### 🏭 {selected_industry} 成分股 - 共 {len(df_industry)} 只')
+    if data_source:
+        st.caption(f'📊 数据源: {data_source}')
+
+    # 数据预处理
+    if '涨跌幅' in df_industry.columns and len(df_industry) > 0:
+        df_sorted = df_industry.sort_values('涨跌幅', ascending=False).head(20)
+        hover_cols = [c for c in ['代码', '最新价', '市盈率-动态'] if c in df_sorted.columns]
+        fig = px.bar(df_sorted, x='涨跌幅', y='名称', orientation='h',
+                     color='涨跌幅', color_continuous_scale='RdYlGn',
+                     title=f'{selected_industry} 涨跌幅 TOP 20',
+                     hover_data=hover_cols if hover_cols else None)
+        fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+        st.plotly_chart(fig, use_container_width=True)
+
+    # 完整数据表
+    st.markdown('### 📋 完整成分股数据')
+    display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
+    if display_cols:
+        st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
+    else:
+        st.dataframe(df_industry.head(50), use_container_width=True)
+
+# ============== 页面：智能选股 ==============
+elif page == '🎯 智能选股':
+    st.markdown('# 🎯 智能选股')
+    st.markdown('**自然语言选股 + 多因子评分 + 个股对比 — 对标 AI涨乐智能选股**')
+    st.markdown('---')
+
+    tab1, tab2, tab3 = st.tabs(['💬 自然语言选股', '📊 多因子评分', '⚖️ 个股对比'])
+
+    with tab1:
+        st.markdown('### 💬 自然语言选股')
+        st.caption('输入自然语言描述, AI 自动解析筛选条件')
+
+        query = st.text_input(
+            '输入选股条件',
+            placeholder='例如: “低估值高成长消费股” 或 “市盈率小于20且市值大于100亿”',
+            key='screener_query'
+        )
+
+        if st.button('🔍 开始筛选', type='primary', key='screen_btn') and query:
+            with st.spinner('AI 解析筛选条件 + 加载数据...'):
+                try:
+                    screener = NaturalLanguageScreener()
+                    # 加载股票池
+                    pool = load_stock_pool()
+                    if pool is None or pool.empty:
+                        st.error('股票池数据加载失败')
+                    else:
+                        results = screener.screen(query, pool)
+                        if results and results.get('stocks'):
+                            st.success(f'✅ 筛选完成, 找到 {len(results["stocks"])} 只符合条件的股票')
+                            st.markdown('#### 📋 筛选结果')
+                            st.dataframe(pd.DataFrame(results['stocks']), use_container_width=True)
+                            if results.get('explanation'):
+                                st.info(f'🧠 解析逻辑: {results["explanation"]}')
+                        else:
+                            st.warning('未找到符合条件的股票, 请调整筛选条件')
+                except Exception as e:
+                    st.error(f'筛选失败: {e}')
+
+    with tab2:
+        st.markdown('### 📊 多因子评分')
+        st.caption('价值 25% + 成长 25% + 质量 25% + 动量 25%')
+
+        scorer = MultiFactorScorer()
+        pool = load_stock_pool()
+        if pool is not None and not pool.empty:
+            if st.button('📊 计算评分', key='score_btn'):
+                with st.spinner('计算多因子评分...'):
+                    try:
+                        scored = scorer.score_all(pool)
+                        if scored is not None and not scored.empty:
+                            st.dataframe(scored.head(20), use_container_width=True)
+                    except Exception as e:
+                        st.error(f'评分失败: {e}')
+        else:
+            st.info('股票池数据加载中...')
+
+    with tab3:
+        st.markdown('### ⚖️ 个股对比')
+        st.caption('最多 5 只股票横向对比')
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            s1 = st.text_input('股票 1', value='贵州茅台', key='cmp1')
+            s2 = st.text_input('股票 2', value='五粮液', key='cmp2')
+        with col2:
+            s3 = st.text_input('股票 3', value='泸州老窖', key='cmp3')
+            s4 = st.text_input('股票 4', value='', key='cmp4')
+        with col3:
+            s5 = st.text_input('股票 5', value='', key='cmp5')
+
+        stocks = [s for s in [s1, s2, s3, s4, s5] if s.strip()]
+        if st.button('⚖️ 开始对比', key='compare_btn') and stocks:
+            comparator = StockComparator()
+            try:
+                result = comparator.compare(stocks)
+                if result:
+                    st.dataframe(pd.DataFrame(result.get('comparison', [])), use_container_width=True)
+            except Exception as e:
+                st.error(f'对比失败: {e}')
+
+# ============== 页面：智能盯盘 ==============
+elif page == '📡 智能盯盘':
+    st.markdown('# 📡 智能盯盘')
+    st.markdown('**7×24h 市场监控 + 智能预警 + 北向资金 — 对标 AI涨乐智能盯盘**')
+    st.markdown('---')
+
+    # 市场大盘
+    dashboard = MarketDashboard()
+    pool = load_stock_pool()
+    try:
+        overview = dashboard.get_market_overview(pool)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric('市场宽度 - 上涨', overview.get('up_count', 'N/A'))
+        with col2:
+            st.metric('市场宽度 - 下跌', overview.get('down_count', 'N/A'))
+        with col3:
+            st.metric('涨停', overview.get('limit_up', 'N/A'))
+        with col4:
+            st.metric('跌停', overview.get('limit_down', 'N/A'))
+    except Exception as e:
+        st.warning(f'市场概览加载失败: {e}')
+
+    st.markdown('---')
+
+    # 预警系统
+    st.markdown('### ⚠️ 智能预警')
+    st.caption('支持自然语言创建预警: "贵州茅台涨到1800元提醒"')
+
+    if 'alert_engine' not in st.session_state:
+        st.session_state.alert_engine = SmartAlertEngine()
+    alert_engine = st.session_state.alert_engine
+
+    alert_input = st.text_input(
+        '创建新预警',
+        placeholder='例如: "贵州茅台跌破1600元提醒" 或 "比亚迪涨幅超过5%提醒"',
+        key='alert_input'
+    )
+    if st.button('➕ 添加预警', key='add_alert') and alert_input:
+        try:
+            alert = alert_engine.parse_nl_alert(alert_input)
+            st.success(f'✅ 预警已创建: {alert}')
+        except Exception as e:
+            st.error(f'创建失败: {e}')
+
+    # 显示现有预警
+    alerts = alert_engine.get_all_alerts()
+    if alerts:
+        st.markdown('#### 📝 当前预警列表')
+        for a in alerts:
+            st.markdown(f'- {a}')
+
+    # 北向资金
+    st.markdown('---')
+    st.markdown('### 🌐 北向资金追踪')
+    try:
+        df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+        if df_north is not None and len(df_north) > 0:
+            st.dataframe(df_north.tail(10), use_container_width=True)
+    except Exception:
+        st.info('北向资金数据加载中...')
+
+# ============== 页面：我的组合 ==============
+elif page == '💼 我的组合':
+    st.markdown('# 💼 我的组合')
+    st.markdown('**组合管理 + 实时盈亏 + 风险指标**')
+    st.markdown('---')
+
+    if 'portfolio_mgr' not in st.session_state:
+        st.session_state.portfolio_mgr = PortfolioManager()
+    mgr = st.session_state.portfolio_mgr
+
+    tab1, tab2 = st.tabs(['📥 添加持仓', '📊 组合概览'])
+
+    with tab1:
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            h_symbol = st.text_input('股票代码', value='600519', key='h_symbol')
+        with col2:
+            h_name = st.text_input('股票名称', value='贵州茅台', key='h_name')
+        with col3:
+            h_shares = st.number_input('持股数', value=100, step=100, key='h_shares')
+        with col4:
+            h_cost = st.number_input('成本价', value=1680.0, step=0.01, key='h_cost')
+
+        if st.button('➕ 添加持仓', key='add_holding'):
+            try:
+                mgr.add_holding(h_symbol, h_name, int(h_shares), float(h_cost))
+                st.success(f'✅ 已添加 {h_name} ({h_symbol})')
+            except Exception as e:
+                st.error(f'添加失败: {e}')
+
+    with tab2:
+        portfolio = mgr.get_portfolio()
+        if portfolio and portfolio.get('holdings'):
+            st.markdown(f'### 📊 持仓明细 (共 {len(portfolio["holdings"])} 只)')
+            st.dataframe(pd.DataFrame(portfolio['holdings']), use_container_width=True)
+            st.metric('总市值', f"¥{portfolio.get('total_value', 0):,.0f}")
+            st.metric('总盈亏', f"¥{portfolio.get('total_pnl', 0):,.0f}", f"{portfolio.get('total_pnl_pct', 0):+.2f}%")
+        else:
+            st.info('📭 暂无持仓, 请先添加持仓')
+
+# ============== 页面：模拟交易 ==============
+elif page == '📈 模拟交易':
+    st.markdown('# 📈 模拟交易')
+    st.markdown('**语音/文字下单 + 风控引擎 + 反情绪化交易 — 对标 AI涨乐智能交易**')
+    st.markdown('---')
+
+    if 'trade_sim' not in st.session_state:
+        st.session_state.trade_sim = TradeSimulator()
+    if 'risk_engine' not in st.session_state:
+        st.session_state.risk_engine = RiskControlEngine()
+
+    sim = st.session_state.trade_sim
+    risk = st.session_state.risk_engine
+
+    st.markdown('### 📝 下单')
+    st.caption('支持自然语言: “买入100股贵州茅台” 或 表单下单')
+
+    nl_order = st.text_input(
+        '自然语言下单',
+        placeholder='例如: “买入100股贵州茅台” 或 “卖出全部五粮液”',
+        key='nl_order'
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        o_symbol = st.text_input('股票代码', value='600519', key='o_symbol')
+    with col2:
+        o_action = st.selectbox('方向', ['buy', 'sell'], key='o_action')
+    with col3:
+        o_qty = st.number_input('数量 (股)', value=100, step=100, key='o_qty')
+    with col4:
+        o_price = st.number_input('价格 (0=市价)', value=0.0, step=0.01, key='o_price')
+
+    if st.button('🚀 执行交易', type='primary', key='exec_trade'):
+        try:
+            # 风控检查
+            risk_check = risk.check_order(o_symbol, o_action, int(o_qty), float(o_price))
+            if not risk_check.get('approved', False):
+                st.error(f'❌ 风控拒绝: {risk_check.get("reason", "未知")}')
+            else:
+                result = sim.execute_order(o_symbol, o_action, int(o_qty), float(o_price) if o_price > 0 else None)
+                if result and result.get('filled'):
+                    st.success(f"✅ 成交: {result['symbol']} {result['action']} {result['qty']}股 @ ¥{result['price']:.2f}")
+                else:
+                    st.warning('交易未成交')
+        except Exception as e:
+            st.error(f'交易失败: {e}')
+
+    # 交易历史
+    st.markdown('---')
+    st.markdown('### 📝 交易历史')
+    history = sim.get_history()
+    if history:
+        st.dataframe(pd.DataFrame(history), use_container_width=True)
+    else:
+        st.info('暂无交易记录')
+
+    # 风控状态
+    st.markdown('---')
+    st.markdown('### 🛡️ 风控状态')
+    status = risk.get_status()
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric('今日交易次数', status.get('daily_trades', 0))
+    with col2:
+        st.metric('冷却期', '是' if status.get('in_cooldown', False) else '否')
+    with col3:
+        st.metric('风控规则', f'{len(status.get("rules", []))} 条')
+
+# ============== 页面：智能指令 ==============
+elif page == '⚡ 智能指令':
+    st.markdown('# ⚡ 智能指令')
+    st.markdown('**周期性投研任务 + 自动报告生成 — 对标 AI涨乐智能指令**')
+    st.markdown('---')
+
+    if 'task_scheduler' not in st.session_state:
+        st.session_state.task_scheduler = ResearchTaskScheduler()
+    scheduler = st.session_state.task_scheduler
+
+    tab1, tab2, tab3 = st.tabs(['📥 创建任务', '📝 任务列表', '📊 报告生成'])
+
+    with tab1:
+        st.markdown('### 预置任务模板')
+        templates = scheduler.get_templates()
+        if templates:
+            cols = st.columns(min(len(templates), 3))
+            for i, (tid, tpl) in enumerate(templates.items()):
+                with cols[i % len(cols)]:
+                    st.markdown(f"**{tpl.get('name', tid)}**")
+                    st.caption(tpl.get('description', ''))
+                    st.caption(f"⏰ {tpl.get('schedule', '')}")
+                    if st.button(f'➕ 添加', key=f'tpl_{tid}'):
+                        try:
+                            scheduler.add_from_template(tid)
+                            st.success(f'✅ 已添加 {tpl["name"]}')
+                        except Exception as e:
+                            st.error(f'添加失败: {e}')
+
+        st.markdown('---')
+        st.markdown('### 自定义任务')
+        c_name = st.text_input('任务名称', key='c_name')
+        c_desc = st.text_input('任务描述', key='c_desc')
+        c_type = st.selectbox('任务类型', ['morning_brief', 'evening_review', 'weekly_report', 'custom'], key='c_type')
+        if st.button('➕ 创建自定义任务', key='add_custom') and c_name:
+            try:
+                scheduler.add_task(c_name, c_desc, c_type)
+                st.success(f'✅ 已创建 {c_name}')
+            except Exception as e:
+                st.error(f'创建失败: {e}')
+
+    with tab2:
+        st.markdown('### 📝 当前任务列表')
+        tasks = scheduler.get_all_tasks()
+        if tasks:
+            for t in tasks:
+                st.markdown(f"- **{t.get('name', '')}** ({t.get('task_type', '')}) - {t.get('status', 'pending')}")
+        else:
+            st.info('暂无任务, 请先创建任务')
+
+    with tab3:
+        st.markdown('### 📊 自动报告生成')
+        st.caption('基于当前市场数据自动生成投研报告')
+
+        report_type = st.selectbox('报告类型', ['晨报', '盘后总结', '周报'], key='report_type')
+        if st.button('📝 生成报告', key='gen_report'):
+            with st.spinner('生成报告...'):
+                try:
+                    generator = AutoReportGenerator()
+                    report = generator.generate(report_type)
+                    st.markdown(report)
+                except Exception as e:
+                    st.error(f'报告生成失败: {e}')
 
 # ============== 页脚 ==============
 st.markdown('---')

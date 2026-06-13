@@ -219,6 +219,59 @@ class DataSource(ABC):
         """拉取行业成分股"""
         pass
 
+    # ========================================================================
+    # 扩展接口 (V2: 东方财富 Choice 数据源, 默认 NotImplementedError)
+    # 子类可按需覆写, 未实现的方法会抛出 NotImplementedError
+    # ========================================================================
+
+    def fetch_stock_universe(self, top_n: int = 0) -> pd.DataFrame:
+        """拉取全A股实时行情 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_stock_universe")
+
+    def fetch_stock_history(self, symbol: str, start: str, end: str, **kwargs) -> pd.DataFrame:
+        """拉取个股历史OHLCV (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_stock_history")
+
+    def fetch_stock_profile(self, symbol: str) -> dict:
+        """拉取个股基本信息 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_stock_profile")
+
+    def fetch_earnings_report(self, date: str) -> pd.DataFrame:
+        """拉取业绩报表 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_earnings_report")
+
+    def fetch_balance_sheet(self, date: str) -> pd.DataFrame:
+        """拉取资产负债表 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_balance_sheet")
+
+    def fetch_income_statement(self, date: str) -> pd.DataFrame:
+        """拉取利润表 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_income_statement")
+
+    def fetch_cashflow_statement(self, date: str) -> pd.DataFrame:
+        """拉取现金流量表 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_cashflow_statement")
+
+    def fetch_fund_flow_rank(self, indicator: str = "今日") -> pd.DataFrame:
+        """拉取资金流向排名 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_fund_flow_rank")
+
+    def fetch_northbound_holdings(self, market: str = "北向", indicator: str = "今日排行") -> pd.DataFrame:
+        """拉取北向持仓 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_northbound_holdings")
+
+    def fetch_valuation(self, symbol: str) -> pd.DataFrame:
+        """拉取估值对比 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_valuation")
+
+    def fetch_news(self, keyword: str = "财经", count: int = 50) -> pd.DataFrame:
+        """拉取财经新闻 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_news")
+
+    def fetch_macro_summary(self) -> dict:
+        """拉取宏观数据摘要 (V2 扩展)"""
+        raise NotImplementedError(f"{self.name} 不支持 fetch_macro_summary")
+
 
 # ============================================================================
 # Akshare 数据源 (生产实现)
