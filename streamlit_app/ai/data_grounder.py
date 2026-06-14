@@ -5,7 +5,7 @@ QuantInsight Pro - 数据接地层 (Data Grounder)
 将 AI 回答与平台实际数据 (行情/财务/回测结果/新闻) 连接,
 让 LLM 基于真实数据生成回答, 减少幻觉.
 
-对标 AI涨乐 的 "AI+数据" 深度融合架构.
+业内领先的 "AI+数据" 深度融合架构.
 
 License: MIT
 """

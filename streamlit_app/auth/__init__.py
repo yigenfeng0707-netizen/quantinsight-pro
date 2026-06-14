@@ -1,0 +1,1 @@
+# QuantInsight Pro - Authentication Module

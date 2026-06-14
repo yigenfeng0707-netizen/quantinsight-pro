@@ -1,0 +1,370 @@
+"""
+QuantInsight Pro - UI Themes
+===============================
+
+Light/Dark mode CSS injection for Streamlit.
+Professional financial color scheme with glassmorphism effects.
+
+License: MIT
+"""
+
+import streamlit as st
+
+# Color palette
+COLORS = {
+    'primary': '#0A1628',       # Deep navy
+    'secondary': '#1A2942',     # Navy blue
+    'accent': '#00D4AA',        # Teal
+    'accent_hover': '#00F0C0',  # Bright teal
+    'warning': '#F4A261',       # Warm amber
+    'danger': '#E76F51',        # Coral red
+    'success': '#2A9D8F',       # Sea green
+    'text_primary': '#E8ECF1',  # Light gray
+    'text_secondary': '#8B95A5', # Muted gray
+    'card_bg': 'rgba(26, 41, 66, 0.8)',  # Glassmorphism navy
+    'sidebar_bg': '#0D1B2A',    # Dark sidebar
+}
+
+DARK_THEME_CSS = f"""
+<style>
+/* ===== Global Dark Theme ===== */
+.stApp {{
+    background: linear-gradient(135deg, {COLORS['primary']} 0%, #0F2236 50%, #0A1628 100%);
+    color: {COLORS['text_primary']};
+}}
+
+/* ===== Sidebar ===== */
+section[data-testid="stSidebar"] {{
+    background: {COLORS['sidebar_bg']} !important;
+    border-right: 1px solid rgba(0, 212, 170, 0.15);
+}}
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] .stMarkdown li,
+section[data-testid="stSidebar"] label {{
+    color: {COLORS['text_primary']} !important;
+}}
+section[data-testid="stSidebar"] .stRadio label {{
+    color: {COLORS['text_primary']} !important;
+    font-size: 0.95rem;
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {{
+    background: rgba(0, 212, 170, 0.1);
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"]:has(div[aria-checked="true"]) {{
+    background: rgba(0, 212, 170, 0.15);
+}}
+
+/* ===== Headers ===== */
+.main-header {{
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, {COLORS['accent']}, #00B8D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    text-align: center;
+    padding: 1.5rem 0 0.5rem;
+    letter-spacing: -0.5px;
+}}
+.sub-header {{
+    font-size: 1.1rem;
+    color: {COLORS['text_secondary']};
+    text-align: center;
+    padding-bottom: 1.5rem;
+    font-weight: 300;
+}}
+
+/* ===== Cards ===== */
+.metric-card {{
+    background: {COLORS['card_bg']};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 212, 170, 0.15);
+    color: {COLORS['text_primary']};
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}}
+.metric-card::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, {COLORS['accent']}, transparent);
+}}
+.metric-card:hover {{
+    transform: translateY(-2px);
+    border-color: rgba(0, 212, 170, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 212, 170, 0.1);
+}}
+
+.feature-card {{
+    background: {COLORS['card_bg']};
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 4px solid {COLORS['accent']};
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+    color: {COLORS['text_primary']};
+}}
+.feature-card:hover {{
+    border-left-color: {COLORS['accent_hover']};
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}}
+.feature-card h4 {{
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: {COLORS['accent']};
+    font-weight: 600;
+}}
+
+/* ===== Streamlit Components ===== */
+.stMarkdown h1 {{
+    color: {COLORS['text_primary']} !important;
+    font-weight: 700;
+}}
+.stMarkdown h2, .stMarkdown h3 {{
+    color: {COLORS['text_primary']} !important;
+}}
+.stMarkdown p, .stMarkdown li {{
+    color: {COLORS['text_secondary']} !important;
+}}
+.stMarkdown a {{
+    color: {COLORS['accent']} !important;
+}}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {{
+    gap: 4px;
+    background: transparent;
+}}
+.stTabs [data-baseweb="tab"] {{
+    background: rgba(26, 41, 66, 0.6);
+    border-radius: 8px 8px 0 0;
+    color: {COLORS['text_secondary']};
+    padding: 0.5rem 1rem;
+}}
+.stTabs [aria-selected="true"] {{
+    background: {COLORS['card_bg']} !important;
+    color: {COLORS['accent']} !important;
+    border-bottom: 2px solid {COLORS['accent']};
+}}
+
+/* Buttons */
+.stButton > button {{
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s;
+}}
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="stFormSubmitButton"] {{
+    background: linear-gradient(135deg, {COLORS['accent']}, #00B8D4) !important;
+    color: {COLORS['primary']} !important;
+    border: none !important;
+    font-weight: 600;
+}}
+.stButton > button[kind="primary"]:hover {{
+    box-shadow: 0 4px 16px rgba(0, 212, 170, 0.3);
+    transform: translateY(-1px);
+}}
+
+/* Metric widgets */
+[data-testid="stMetric"] {{
+    background: {COLORS['card_bg']};
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(255,255,255,0.05);
+}}
+[data-testid="stMetric"] label {{
+    color: {COLORS['text_secondary']} !important;
+    font-size: 0.85rem;
+}}
+[data-testid="stMetric"] [data-testid="stMetricValue"] {{
+    color: {COLORS['text_primary']} !important;
+    font-weight: 600;
+}}
+
+/* Expander */
+.streamlit-expanderHeader {{
+    background: rgba(26, 41, 66, 0.4) !important;
+    border-radius: 8px !important;
+    color: {COLORS['text_primary']} !important;
+}}
+.streamlit-expanderContent {{
+    background: rgba(26, 41, 66, 0.2);
+    border-radius: 0 0 8px 8px;
+}}
+
+/* Dataframe */
+.stDataFrame {{
+    border-radius: 8px;
+    overflow: hidden;
+}}
+
+/* Alert boxes */
+.stAlert {{
+    border-radius: 8px;
+    border-left-width: 4px;
+}}
+
+/* Text inputs */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {{
+    background: rgba(26, 41, 66, 0.6) !important;
+    color: {COLORS['text_primary']} !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px;
+}}
+.stTextInput > div > div > input:focus {{
+    border-color: {COLORS['accent']} !important;
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.2) !important;
+}}
+
+/* Divider */
+hr {{
+    border-color: rgba(255,255,255,0.08) !important;
+}}
+
+/* Chat messages */
+.stChatMessage {{
+    background: {COLORS['card_bg']} !important;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}}
+
+/* Selectbox */
+.stSelectbox > div > div {{
+    background: rgba(26, 41, 66, 0.6) !important;
+    color: {COLORS['text_primary']} !important;
+}}
+
+/* Mobile responsive */
+@media (max-width: 768px) {{
+    .main-header {{ font-size: 1.5rem !important; }}
+    .sub-header {{ font-size: 0.95rem !important; }}
+    .stMarkdown h1 {{ font-size: 1.5rem !important; }}
+    .stMarkdown h2 {{ font-size: 1.2rem !important; }}
+    .stMarkdown h3 {{ font-size: 1.05rem !important; }}
+    [data-testid="column"] {{ width: 100% !important; flex: 100% !important; min-width: 100% !important; }}
+    .stButton > button {{ width: 100% !important; }}
+    .metric-card {{ padding: 0.5rem !important; }}
+    .feature-card {{ padding: 1rem !important; }}
+    [data-testid="stSidebar"] {{ min-width: 200px !important; max-width: 250px !important; }}
+    .stChatMessage {{ padding: 0.5rem !important; }}
+}}
+</style>
+"""
+
+LIGHT_THEME_CSS = f"""
+<style>
+/* ===== Light Theme (Professional Financial) ===== */
+.main-header {{
+    font-size: 2.5rem;
+    color: #1F4E78;
+    font-weight: 800;
+    text-align: center;
+    padding: 1.5rem 0 0.5rem;
+    letter-spacing: -0.5px;
+}}
+.sub-header {{
+    font-size: 1.1rem;
+    color: #666;
+    text-align: center;
+    padding-bottom: 1.5rem;
+    font-weight: 300;
+}}
+.metric-card {{
+    background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
+    padding: 1.2rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(31, 78, 120, 0.15);
+}}
+.metric-card::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #00D4AA, transparent);
+}}
+.metric-card:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(31, 78, 120, 0.2);
+}}
+
+.feature-card {{
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #E8ECF1;
+    border-left: 4px solid #2E86AB;
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}}
+.feature-card:hover {{
+    border-left-color: #00D4AA;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}}
+.feature-card h4 {{
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: #1F4E78;
+    font-weight: 600;
+}}
+
+/* Mobile responsive */
+@media (max-width: 768px) {{
+    .main-header {{ font-size: 1.5rem !important; }}
+    .sub-header {{ font-size: 0.95rem !important; }}
+    .stMarkdown h1 {{ font-size: 1.5rem !important; }}
+    .stMarkdown h2 {{ font-size: 1.2rem !important; }}
+    .stMarkdown h3 {{ font-size: 1.05rem !important; }}
+    [data-testid="column"] {{ width: 100% !important; flex: 100% !important; min-width: 100% !important; }}
+    .stButton > button {{ width: 100% !important; }}
+    .metric-card {{ padding: 0.5rem !important; }}
+    .feature-card {{ padding: 1rem !important; }}
+    [data-testid="stSidebar"] {{ min-width: 200px !important; max-width: 250px !important; }}
+    .stChatMessage {{ padding: 0.5rem !important; }}
+}}
+</style>
+"""
+
+
+def apply_theme():
+    """Inject theme CSS based on session state preference"""
+    theme = st.session_state.get('theme_mode', 'dark')
+    if theme == 'dark':
+        st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
+    else:
+        st.markdown(LIGHT_THEME_CSS, unsafe_allow_html=True)
+
+
+def render_theme_toggle():
+    """Render a theme toggle in the sidebar"""
+    if 'theme_mode' not in st.session_state:
+        st.session_state.theme_mode = 'dark'
+
+    current = st.session_state.theme_mode
+    new_theme = '☀️ 浅色' if current == 'dark' else '🌙 深色'
+    if st.sidebar.button(new_theme, key='theme_toggle', use_container_width=True):
+        st.session_state.theme_mode = 'light' if current == 'dark' else 'dark'
+        st.rerun()

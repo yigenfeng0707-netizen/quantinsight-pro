@@ -2,7 +2,7 @@
 QuantInsight Pro - 专业子Agent群 (Sub-Agents)
 ===============================================
 
-5 个专业子Agent, 对标 AI涨乐 的多Agent协作机制:
+5 个专业子Agent, 业内领先的多Agent协作机制:
 1. StockSelectionAgent - 智能选股
 2. AnalysisAgent - 深度分析
 3. RiskAgent - 风险评估

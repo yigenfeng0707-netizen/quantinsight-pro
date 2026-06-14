@@ -3,7 +3,7 @@ QuantInsight Pro - 主Agent编排器 (Orchestrator)
 ================================================
 
 实现 "规划-执行-反思-调整" 智能闭环,
-对标 AI涨乐 的主Agent调度 + 多Agent协作机制.
+业内领先的主Agent调度 + 多Agent协作机制.
 
 工作流:
 1. Plan: 解析用户意图, 分解子任务, 选择子Agent

@@ -19,6 +19,10 @@ import os
 import requests
 import json
 
+import logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
 from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
 from data_cache import get_data_cache
 from ai.agent_orchestrator import MainAgent
@@ -34,6 +38,8 @@ from features.trade_simulator import TradeSimulator, RiskControlEngine, Order
 from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
 from features.sentiment_analyzer import SentimentAnalyzer
 from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
+from data_cache import DataCacheManager
+from eastmoney_source import EastMoneyChoiceSource
 
 # ============== 真实 LLM 接入 (B7) ==============
 def get_llm_config():
@@ -231,86 +237,56 @@ st.set_page_config(
     initial_sidebar_state='expanded',
 )
 
-# ============== 主题样式 ==============
-st.markdown("""
-<style>
-.main-header {
-    font-size: 2.5rem;
-    color: #1F4E78;
-    font-weight: bold;
-    text-align: center;
-    padding: 1rem 0;
-}
-.sub-header {
-    font-size: 1.2rem;
-    color: #666;
-    text-align: center;
-    padding-bottom: 1rem;
-}
-.metric-card {
-    background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
-    padding: 1rem;
-    border-radius: 10px;
-    color: white;
-    text-align: center;
-}
-.feature-card {
-    background: #F5F7FA;
-    padding: 1.5rem;
-    border-radius: 10px;
-    border-left: 4px solid #2E86AB;
-    margin: 1rem 0;
-}
-.feature-card h4 {
-    font-size: 1rem;
-    margin: 0 0 0.5rem 0;
-    color: #1F4E78;
-}
+# ============== 认证系统 ==============
+from auth.database import UserDB
+from auth.session_manager import SessionManager
+from auth.pages import render_login_page, render_register_page, render_trial_gate, render_profile_page
 
-/* 移动端适配 (< 768px) */
-@media (max-width: 768px) {
-    .main-header { font-size: 1.5rem !important; }
-    .sub-header { font-size: 0.95rem !important; }
-    .stMarkdown h1 { font-size: 1.5rem !important; }
-    .stMarkdown h2 { font-size: 1.2rem !important; }
-    .stMarkdown h3 { font-size: 1.05rem !important; }
-    [data-testid="column"] { width: 100% !important; flex: 100% !important; min-width: 100% !important; }
-    .stButton > button { width: 100% !important; }
-    .metric-card { padding: 0.5rem !important; }
-    .feature-card { padding: 1rem !important; }
-    [data-testid="stSidebar"] { min-width: 200px !important; max-width: 250px !important; }
-    .stChatMessage { padding: 0.5rem !important; }
-}
-</style>
-""", unsafe_allow_html=True)
+# Initialize auth
+if 'user_db' not in st.session_state:
+    st.session_state.user_db = UserDB()
+if 'session_mgr' not in st.session_state:
+    st.session_state.session_mgr = SessionManager(st.session_state.user_db)
+
+_db = st.session_state.user_db
+_session_mgr = st.session_state.session_mgr
+
+# Auth gate: show login/register if not authenticated
+if not _session_mgr.is_authenticated(st.session_state):
+    col_l, col_r = st.columns([1, 2, 1])
+    with col_r:
+        tab_login, tab_register = st.tabs(['🔐 登录', '📝 注册'])
+        with tab_login:
+            render_login_page(_session_mgr)
+        with tab_register:
+            render_register_page(_session_mgr, _db)
+    st.stop()
+
+# Trial gate: show activation code page if trial exhausted
+if not _session_mgr.check_trial(st.session_state):
+    render_trial_gate(_session_mgr, _db)
+    st.stop()
+
+# Log page visit
+if 'auth_last_page' not in st.session_state:
+    st.session_state.auth_last_page = ''
+
+# ============== 主题样式 ==============
+from ui_themes import apply_theme, render_theme_toggle
+apply_theme()
 
 # ============== 数据加载（缓存）==============
 @st.cache_data(ttl=3600)
 def load_hs300():
-    try:
-        df = ak.stock_zh_index_daily(symbol='sh000300')
-        df['date'] = pd.to_datetime(df['date'])
-        return df
-    except Exception:
-        return None
+    return load_index('sh000300')
 
 @st.cache_data(ttl=3600)
 def load_zz500():
-    try:
-        df = ak.stock_zh_index_daily(symbol='sh000905')
-        df['date'] = pd.to_datetime(df['date'])
-        return df
-    except Exception:
-        return None
+    return load_index('sh000905')
 
 @st.cache_data(ttl=3600)
 def load_cyb():
-    try:
-        df = ak.stock_zh_index_daily(symbol='sz399006')
-        df['date'] = pd.to_datetime(df['date'])
-        return df
-    except Exception:
-        return None
+    return load_index('sz399006')
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_index(symbol):
@@ -338,18 +314,63 @@ def load_sw_index():
     except Exception:
         return None
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=1800, show_spinner=False)
 def load_stock_news():
-    """加载 A 股新闻舆情 (缓存 1 小时)"""
+    """加载 A 股新闻舆情 (缓存 30 分钟, 多端点回退)"""
+    # Primary endpoint
     try:
         df = ak.stock_news_em(symbol='财经')
         if df is not None and len(df) > 0:
             return df.head(50)
     except Exception:
         pass
+    # Fallback 1: different keyword
+    try:
+        df = ak.stock_news_em(symbol='沪深')
+        if df is not None and len(df) > 0:
+            return df.head(50)
+    except Exception:
+        pass
+    # Fallback 2: global info
+    try:
+        df = ak.stock_info_global_em()
+        if df is not None and len(df) > 0:
+            return df.head(50)
+    except Exception:
+        pass
     return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300, show_spinner=False)
+def load_northbound_flow():
+    """加载北向资金数据 (缓存 5 分钟, 多端点回退)
+    Returns: (net_amount, direction_str) or None
+    """
+    # Primary
+    try:
+        df = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+        if df is not None and len(df) > 0:
+            latest = df.iloc[-1]
+            net = latest.get('当日净流入', latest.get('当日资金流入', 0))
+            if isinstance(net, (int, float)):
+                direction = '净流入' if net >= 0 else '净流出'
+                return (net, direction)
+    except Exception:
+        pass
+    # Fallback: sum 沪股通 + 深股通
+    try:
+        total = 0
+        for sym in ['沪股通', '深股通']:
+            df = ak.stock_hsgt_hist_em(symbol=sym)
+            if df is not None and len(df) > 0:
+                col = '当日资金流入' if '当日资金流入' in df.columns else '当日净流入'
+                total += float(df[col].iloc[-1])
+        direction = '净流入' if total >= 0 else '净流出'
+        return (total, direction)
+    except Exception:
+        pass
+    return None
+
+@st.cache_data(ttl=300)
 def load_stock_pool():
     """加载 A 股股票池（部分代表性股票）"""
     try:
@@ -493,9 +514,16 @@ def ai_qa_mock(question):
 # ============== 侧边栏 ==============
 st.sidebar.title('📊 QuantInsight Pro')
 st.sidebar.markdown('**AI 驱动的另类数据量化投研平台**')
-st.sidebar.markdown('---')
 
-page = st.sidebar.radio('选择功能模块', [
+# User info
+st.sidebar.markdown('---')
+_username = st.session_state.get('auth_username', 'Guest')
+_is_admin = st.session_state.get('auth_is_admin', False)
+_badge = ' 👑 管理员' if _is_admin else ''
+st.sidebar.markdown(f'👤 **{_username}**{_badge}')
+
+# Page navigation
+page_options = [
     '🏠 首页',
     '🤖 AI 投研问答',
     '🎯 智能选股',
@@ -506,42 +534,42 @@ page = st.sidebar.radio('选择功能模块', [
     '📡 另类数据仪表盘',
     '📈 量化策略回测',
     '📊 行业分析',
-])
+    '👤 个人中心',
+]
+if _is_admin:
+    page_options.append('⚙️ 管理后台')
 
 st.sidebar.markdown('---')
-st.sidebar.markdown('### 📋 项目信息')
-st.sidebar.info(
-    '**项目编号**：2026FINTECH-FINT-0093\n\n'
-    '**参赛单位**：慧点资本 (InsightQuant)\n\n'
-    '**推荐单位**：杭州永字资产管理有限公司\n\n'
-    '**大赛**：Fintech@外滩 第一届金融科技国际创新创业大赛'
-)
-st.sidebar.markdown('---')
-st.sidebar.markdown('### 🔧 技术栈')
-st.sidebar.code(
-    'Streamlit + Plotly\n'
-    'akshare + pandas\n'
-    'Qwen/DeepSeek (可选)',
-    language='text'
-)
+page = st.sidebar.radio('选择功能模块', page_options)
 
-# LLM 状态显示 (B7)
+# Log page visit
+if page != st.session_state.get('auth_last_page', ''):
+    _session_mgr.log_page_visit(st.session_state, page)
+    st.session_state.auth_last_page = page
+
+# Sidebar: project info (collapsible)
+st.sidebar.markdown('---')
+with st.sidebar.expander('📋 项目信息'):
+    st.markdown(
+        '**项目编号**：2026FINTECH-FINT-0093\n\n'
+        '**参赛单位**：慧点资本 (InsightQuant)\n\n'
+        '**推荐单位**：杭州永字资产管理有限公司\n\n'
+        '**大赛**：Fintech@外滩 第一届金融科技国际创新创业大赛'
+    )
+
+# LLM status (compact)
 llm_config_status = get_llm_config()
 if llm_config_status['api_key']:
-    st.sidebar.markdown('### 🤖 AI 引擎')
-    st.sidebar.success(
-        f'**{llm_config_status["provider"].upper()}** ✅\n\n'
-        f'模型: {llm_config_status["model"]}\n\n'
-        f'模式: 真实 LLM 推理'
-    )
+    st.sidebar.markdown(f'🤖 AI: 🟢 {llm_config_status["provider"].upper()}')
 else:
-    st.sidebar.markdown('### 🤖 AI 引擎')
-    st.sidebar.warning(
-        '**Mock 模式** ⚠️\n\n'
-        '当前使用关键词匹配\n\n'
-        '配置 DEEPSEEK_API_KEY 或 QWEN_API_KEY\n\n'
-        '可启用真实 AI 推理'
-    )
+    st.sidebar.markdown('🤖 AI: 🟡 Mock')
+
+# Logout button
+st.sidebar.markdown('---')
+render_theme_toggle()
+if st.sidebar.button('🚪 退出登录', use_container_width=True):
+    _session_mgr.logout(st.session_state)
+    st.rerun()
 
 # ============== 页面：首页 ==============
 if page == '🏠 首页':
@@ -571,16 +599,12 @@ if page == '🏠 首页':
         except Exception:
             st.metric('创业板指', '加载中', '')
     with col4:
-        # 北向资金: 尝试从 akshare 实时获取, 失败则显示提示
+        # 北向资金
         try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-            if df_north is not None and len(df_north) > 0:
-                latest = df_north.iloc[-1]
-                net_amount = latest.get('当日净流入', latest.get('当日资金流入', 0))
-                if isinstance(net_amount, (int, float)):
-                    st.metric('今日北向资金', f'{net_amount/1e8:.1f}亿', f'{net_amount/1e8:.1f}亿净流入')
-                else:
-                    st.metric('今日北向资金', '数据加载中', '')
+            north_data = load_northbound_flow()
+            if north_data is not None:
+                net_amount, direction = north_data
+                st.metric('今日北向资金', f'{net_amount/1e8:.1f}亿', f'{direction} {abs(net_amount)/1e8:.1f}亿')
             else:
                 st.metric('今日北向资金', '暂无数据', '')
         except Exception:
@@ -589,7 +613,7 @@ if page == '🏠 首页':
     st.markdown('---')
 
     # 核心功能介绍
-    st.markdown('### 🎯 平台核心功能 — 对标 AI涨乐')
+    st.markdown('### 🎯 平台核心功能 — 业内领先的智能投研平台')
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -1216,7 +1240,7 @@ elif page == '📊 行业分析':
 # ============== 页面：智能选股 ==============
 elif page == '🎯 智能选股':
     st.markdown('# 🎯 智能选股')
-    st.markdown('**自然语言选股 + 多因子评分 + 个股对比 — 对标 AI涨乐智能选股**')
+    st.markdown('**自然语言选股 + 多因子评分 + 个股对比 — 专业级智能选股引擎**')
     st.markdown('---')
 
     tab1, tab2, tab3 = st.tabs(['💬 自然语言选股', '📊 多因子评分', '⚖️ 个股对比'])
@@ -1297,23 +1321,41 @@ elif page == '🎯 智能选股':
 # ============== 页面：智能盯盘 ==============
 elif page == '📡 智能盯盘':
     st.markdown('# 📡 智能盯盘')
-    st.markdown('**7×24h 市场监控 + 智能预警 + 北向资金 — 对标 AI涨乐智能盯盘**')
+    st.markdown('**7×24h 市场监控 + 智能预警 + 北向资金 — 专业级智能盯盘系统**')
     st.markdown('---')
 
     # 市场大盘
-    dashboard = MarketDashboard()
-    pool = load_stock_pool()
+    if 'data_cache_mgr' not in st.session_state:
+        try:
+            st.session_state.data_cache_mgr = DataCacheManager(EastMoneyChoiceSource())
+        except Exception:
+            st.session_state.data_cache_mgr = None
+    dashboard = MarketDashboard(cache_manager=st.session_state.data_cache_mgr)
     try:
         overview = dashboard.get_market_overview()
-        col1, col2, col3, col4 = st.columns(4)
+        breadth = overview.get('breadth', {})
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
-            st.metric('市场宽度 - 上涨', overview.get('up_count', 'N/A'))
+            up = breadth.get('up', 'N/A')
+            st.metric('上涨家数', up)
         with col2:
-            st.metric('市场宽度 - 下跌', overview.get('down_count', 'N/A'))
+            down = breadth.get('down', 'N/A')
+            st.metric('下跌家数', down)
         with col3:
-            st.metric('涨停', overview.get('limit_up', 'N/A'))
+            flat = breadth.get('flat', 'N/A')
+            st.metric('平盘', flat)
         with col4:
-            st.metric('跌停', overview.get('limit_down', 'N/A'))
+            lu = breadth.get('limit_up', 'N/A')
+            st.metric('涨停', lu)
+        with col5:
+            ld = breadth.get('limit_down', 'N/A')
+            st.metric('跌停', ld)
+        # 北向资金快览
+        ff = overview.get('fund_flow', {})
+        if 'northbound' in ff:
+            flow = ff['northbound']
+            direction = '净流入' if flow > 0 else '净流出'
+            st.info(f'🌐 北向资金: {direction} **{abs(flow):.1f}亿**')
     except Exception as e:
         st.warning(f'市场概览加载失败: {e}')
 
@@ -1351,9 +1393,17 @@ elif page == '📡 智能盯盘':
     st.markdown('---')
     st.markdown('### 🌐 北向资金追踪')
     try:
-        df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-        if df_north is not None and len(df_north) > 0:
-            st.dataframe(df_north.tail(10), use_container_width=True)
+        north_data = load_northbound_flow()
+        if north_data is not None:
+            net_amount, direction = north_data
+            st.info(f'今日北向资金: {direction} **{abs(net_amount)/1e8:.1f}亿**')
+        # 尝试显示近期明细
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            if df_north is not None and len(df_north) > 0:
+                st.dataframe(df_north.tail(10), use_container_width=True)
+        except Exception:
+            pass
     except Exception:
         st.info('北向资金数据加载中...')
 
@@ -1409,7 +1459,7 @@ elif page == '💼 我的组合':
 # ============== 页面：模拟交易 ==============
 elif page == '📈 模拟交易':
     st.markdown('# 📈 模拟交易')
-    st.markdown('**语音/文字下单 + 风控引擎 + 反情绪化交易 — 对标 AI涨乐智能交易**')
+    st.markdown('**语音/文字下单 + 风控引擎 + 反情绪化交易 — 专业级智能交易系统**')
     st.markdown('---')
 
     if 'trade_sim' not in st.session_state:
@@ -1491,7 +1541,7 @@ elif page == '📈 模拟交易':
 # ============== 页面：智能指令 ==============
 elif page == '⚡ 智能指令':
     st.markdown('# ⚡ 智能指令')
-    st.markdown('**周期性投研任务 + 自动报告生成 — 对标 AI涨乐智能指令**')
+    st.markdown('**周期性投研任务 + 自动报告生成 — 专业级智能指令平台**')
     st.markdown('---')
 
     if 'task_scheduler' not in st.session_state:
@@ -1560,6 +1610,18 @@ elif page == '⚡ 智能指令':
                     st.markdown(report)
                 except Exception as e:
                     st.error(f'报告生成失败: {e}')
+
+# ============== 页面：个人中心 ==============
+elif page == '👤 个人中心':
+    render_profile_page(_session_mgr, _db)
+
+# ============== 页面：管理后台 ==============
+elif page == '⚙️ 管理后台':
+    if not _is_admin:
+        st.error('⛔ 无权访问')
+        st.stop()
+    from admin.dashboard import render_admin_dashboard
+    render_admin_dashboard(_db)
 
 # ============== 页脚 ==============
 st.markdown('---')
