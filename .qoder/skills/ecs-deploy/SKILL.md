@@ -19,9 +19,16 @@ Deploy code to Alibaba Cloud ECS without SSH — uses Cloud Assistant `RunComman
 
 ## Credentials
 
-Stored in deploy scripts. RAM user `power-application-user`:
-- AK_ID: `LTAI5t6UPpyN8gJ1znY2G88s`
-- Region: `cn-hangzhou`, Endpoint: `ecs.cn-hangzhou.aliyuncs.com`
+Existing deploy scripts (`_ecs_deploy_*.py`) store credentials internally. The reusable helper in `scripts/ecs_api.py` reads from environment variables:
+
+```powershell
+$env:ALIBABA_CLOUD_ACCESS_KEY_ID = "LTAI5t6UPpyN8gJ1znY2G88s"
+$env:ALIBABA_CLOUD_ACCESS_KEY_SECRET = "<secret>"
+$env:ALIBABA_CLOUD_REGION = "cn-hangzhou"
+$env:ECS_INSTANCE_ID = "i-bp1g3jpaz9v1xczizza8"
+```
+
+Region: `cn-hangzhou`, Endpoint: `ecs.cn-hangzhou.aliyuncs.com`
 
 ## Operations
 
