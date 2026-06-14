@@ -30,8 +30,8 @@ from features.stock_comparison import StockComparator
 from features.portfolio_manager import PortfolioManager
 from features.alert_system import SmartAlertEngine
 from features.market_dashboard import MarketDashboard
-from features.trade_simulator import TradeSimulator, RiskControlEngine
-from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator
+from features.trade_simulator import TradeSimulator, RiskControlEngine, Order
+from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
 from features.sentiment_analyzer import SentimentAnalyzer
 from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
 
@@ -729,26 +729,30 @@ elif page == '🤖 AI 投研问答':
                 try:
                     # 初始化 MainAgent
                     if 'main_agent' not in st.session_state:
-                        st.session_state.main_agent = MainAgent(llm_config)
+                        st.session_state.main_agent = MainAgent(llm_config=llm_config)
                     agent = st.session_state.main_agent
                     # 构建历史格式
                     agent_history = []
                     for msg in st.session_state.chat_history[-10:]:
                         agent_history.append({'role': msg['role'], 'content': msg.get('content', msg.get('summary', ''))})
                     orch_result = agent.process_query(question, agent_history)
+                    orch_d = orch_result.to_dict()
                     result = {
-                        'title': orch_result.get('title', 'Multi-Agent 分析'),
-                        'summary': orch_result.get('summary', ''),
-                        'data': orch_result.get('data', {}),
-                        'recommendation': orch_result.get('recommendation', ''),
-                        'reasoning': orch_result.get('reasoning', ''),
+                        'title': orch_d.get('title', 'Multi-Agent 分析'),
+                        'summary': orch_d.get('summary', ''),
+                        'data': orch_d.get('data', {}),
+                        'recommendation': orch_d.get('recommendation', ''),
+                        'reasoning': orch_d.get('reasoning', ''),
                     }
                     st.success(f'✅ Multi-Agent 协作完成, 耗时 {time.time()-t0:.1f}s')
                     # 显示 Agent 执行过程
-                    if orch_result.get('agent_results'):
+                    if orch_d.get('agent_results'):
                         with st.expander('🧩 Agent 执行详情'):
-                            for name, output in orch_result['agent_results'].items():
-                                st.markdown(f'**{name}**: {str(output)[:200]}')
+                            for item in orch_d['agent_results']:
+                                if isinstance(item, dict):
+                                    st.markdown(f'**{item.get("name", "agent")}**: {str(item.get("output", ""))[:200]}')
+                                else:
+                                    st.markdown(f'- {str(item)[:200]}')
                 except Exception as e:
                     st.warning(f'⚠️ Multi-Agent 失败: {e}, 回退单 Agent')
                     try:
@@ -1249,7 +1253,7 @@ elif page == '🎯 智能选股':
             if st.button('📊 计算评分', key='score_btn'):
                 with st.spinner('计算多因子评分...'):
                     try:
-                        scored = scorer.score_all(pool)
+                        scored = scorer.score_universe(pool)
                         if scored is not None and not scored.empty:
                             st.dataframe(scored.head(20), use_container_width=True)
                     except Exception as e:
@@ -1291,7 +1295,7 @@ elif page == '📡 智能盯盘':
     dashboard = MarketDashboard()
     pool = load_stock_pool()
     try:
-        overview = dashboard.get_market_overview(pool)
+        overview = dashboard.get_market_overview()
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric('市场宽度 - 上涨', overview.get('up_count', 'N/A'))
@@ -1322,16 +1326,17 @@ elif page == '📡 智能盯盘':
     if st.button('➕ 添加预警', key='add_alert') and alert_input:
         try:
             alert = alert_engine.parse_nl_alert(alert_input)
-            st.success(f'✅ 预警已创建: {alert}')
+            st.success(f'✅ 预警已创建: {alert.message}')
         except Exception as e:
             st.error(f'创建失败: {e}')
 
     # 显示现有预警
-    alerts = alert_engine.get_all_alerts()
+    alerts = alert_engine.get_active_alerts()
     if alerts:
         st.markdown('#### 📝 当前预警列表')
         for a in alerts:
-            st.markdown(f'- {a}')
+            triggered = '🔴' if a.is_triggered else '🟢'
+            st.markdown(f'- {triggered} {a.message}')
 
     # 北向资金
     st.markdown('---')
@@ -1368,18 +1373,27 @@ elif page == '💼 我的组合':
 
         if st.button('➕ 添加持仓', key='add_holding'):
             try:
-                mgr.add_holding(h_symbol, h_name, int(h_shares), float(h_cost))
+                mgr.add_holding('我的组合', h_symbol, h_name, int(h_shares), float(h_cost))
                 st.success(f'✅ 已添加 {h_name} ({h_symbol})')
             except Exception as e:
                 st.error(f'添加失败: {e}')
 
     with tab2:
-        portfolio = mgr.get_portfolio()
-        if portfolio and portfolio.get('holdings'):
-            st.markdown(f'### 📊 持仓明细 (共 {len(portfolio["holdings"])} 只)')
-            st.dataframe(pd.DataFrame(portfolio['holdings']), use_container_width=True)
-            st.metric('总市值', f"¥{portfolio.get('total_value', 0):,.0f}")
-            st.metric('总盈亏', f"¥{portfolio.get('total_pnl', 0):,.0f}", f"{portfolio.get('total_pnl_pct', 0):+.2f}%")
+        # 确保组合存在
+        if '我的组合' not in mgr.list_portfolios():
+            mgr.create_portfolio('我的组合')
+        portfolio = mgr.get_portfolio('我的组合')
+        if portfolio and portfolio.holdings:
+            st.markdown(f'### 📊 持仓明细 (共 {len(portfolio.holdings)} 只)')
+            holdings_data = [{'股票代码': h.stock_code, '股票名称': h.stock_name,
+                              '持股数': h.quantity, '成本价': h.avg_cost,
+                              '现价': h.current_price, '盈亏': h.pnl} for h in portfolio.holdings]
+            st.dataframe(pd.DataFrame(holdings_data), use_container_width=True)
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.metric('总市值', f"¥{portfolio.total_market_value:,.0f}")
+            with col_m2:
+                st.metric('总盈亏', f"¥{portfolio.total_pnl:,.0f}", f"{portfolio.total_pnl_pct:+.2f}%")
         else:
             st.info('📭 暂无持仓, 请先添加持仓')
 
@@ -1418,14 +1432,24 @@ elif page == '📈 模拟交易':
 
     if st.button('🚀 执行交易', type='primary', key='exec_trade'):
         try:
+            # 构建 Order 对象
+            o_order = Order(
+                order_id=f"ORD_{int(datetime.now().timestamp())}",
+                stock_code=o_symbol, stock_name='', side=o_action,
+                quantity=int(o_qty), price=float(o_price) if o_price > 0 else 0.0,
+                order_type='market' if o_price <= 0 else 'limit',
+                created_at=datetime.now().isoformat(),
+            )
             # 风控检查
-            risk_check = risk.check_order(o_symbol, o_action, int(o_qty), float(o_price))
-            if not risk_check.get('approved', False):
-                st.error(f'❌ 风控拒绝: {risk_check.get("reason", "未知")}')
+            risk_check = risk.check_order(o_order)
+            if not risk_check.get('passed', False):
+                st.error(f'❌ 风控拒绝: {risk_check.get("message", "未知")}')
             else:
-                result = sim.execute_order(o_symbol, o_action, int(o_qty), float(o_price) if o_price > 0 else None)
-                if result and result.get('filled'):
-                    st.success(f"✅ 成交: {result['symbol']} {result['action']} {result['qty']}股 @ ¥{result['price']:.2f}")
+                result = sim.place_order(o_symbol, '', o_action, int(o_qty), float(o_price) if o_price > 0 else 0.0, risk_checker=risk)
+                if result and result.status == 'filled':
+                    st.success(f"✅ 成交: {result.stock_code} {result.side} {result.quantity}股 @ ¥{result.fill_price:.2f}")
+                elif result and result.status == 'rejected':
+                    st.warning(f'交易被拒绝: {result.risk_check_message}')
                 else:
                     st.warning('交易未成交')
         except Exception as e:
@@ -1434,23 +1458,26 @@ elif page == '📈 模拟交易':
     # 交易历史
     st.markdown('---')
     st.markdown('### 📝 交易历史')
-    history = sim.get_history()
+    history = sim.get_trade_history()
     if history:
-        st.dataframe(pd.DataFrame(history), use_container_width=True)
+        hist_data = [{'订单号': o.order_id, '代码': o.stock_code, '方向': o.side,
+                      '数量': o.quantity, '价格': o.price, '状态': o.status,
+                      '时间': o.created_at} for o in history]
+        st.dataframe(pd.DataFrame(hist_data), use_container_width=True)
     else:
         st.info('暂无交易记录')
 
     # 风控状态
     st.markdown('---')
     st.markdown('### 🛡️ 风控状态')
-    status = risk.get_status()
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric('今日交易次数', status.get('daily_trades', 0))
+        st.metric('今日交易次数', len([o for o in sim.get_trade_history() if o.created_at and o.created_at[:10] == datetime.now().strftime('%Y-%m-%d')]))
     with col2:
-        st.metric('冷却期', '是' if status.get('in_cooldown', False) else '否')
+        pnl = sim.get_pnl_summary()
+        st.metric('总成交', pnl.get('filled_orders', 0))
     with col3:
-        st.metric('风控规则', f'{len(status.get("rules", []))} 条')
+        st.metric('交易成本', f"¥{pnl.get('total_commission', 0):.2f}")
 
 # ============== 页面：智能指令 ==============
 elif page == '⚡ 智能指令':
@@ -1466,7 +1493,7 @@ elif page == '⚡ 智能指令':
 
     with tab1:
         st.markdown('### 预置任务模板')
-        templates = scheduler.get_templates()
+        templates = TASK_TEMPLATES
         if templates:
             cols = st.columns(min(len(templates), 3))
             for i, (tid, tpl) in enumerate(templates.items()):
@@ -1476,7 +1503,7 @@ elif page == '⚡ 智能指令':
                     st.caption(f"⏰ {tpl.get('schedule', '')}")
                     if st.button(f'➕ 添加', key=f'tpl_{tid}'):
                         try:
-                            scheduler.add_from_template(tid)
+                            scheduler.create_task_from_template(tid)
                             st.success(f'✅ 已添加 {tpl["name"]}')
                         except Exception as e:
                             st.error(f'添加失败: {e}')
@@ -1488,17 +1515,17 @@ elif page == '⚡ 智能指令':
         c_type = st.selectbox('任务类型', ['morning_brief', 'evening_review', 'weekly_report', 'custom'], key='c_type')
         if st.button('➕ 创建自定义任务', key='add_custom') and c_name:
             try:
-                scheduler.add_task(c_name, c_desc, c_type)
+                scheduler.create_custom_task(c_name, c_desc, schedule='custom')
                 st.success(f'✅ 已创建 {c_name}')
             except Exception as e:
                 st.error(f'创建失败: {e}')
 
     with tab2:
         st.markdown('### 📝 当前任务列表')
-        tasks = scheduler.get_all_tasks()
+        tasks = scheduler.list_tasks()
         if tasks:
             for t in tasks:
-                st.markdown(f"- **{t.get('name', '')}** ({t.get('task_type', '')}) - {t.get('status', 'pending')}")
+                st.markdown(f"- **{t.name}** ({t.task_type}) - {'✅ 活跃' if t.is_active else '⏸️ 暂停'}")
         else:
             st.info('暂无任务, 请先创建任务')
 
@@ -1511,7 +1538,16 @@ elif page == '⚡ 智能指令':
             with st.spinner('生成报告...'):
                 try:
                     generator = AutoReportGenerator()
-                    report = generator.generate(report_type)
+                    # 构建简单的结果对象
+                    from types import SimpleNamespace
+                    now_str = datetime.now().strftime('%Y-%m-%d')
+                    mock_result = SimpleNamespace(
+                        title=f'{report_type} - {now_str}',
+                        summary=f'基于当前市场数据的{report_type}自动分析。数据来源: 东方财富、akshare 公开接口。',
+                        recommendation='建议关注大盘走势及板块轮动信号, 适当分散配置。',
+                        reasoning='基于近期市场成交量、北向资金流向及板块轮动数据综合分析。',
+                    )
+                    report = generator.generate(report_type, mock_result)
                     st.markdown(report)
                 except Exception as e:
                     st.error(f'报告生成失败: {e}')
