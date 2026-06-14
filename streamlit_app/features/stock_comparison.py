@@ -73,19 +73,24 @@ class StockComparator:
             "summary": summary,
         }
 
-    def _get_stock_data(self, code: str) -> Optional[dict]:
-        """获取单只股票数据"""
+    def _get_stock_data(self, code_or_name: str) -> Optional[dict]:
+        """获取单只股票数据 (支持代码或名称)"""
         if not self.cache:
-            return {"代码": code, "名称": code, "最新价": 0, "涨跌幅": 0}
+            return {"代码": code_or_name, "名称": code_or_name, "最新价": 0, "涨跌幅": 0, "换手率": 0, "市盈率-动态": 0, "市净率": 0, "总市值": 0, "成交额": 0, "60日涨跌幅": 0}
 
         try:
             universe = self.cache.get_stock_universe(top_n=5000)
-            if universe is not None and "代码" in universe.columns:
-                match = universe[universe["代码"] == code]
-                if len(match) > 0:
+            if universe is not None:
+                # Try matching by code first, then by name
+                match = None
+                if "代码" in universe.columns:
+                    match = universe[universe["代码"] == code_or_name]
+                if (match is None or len(match) == 0) and "名称" in universe.columns:
+                    match = universe[universe["名称"].str.contains(code_or_name, na=False)]
+                if match is not None and len(match) > 0:
                     row = match.iloc[0]
                     return {
-                        "代码": code,
+                        "代码": row.get("代码", code_or_name),
                         "名称": row.get("名称", ""),
                         "最新价": float(row.get("最新价", 0)),
                         "涨跌幅": float(row.get("涨跌幅", 0)),
@@ -97,14 +102,15 @@ class StockComparator:
                         "60日涨跌幅": float(row.get("60日涨跌幅", 0)) if "60日涨跌幅" in universe.columns else 0,
                     }
         except Exception as e:
-            logger.warning(f"获取 {code} 数据失败: {e}")
+            logger.warning(f"获取 {code_or_name} 数据失败: {e}")
 
-        return {"代码": code, "名称": code, "最新价": 0}
+        return {"代码": code_or_name, "名称": code_or_name, "最新价": 0, "涨跌幅": 0, "换手率": 0, "市盈率-动态": 0, "市净率": 0, "总市值": 0, "成交额": 0, "60日涨跌幅": 0}
 
     def _build_radar_data(self, df: pd.DataFrame) -> dict:
         """构建雷达图数据 (归一化到0-1)"""
         dimensions = []
-        values = {}
+        # Pre-initialize values dict for all stock codes
+        values = {code: [] for code in df["代码"]} if "代码" in df.columns else {}
 
         # PE (反向, 低好)
         if "市盈率-动态" in df.columns:
@@ -120,7 +126,7 @@ class StockComparator:
             chg_norm = (chg - chg.min()) / (chg.max() - chg.min() + 0.01)
             dimensions.append("短期动量")
             for i, code in enumerate(df["代码"]):
-                values[code].append(float(chg_norm.iloc[i]))
+                values.setdefault(code, []).append(float(chg_norm.iloc[i]))
 
         # 换手率
         if "换手率" in df.columns:
@@ -128,7 +134,7 @@ class StockComparator:
             turn_norm = (turn - turn.min()) / (turn.max() - turn.min() + 0.01)
             dimensions.append("活跃度")
             for i, code in enumerate(df["代码"]):
-                values[code].append(float(turn_norm.iloc[i]))
+                values.setdefault(code, []).append(float(turn_norm.iloc[i]))
 
         # 市值 (对数)
         if "总市值" in df.columns:
@@ -136,7 +142,7 @@ class StockComparator:
             cap_norm = (cap - cap.min()) / (cap.max() - cap.min() + 0.01)
             dimensions.append("规模")
             for i, code in enumerate(df["代码"]):
-                values[code].append(float(cap_norm.iloc[i]))
+                values.setdefault(code, []).append(float(cap_norm.iloc[i]))
 
         # 60日涨幅
         if "60日涨跌幅" in df.columns:
@@ -144,7 +150,7 @@ class StockComparator:
             p60_norm = (p60 - p60.min()) / (p60.max() - p60.min() + 0.01)
             dimensions.append("中期动量")
             for i, code in enumerate(df["代码"]):
-                values[code].append(float(p60_norm.iloc[i]))
+                values.setdefault(code, []).append(float(p60_norm.iloc[i]))
 
         return {"dimensions": dimensions, "values": values}
 
