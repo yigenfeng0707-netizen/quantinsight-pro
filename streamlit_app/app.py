@@ -253,7 +253,7 @@ _session_mgr = st.session_state.session_mgr
 
 # Auth gate: show login/register if not authenticated
 if not _session_mgr.is_authenticated(st.session_state):
-    col_l, col_r = st.columns([1, 2, 1])
+    _spacer_l, col_r, _spacer_r = st.columns([1, 2, 1])
     with col_r:
         tab_login, tab_register = st.tabs(['🔐 登录', '📝 注册'])
         with tab_login:
