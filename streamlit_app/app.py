@@ -23,6 +23,36 @@ import logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
+
+def safe_metric(label, value, delta=None):
+    """Safe st.metric wrapper - handles list/dict/None values gracefully"""
+    try:
+        if isinstance(value, (list, dict, set, tuple)):
+            value = str(value) if value else 'N/A'
+        if value is None:
+            value = 'N/A'
+        if isinstance(value, str):
+            st.metric(label, value, delta if delta else '')
+        elif isinstance(value, (int, float)):
+            st.metric(label, value, delta)
+        else:
+            st.metric(label, str(value), '')
+    except Exception:
+        st.metric(label, 'N/A', '')
+
+
+def safe_page_section(page_name, render_func, *args, **kwargs):
+    """Wrap page rendering with error handling - no traceback shown to users"""
+    try:
+        render_func(*args, **kwargs)
+    except Exception as e:
+        logger.error(f'Page [{page_name}] error: {e}')
+        st.error(f'页面加载出错: {page_name}')
+        st.info('请刷新页面重试，如问题持续请联系管理员')
+        with st.expander('技术详情 (仅供调试)'):
+            import traceback
+            st.code(traceback.format_exc(), language='text')
+
 from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
 from data_cache import get_data_cache
 from ai.agent_orchestrator import MainAgent
@@ -717,7 +747,7 @@ elif page == '🤖 AI 投研问答':
                         cols = st.columns(len(msg['data']))
                         for (k, v), col in zip(msg['data'].items(), cols):
                             with col:
-                                st.metric(k, v)
+                                safe_metric(k, v)
                     st.markdown('### 💡 投资建议')
                     st.success(msg['recommendation'])
                     if msg.get('reasoning'):
@@ -890,14 +920,17 @@ elif page == '📡 另类数据仪表盘':
             # 汇总指标
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric('新闻总数', summary.total_articles)
+                safe_metric('新闻总数', getattr(summary, 'total_articles', 0))
             with col2:
-                st.metric('正面', summary.positive_count, f'{summary.positive_count/max(summary.total_articles,1)*100:.0f}%')
+                safe_metric('正面', getattr(summary, 'positive_count', 0),
+                           f'{getattr(summary, "positive_count", 0)/max(getattr(summary, "total_articles", 1),1)*100:.0f}%')
             with col3:
-                st.metric('负面', summary.negative_count, f'{summary.negative_count/max(summary.total_articles,1)*100:.0f}%')
+                safe_metric('负面', getattr(summary, 'negative_count', 0),
+                           f'{getattr(summary, "negative_count", 0)/max(getattr(summary, "total_articles", 1),1)*100:.0f}%')
             with col4:
-                trend_cn = {'bullish': '偏多', 'bearish': '偏空', 'neutral': '中性'}.get(summary.sentiment_trend, '中性')
-                st.metric('舆情趋势', trend_cn, f'均分 {summary.avg_score:.2f}')
+                trend_cn = {'bullish': '偏多', 'bearish': '偏空', 'neutral': '中性'}.get(
+                    getattr(summary, 'sentiment_trend', 'neutral'), '中性')
+                safe_metric('舆情趋势', trend_cn, f'均分 {getattr(summary, "avg_score", 0):.2f}')
 
             # 热词
             if summary.hot_keywords:
@@ -1090,7 +1123,7 @@ elif page == '📈 量化策略回测':
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             for (k, v), col in zip(metrics.items(), [col1, col2, col3, col4, col5, col6]):
                 with col:
-                    st.metric(k, v)
+                    safe_metric(k, v)
 
             # 关键提示
             sharpe = float(metrics['夏普比率'].replace('%', '').replace('+', '').replace('-', '')) if metrics['夏普比率'] != 'N/A' else 0
@@ -1247,11 +1280,15 @@ elif page == '📊 行业分析':
 
     # 完整数据表
     st.markdown('### 📋 完整成分股数据')
-    display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
-    if display_cols:
-        st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
-    else:
-        st.dataframe(df_industry.head(50), use_container_width=True)
+    try:
+        display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
+        if display_cols:
+            st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
+        else:
+            st.dataframe(df_industry.head(50), use_container_width=True)
+    except Exception as e:
+        logger.warning(f'DataFrame display error: {e}')
+        st.info('数据表格加载中，请刷新页面重试')
 
 # ============== 页面：智能选股 ==============
 elif page == '🎯 智能选股':
@@ -1350,22 +1387,20 @@ elif page == '📡 智能盯盘':
     try:
         overview = dashboard.get_market_overview()
         breadth = overview.get('breadth', {})
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            up = breadth.get('up', 'N/A')
-            st.metric('上涨家数', up)
-        with col2:
-            down = breadth.get('down', 'N/A')
-            st.metric('下跌家数', down)
-        with col3:
-            flat = breadth.get('flat', 'N/A')
-            st.metric('平盘', flat)
-        with col4:
-            lu = breadth.get('limit_up', 'N/A')
-            st.metric('涨停', lu)
-        with col5:
-            ld = breadth.get('limit_down', 'N/A')
-            st.metric('跌停', ld)
+        if breadth:
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1:
+                safe_metric('上涨家数', breadth.get('up', 'N/A'))
+            with col2:
+                safe_metric('下跌家数', breadth.get('down', 'N/A'))
+            with col3:
+                safe_metric('平盘', breadth.get('flat', 'N/A'))
+            with col4:
+                safe_metric('涨停', breadth.get('limit_up', 'N/A'))
+            with col5:
+                safe_metric('跌停', breadth.get('limit_down', 'N/A'))
+        else:
+            st.info('市场涨跌数据加载中，请稍候刷新...')
         # 北向资金快览
         ff = overview.get('fund_flow', {})
         if 'northbound' in ff:
@@ -1373,7 +1408,8 @@ elif page == '📡 智能盯盘':
             direction = '净流入' if flow > 0 else '净流出'
             st.info(f'🌐 北向资金: {direction} **{abs(flow):.1f}亿**')
     except Exception as e:
-        st.warning(f'市场概览加载失败: {e}')
+        logger.warning(f'Market overview error: {e}')
+        st.info('市场概览数据暂时不可用，请稍后刷新重试')
 
     st.markdown('---')
 

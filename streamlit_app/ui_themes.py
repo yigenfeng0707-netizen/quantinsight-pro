@@ -249,21 +249,6 @@ hr {{
     background: rgba(26, 41, 66, 0.6) !important;
     color: {COLORS['text_primary']} !important;
 }}
-
-/* Mobile responsive */
-@media (max-width: 768px) {{
-    .main-header {{ font-size: 1.5rem !important; }}
-    .sub-header {{ font-size: 0.95rem !important; }}
-    .stMarkdown h1 {{ font-size: 1.5rem !important; }}
-    .stMarkdown h2 {{ font-size: 1.2rem !important; }}
-    .stMarkdown h3 {{ font-size: 1.05rem !important; }}
-    [data-testid="column"] {{ width: 100% !important; flex: 100% !important; min-width: 100% !important; }}
-    .stButton > button {{ width: 100% !important; }}
-    .metric-card {{ padding: 0.5rem !important; }}
-    .feature-card {{ padding: 1rem !important; }}
-    [data-testid="stSidebar"] {{ min-width: 200px !important; max-width: 250px !important; }}
-    .stChatMessage {{ padding: 0.5rem !important; }}
-}}
 </style>
 """
 
@@ -330,32 +315,146 @@ LIGHT_THEME_CSS = f"""
     color: #1F4E78;
     font-weight: 600;
 }}
+</style>
+"""
 
-/* Mobile responsive */
-@media (max-width: 768px) {{
-    .main-header {{ font-size: 1.5rem !important; }}
-    .sub-header {{ font-size: 0.95rem !important; }}
-    .stMarkdown h1 {{ font-size: 1.5rem !important; }}
-    .stMarkdown h2 {{ font-size: 1.2rem !important; }}
-    .stMarkdown h3 {{ font-size: 1.05rem !important; }}
-    [data-testid="column"] {{ width: 100% !important; flex: 100% !important; min-width: 100% !important; }}
-    .stButton > button {{ width: 100% !important; }}
-    .metric-card {{ padding: 0.5rem !important; }}
-    .feature-card {{ padding: 1rem !important; }}
-    [data-testid="stSidebar"] {{ min-width: 200px !important; max-width: 250px !important; }}
-    .stChatMessage {{ padding: 0.5rem !important; }}
-}}
+# Shared responsive CSS - injected regardless of theme
+RESPONSIVE_CSS = """
+<style>
+/* ===== Responsive Design: Mobile / Tablet / Desktop ===== */
+
+/* Base: ensure containers are flexible */
+.block-container {
+    padding: 1rem !important;
+    max-width: 100% !important;
+}
+
+/* DataFrames: horizontal scroll on small screens */
+[data-testid="stDataFrame"] {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+}
+
+/* Tabs: wrap on small screens */
+.stTabs [data-baseweb="tab-list"] {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+}
+.stTabs [data-baseweb="tab"] {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.85rem !important;
+    min-width: auto !important;
+}
+
+/* Plotly charts: responsive */
+.js-plotly-plot, .js-plotly-plot .plotly {
+    width: 100% !important;
+}
+
+/* ===== Tablet (768px - 1024px) ===== */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .block-container {
+        padding: 1rem 2rem !important;
+    }
+    .main-header { font-size: 2rem !important; }
+    .sub-header { font-size: 1rem !important; }
+    .stMarkdown h1 { font-size: 1.6rem !important; }
+    .stMarkdown h2 { font-size: 1.3rem !important; }
+    [data-testid="column"] { min-width: 45% !important; }
+    .metric-card { padding: 0.8rem !important; }
+    .feature-card { padding: 1.2rem !important; }
+    [data-testid="stSidebar"] { min-width: 220px !important; max-width: 280px !important; }
+}
+
+/* ===== Mobile (max-width: 767px) ===== */
+@media (max-width: 767px) {
+    .block-container {
+        padding: 0.5rem 0.8rem !important;
+    }
+    .main-header {
+        font-size: 1.4rem !important;
+        padding: 0.8rem 0 0.3rem !important;
+    }
+    .sub-header {
+        font-size: 0.85rem !important;
+        padding-bottom: 0.8rem !important;
+    }
+    .stMarkdown h1 { font-size: 1.3rem !important; }
+    .stMarkdown h2 { font-size: 1.1rem !important; }
+    .stMarkdown h3 { font-size: 1rem !important; }
+    /* Stack columns vertically */
+    [data-testid="column"] {
+        width: 100% !important;
+        flex: 100% !important;
+        min-width: 100% !important;
+        margin-bottom: 0.3rem !important;
+    }
+    /* Full width buttons */
+    .stButton > button {
+        width: 100% !important;
+        font-size: 0.85rem !important;
+    }
+    /* Compact cards */
+    .metric-card { padding: 0.6rem !important; font-size: 0.85rem !important; }
+    .feature-card { padding: 0.8rem !important; margin: 0.5rem 0 !important; }
+    /* Compact sidebar */
+    [data-testid="stSidebar"] { min-width: 180px !important; max-width: 240px !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
+        font-size: 0.85rem !important;
+        padding: 0.3rem 0.5rem !important;
+    }
+    /* Smaller metrics */
+    [data-testid="stMetricValue"] { font-size: 1.2rem !important; }
+    /* Compact chat */
+    .stChatMessage [data-testid="stMarkdownContainer"] p { font-size: 0.85rem !important; }
+    /* Smaller tabs */
+    .stTabs [data-baseweb="tab"] { padding: 0.3rem 0.5rem !important; font-size: 0.8rem !important; }
+    /* Reduce spacing */
+    .stMarkdown { margin-bottom: 0.5rem !important; }
+    hr { margin: 0.5rem 0 !important; }
+}
+
+/* ===== Small Mobile (max-width: 480px) ===== */
+@media (max-width: 480px) {
+    .block-container { padding: 0.3rem 0.5rem !important; }
+    .main-header { font-size: 1.2rem !important; }
+    .stMarkdown h1 { font-size: 1.1rem !important; }
+    .stButton > button { font-size: 0.8rem !important; }
+    [data-testid="stMetricValue"] { font-size: 1rem !important; }
+}
+
+/* ===== Desktop (min-width: 1025px) ===== */
+@media (min-width: 1025px) {
+    .block-container { padding: 1rem 3rem !important; }
+}
+
+/* ===== Large Desktop (min-width: 1440px) ===== */
+@media (min-width: 1440px) {
+    .block-container {
+        padding: 1rem 5rem !important;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+    }
+}
+
+/* ===== Print styles ===== */
+@media print {
+    [data-testid="stSidebar"] { display: none !important; }
+    .stButton { display: none !important; }
+}
 </style>
 """
 
 
 def apply_theme():
-    """Inject theme CSS based on session state preference"""
+    """Inject theme CSS based on session state preference + shared responsive CSS"""
     theme = st.session_state.get('theme_mode', 'dark')
     if theme == 'dark':
         st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
     else:
         st.markdown(LIGHT_THEME_CSS, unsafe_allow_html=True)
+    # Always inject responsive CSS (shared across themes)
+    st.markdown(RESPONSIVE_CSS, unsafe_allow_html=True)
 
 
 def render_theme_toggle():
