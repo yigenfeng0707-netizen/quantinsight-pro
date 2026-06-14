@@ -133,6 +133,8 @@ class NaturalLanguageScreener:
         ]
 
         headers = {"Authorization": f"Bearer {self.llm_config['api_key']}", "Content-Type": "application/json"}
+        if self.llm_config.get('workspace_id'):
+            headers['X-DashScope-WorkSpace'] = self.llm_config['workspace_id']
         is_reasoning = 'v4' in self.llm_config.get('model', '') or 'r1' in self.llm_config.get('model', '')
         payload = {"model": self.llm_config["model"], "messages": messages, "temperature": 0.3, "max_tokens": 1000 if is_reasoning else 500}
 

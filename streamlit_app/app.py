@@ -41,7 +41,7 @@ def get_llm_config():
 
     支持 3 家 LLM (优先级: SenseNova > DeepSeek > Qwen)
     """
-    config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None}
+    config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None, 'workspace_id': None}
 
     # 1. SenseNova (商汤日日新, 国内访问快) - 最高优先级
     try:
@@ -65,13 +65,14 @@ def get_llm_config():
     except Exception:
         pass
 
-    # 3. Qwen
+    # 3. Qwen (DashScope)
     try:
         if 'QWEN_API_KEY' in st.secrets:
             config['provider'] = 'qwen'
             config['api_key'] = st.secrets['QWEN_API_KEY']
             config['model'] = st.secrets.get('QWEN_MODEL', 'qwen-turbo')
-            config['base_url'] = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+            config['base_url'] = st.secrets.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
+            config['workspace_id'] = st.secrets.get('QWEN_WORKSPACE_ID', None)
             return config
     except Exception:
         pass
@@ -90,8 +91,9 @@ def get_llm_config():
     elif os.environ.get('QWEN_API_KEY'):
         config['provider'] = 'qwen'
         config['api_key'] = os.environ['QWEN_API_KEY']
-        config['model'] = 'qwen-turbo'
-        config['base_url'] = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+        config['model'] = os.environ.get('QWEN_MODEL', 'qwen-turbo')
+        config['base_url'] = os.environ.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
+        config['workspace_id'] = os.environ.get('QWEN_WORKSPACE_ID', None)
 
     return config
 
@@ -151,6 +153,9 @@ def ai_qa_real(question, config, timeout=30, history=None):
         'Authorization': f'Bearer {config["api_key"]}',
         'Content-Type': 'application/json',
     }
+    # DashScope workspace header (required for workspace-specific API keys)
+    if config.get('workspace_id'):
+        headers['X-DashScope-WorkSpace'] = config['workspace_id']
 
     # 构建 messages (含历史上下文)
     messages = [{'role': 'system', 'content': system_prompt}]

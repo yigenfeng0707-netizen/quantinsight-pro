@@ -57,6 +57,8 @@ def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str
         "Authorization": f"Bearer {llm_config['api_key']}",
         "Content-Type": "application/json",
     }
+    if llm_config.get('workspace_id'):
+        headers['X-DashScope-WorkSpace'] = llm_config['workspace_id']
     payload = {
         "model": llm_config["model"],
         "messages": messages,
