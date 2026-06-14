@@ -55,8 +55,9 @@ _narration*.wav
 _narration*.mp3
 _tts_text.txt
 
-# Streamlit 缓存
-.streamlit/secrets.toml
+# Streamlit 密钥 (安全)
+secrets.toml
+**/secrets.toml
 
 # 临时数据 (akshare 可重新下载)
 _data_*

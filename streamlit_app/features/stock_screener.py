@@ -133,11 +133,16 @@ class NaturalLanguageScreener:
         ]
 
         headers = {"Authorization": f"Bearer {self.llm_config['api_key']}", "Content-Type": "application/json"}
-        payload = {"model": self.llm_config["model"], "messages": messages, "temperature": 0.3, "max_tokens": 500}
+        is_reasoning = 'v4' in self.llm_config.get('model', '') or 'r1' in self.llm_config.get('model', '')
+        payload = {"model": self.llm_config["model"], "messages": messages, "temperature": 0.3, "max_tokens": 1000 if is_reasoning else 500}
 
         resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=15)
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"].get("content", "")
+        msg = resp.json()["choices"][0]["message"]
+        content = msg.get("content", "") or ""
+        reasoning = msg.get("reasoning_content", "") or ""
+        if not content.strip() and reasoning.strip():
+            content = reasoning
 
         json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
         if json_match:

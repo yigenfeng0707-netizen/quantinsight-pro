@@ -61,14 +61,17 @@ def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str
         "model": llm_config["model"],
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": 1500,
+        "max_tokens": 3000 if ('v4' in llm_config.get('model', '') or 'r1' in llm_config.get('model', '')) else 1500,
     }
 
     try:
         resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         result = resp.json()
-        return result["choices"][0]["message"].get("content", "")
+        msg = result["choices"][0]["message"]
+        content = msg.get("content", "") or ""
+        reasoning = msg.get("reasoning_content", "") or ""
+        return content.strip() if content.strip() else reasoning
     except Exception as e:
         logger.warning(f"LLM 调用失败 ({llm_config.get('provider')}): {e}")
         return ""

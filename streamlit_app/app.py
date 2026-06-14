@@ -60,7 +60,7 @@ def get_llm_config():
             config['provider'] = 'deepseek'
             config['api_key'] = st.secrets['DEEPSEEK_API_KEY']
             config['model'] = st.secrets.get('DEEPSEEK_MODEL', 'deepseek-chat')
-            config['base_url'] = 'https://api.deepseek.com/v1/chat/completions'
+            config['base_url'] = st.secrets.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/chat/completions')
             return config
     except Exception:
         pass
@@ -85,8 +85,8 @@ def get_llm_config():
     elif os.environ.get('DEEPSEEK_API_KEY'):
         config['provider'] = 'deepseek'
         config['api_key'] = os.environ['DEEPSEEK_API_KEY']
-        config['model'] = 'deepseek-chat'
-        config['base_url'] = 'https://api.deepseek.com/v1/chat/completions'
+        config['model'] = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
+        config['base_url'] = os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/chat/completions')
     elif os.environ.get('QWEN_API_KEY'):
         config['provider'] = 'qwen'
         config['api_key'] = os.environ['QWEN_API_KEY']
@@ -163,16 +163,17 @@ def ai_qa_real(question, config, timeout=30, history=None):
                 messages.append({'role': 'assistant', 'content': content})
     messages.append({'role': 'user', 'content': question})
 
+    # Reasoning models need more tokens (thinking + answer)
+    is_reasoning = 'v4' in config['model'] or 'r1' in config['model'] or 'reasoner' in config['model']
     payload = {
         'model': config['model'],
         'messages': messages,
         'temperature': 0.7,
-        'max_tokens': 2000,
+        'max_tokens': 4000 if is_reasoning else 2000,
     }
 
-    # DeepSeek / Qwen 支持 response_format: json_object
-    # SenseNova 不支持, 靠 prompt + 后处理
-    if config['provider'] in ('deepseek', 'qwen'):
+    # DeepSeek / Qwen 支持 response_format: json_object (reasoning models 除外)
+    if config['provider'] in ('deepseek', 'qwen') and not is_reasoning:
         payload['response_format'] = {'type': 'json_object'}
 
     try:
@@ -181,8 +182,11 @@ def ai_qa_real(question, config, timeout=30, history=None):
         result = resp.json()
 
         msg = result['choices'][0]['message']
-        content = msg.get('content', '')
-        reasoning = msg.get('reasoning_content', '')  # SenseNova / DeepSeek-R1 特有
+        content = msg.get('content', '') or ''
+        reasoning = msg.get('reasoning_content', '') or ''  # SenseNova / DeepSeek-R1/V4 特有
+        # Reasoning model: content may be empty, actual answer in reasoning_content
+        if not content.strip() and reasoning.strip():
+            content = reasoning
 
         # 解析 JSON
         parsed = _extract_json_from_text(content)
