@@ -70,7 +70,7 @@ def _render_user_analytics(db):
                      labels={'day': '日期', 'cnt': '注册数'},
                      color_discrete_sequence=['#2E86AB'])
         fig.update_layout(bargap=0.2)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info('暂无注册数据')
 
@@ -84,7 +84,7 @@ def _render_user_analytics(db):
         df_users['管理员'] = df_users['管理员'].map({1: '是', 0: '否'})
         df_users['体验已用'] = df_users['体验已用'].map({1: '是', 0: '否'})
         df_users['状态'] = df_users['状态'].map({1: '活跃', 0: '禁用'})
-        st.dataframe(df_users, use_container_width=True, hide_index=True)
+        st.dataframe(df_users, width='stretch', hide_index=True)
     else:
         st.info('暂无用户')
 
@@ -105,7 +105,7 @@ def _render_login_history(db):
         display_df['浏览器'] = display_df['浏览器'].apply(
             lambda x: (x[:50] + '...') if x and len(str(x)) > 50 else x
         )
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, width='stretch', hide_index=True)
 
         # Login activity chart
         st.markdown('---')
@@ -117,7 +117,7 @@ def _render_login_history(db):
                      labels={'hour': '时段 (小时)', 'count': '登录次数'},
                      color_discrete_sequence=['#1F4E78'])
         fig.update_xaxes(dtick=1)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info('暂无登录记录')
 
@@ -135,12 +135,12 @@ def _render_usage_patterns(db):
                      color='visits',
                      color_continuous_scale='Blues')
         fig.update_layout(xaxis_tickangle=-30)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         # Also show as table
         st.markdown('#### 详细数据')
         df.columns = ['页面', '访问次数']
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
     else:
         st.info('暂无使用数据')
 
@@ -193,7 +193,7 @@ def _render_activation_codes(db):
         df_display['创建时间'] = df_display['创建时间'].apply(lambda x: x[:16] if x else '')
         df_display['使用时间'] = df_display['使用时间'].apply(lambda x: x[:16] if x else '—')
 
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.dataframe(df_display, width='stretch', hide_index=True)
 
         # Revoke unused codes
         st.markdown('---')
@@ -248,7 +248,7 @@ def _render_marketing_insights(db):
             marker={'color': ['#2E86AB', '#F4A261', '#2A9D8F']},
         ))
         fig.update_layout(title='用户转化漏斗', margin=dict(t=40, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         st.markdown('---')
 
@@ -266,7 +266,7 @@ def _render_marketing_insights(db):
             fig_pie = px.pie(segment_data, values='数量', names='类型',
                            color_discrete_sequence=['#E76F51', '#264653'])
             fig_pie.update_layout(margin=dict(t=20, b=20))
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.plotly_chart(fig_pie, width='stretch')
 
         with col2:
             st.markdown('**活跃度指标**')
@@ -291,7 +291,7 @@ def _render_marketing_insights(db):
                               markers=True,
                               color_discrete_sequence=['#E76F51'])
             fig_line.update_layout(margin=dict(t=40, b=20))
-            st.plotly_chart(fig_line, use_container_width=True)
+            st.plotly_chart(fig_line, width='stretch')
         else:
             st.info('暂无近 7 天注册数据')
 

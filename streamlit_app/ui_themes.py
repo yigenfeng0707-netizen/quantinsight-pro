@@ -464,6 +464,6 @@ def render_theme_toggle():
 
     current = st.session_state.theme_mode
     new_theme = '☀️ 浅色' if current == 'dark' else '🌙 深色'
-    if st.sidebar.button(new_theme, key='theme_toggle', use_container_width=True):
+    if st.sidebar.button(new_theme, key='theme_toggle', width='stretch'):
         st.session_state.theme_mode = 'light' if current == 'dark' else 'dark'
         st.rerun()

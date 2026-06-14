@@ -18,6 +18,7 @@ import akshare as ak
 import os
 import requests
 import json
+import math
 
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -391,30 +392,65 @@ def load_northbound_flow():
     """加载北向资金数据 (缓存 5 分钟, 多端点回退)
     Returns: (net_amount, direction_str) or None
     """
+    def _valid_number(v):
+        if isinstance(v, (int, float)):
+            return not (math.isnan(v) or math.isinf(v))
+        return False
+
     # Primary
     try:
         df = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
         if df is not None and len(df) > 0:
             latest = df.iloc[-1]
             net = latest.get('当日净流入', latest.get('当日资金流入', 0))
-            if isinstance(net, (int, float)):
+            if _valid_number(net):
                 direction = '净流入' if net >= 0 else '净流出'
-                return (net, direction)
-    except Exception:
-        pass
+                return (float(net), direction)
+    except Exception as e:
+        logger.warning(f'北向资金主接口失败: {e}')
     # Fallback: sum 沪股通 + 深股通
     try:
-        total = 0
+        total = 0.0
+        valid_parts = 0
         for sym in ['沪股通', '深股通']:
             df = ak.stock_hsgt_hist_em(symbol=sym)
             if df is not None and len(df) > 0:
                 col = '当日资金流入' if '当日资金流入' in df.columns else '当日净流入'
-                total += float(df[col].iloc[-1])
-        direction = '净流入' if total >= 0 else '净流出'
-        return (total, direction)
-    except Exception:
-        pass
+                val = float(df[col].iloc[-1])
+                if _valid_number(val):
+                    total += val
+                    valid_parts += 1
+        if valid_parts > 0:
+            direction = '净流入' if total >= 0 else '净流出'
+            return (total, direction)
+    except Exception as e:
+        logger.warning(f'北向资金回退接口失败: {e}')
     return None
+
+@st.cache_data(ttl=60, show_spinner=False)
+def get_current_price(stock_code: str) -> float:
+    """获取股票最新价（用于模拟交易市价单）"""
+    try:
+        df = ak.stock_zh_a_spot_em()
+        if df is not None and len(df) > 0:
+            # 代码列可能带 .sh/.sz 后缀，统一处理
+            normalized = str(stock_code).strip()
+            mask = df['代码'].astype(str).str.strip() == normalized
+            if mask.any():
+                price = df.loc[mask, '最新价'].iloc[-1]
+                if isinstance(price, (int, float)) and not (math.isnan(price) or math.isinf(price)):
+                    return float(price)
+            # 尝试匹配带后缀
+            for suffix in ['.SH', '.SZ', '.BJ']:
+                mask = df['代码'].astype(str).str.upper() == (normalized + suffix)
+                if mask.any():
+                    price = df.loc[mask, '最新价'].iloc[-1]
+                    if isinstance(price, (int, float)) and not (math.isnan(price) or math.isinf(price)):
+                        return float(price)
+    except Exception as e:
+        logger.warning(f'获取 {stock_code} 最新价失败: {e}')
+    return 0.0
+
 
 @st.cache_data(ttl=300)
 def load_stock_pool():
@@ -613,7 +649,7 @@ else:
 # Logout button
 st.sidebar.markdown('---')
 render_theme_toggle()
-if st.sidebar.button('🚪 退出登录', use_container_width=True):
+if st.sidebar.button('🚪 退出登录', width='stretch'):
     _session_mgr.logout(st.session_state)
     st.rerun()
 
@@ -725,7 +761,7 @@ elif page == '🤖 AI 投研问答':
     with col_info:
         st.caption(f'💬 对话轮数: {len(st.session_state.chat_history) // 2} / 5 (最近 5 轮保留为上下文)')
     with col_clear:
-        if st.button('🗑️ 清空对话', use_container_width=True):
+        if st.button('🗑️ 清空对话', width='stretch'):
             st.session_state.chat_history = []
             st.session_state.question_input = ''
             st.rerun()
@@ -767,7 +803,7 @@ elif page == '🤖 AI 投研问答':
 
     for i, (q, col) in enumerate(zip(quick_questions, cols)):
         with col:
-            if st.button(f'📌 {q}', key=f'quick_{i}', use_container_width=True):
+            if st.button(f'📌 {q}', key=f'quick_{i}', width='stretch'):
                 st.session_state.question_input = q
                 st.rerun()
 
@@ -783,7 +819,7 @@ elif page == '🤖 AI 投研问答':
 
     col1, col2 = st.columns([1, 5])
     with col1:
-        analyze_btn = st.button('🚀 智能分析', type='primary', use_container_width=True)
+        analyze_btn = st.button('🚀 智能分析', type='primary', width='stretch')
 
     if analyze_btn and question:
         # 检测 LLM 配置 (B7)
@@ -876,8 +912,11 @@ elif page == '📡 另类数据仪表盘':
         st.caption('数据源：Sentinel-2 公开卫星数据 + AI 识别算法')
         st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实卫星图像数据源 (Sentinel-2 / 商业卫星 API)')
 
-        # 模拟工业园区开工率数据
-        dates = pd.date_range('2024-01-01', periods=24, freq='ME')
+        # 模拟工业园区开工率数据 (兼容 pandas 2.x/3.x)
+        try:
+            dates = pd.date_range('2024-01-01', periods=24, freq='ME')
+        except ValueError:
+            dates = pd.date_range('2024-01-01', periods=24, freq='M')
         np.random.seed(42)
         work_rate = 60 + 20 * np.sin(np.arange(24) * 0.5) + np.random.randn(24) * 5
         work_rate = np.clip(work_rate, 30, 95)
@@ -895,7 +934,7 @@ elif page == '📡 另类数据仪表盘':
             hovermode='x unified',
             height=400,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         st.markdown('#### 🔍 关键发现')
         st.info('• 2024 年 2-3 月春节后开工率明显回落\n• 5-9 月旺季开工率维持在 80% 以上\n• 10 月后进入季节性回落期')
@@ -956,13 +995,13 @@ elif page == '📡 另类数据仪表盘':
                              color='情感得分', color_continuous_scale='RdYlGn',
                              range_color=[0.3, 1.0])
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             with col2:
                 fig = px.scatter(df_sent, x='讨论量', y='情感得分', size='讨论量',
                                 color='行业', title='行业舆情 - 讨论量 vs 情感',
                                 size_max=40)
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
     with tab3:
         st.markdown('### 📦 产业链追踪 - 上下游传导')
@@ -992,7 +1031,7 @@ elif page == '📡 另类数据仪表盘':
                     link=dict(source=sources, target=targets, value=values)
                 )])
                 fig.update_layout(title=f'{selected_chain} 产业链传导', height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             except Exception as e:
                 st.warning(f'Sankey 图渲染失败: {e}')
 
@@ -1000,7 +1039,7 @@ elif page == '📡 另类数据仪表盘':
             st.markdown('#### 📈 产业链相关股票')
             chain_stocks = tracker.get_chain_stocks(selected_chain)
             if not chain_stocks.empty:
-                st.dataframe(chain_stocks, use_container_width=True)
+                st.dataframe(chain_stocks, width='stretch')
 
             # 上游影响分析
             st.markdown('#### 🔍 上游变动传导分析')
@@ -1070,7 +1109,7 @@ elif page == '📈 量化策略回测':
 
     col_run, col_reset = st.columns([1, 5])
     with col_run:
-        run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
+        run_btn = st.button('🚀 运行回测', type='primary', width='stretch')
 
     if run_btn:
         try:
@@ -1154,7 +1193,7 @@ elif page == '📈 量化策略回测':
                 hovermode='x unified',
                 height=500,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             # 回撤曲线
             cummax = nav_series.cummax()
@@ -1171,7 +1210,7 @@ elif page == '📈 量化策略回测':
                 hovermode='x unified',
                 height=300,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             # 详细数据
             st.markdown('### 📋 详细数据 (最近 30 个交易日)')
@@ -1182,7 +1221,7 @@ elif page == '📈 量化策略回测':
                 'nav': nav_series.values,
                 'benchmark': benchmark_nav.values,
             })
-            st.dataframe(detail_df.tail(30), use_container_width=True)
+            st.dataframe(detail_df.tail(30), width='stretch')
 
             st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(bt_df)} 个交易日')
         except Exception as e:
@@ -1276,16 +1315,16 @@ elif page == '📊 行业分析':
                      title=f'{selected_industry} 涨跌幅 TOP 20',
                      hover_data=hover_cols if hover_cols else None)
         fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     # 完整数据表
     st.markdown('### 📋 完整成分股数据')
     try:
         display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
         if display_cols:
-            st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
+            st.dataframe(df_industry[display_cols].head(50), width='stretch')
         else:
-            st.dataframe(df_industry.head(50), use_container_width=True)
+            st.dataframe(df_industry.head(50), width='stretch')
     except Exception as e:
         logger.warning(f'DataFrame display error: {e}')
         st.info('数据表格加载中，请刷新页面重试')
@@ -1321,7 +1360,7 @@ elif page == '🎯 智能选股':
                         if results and results.get('stocks'):
                             st.success(f'✅ 筛选完成, 找到 {len(results["stocks"])} 只符合条件的股票')
                             st.markdown('#### 📋 筛选结果')
-                            st.dataframe(pd.DataFrame(results['stocks']), use_container_width=True)
+                            st.dataframe(pd.DataFrame(results['stocks']), width='stretch')
                             if results.get('explanation'):
                                 st.info(f'🧠 解析逻辑: {results["explanation"]}')
                         else:
@@ -1341,7 +1380,7 @@ elif page == '🎯 智能选股':
                     try:
                         scored = scorer.score_universe(pool)
                         if scored is not None and not scored.empty:
-                            st.dataframe(scored.head(20), use_container_width=True)
+                            st.dataframe(scored.head(20), width='stretch')
                     except Exception as e:
                         st.error(f'评分失败: {e}')
         else:
@@ -1367,7 +1406,7 @@ elif page == '🎯 智能选股':
             try:
                 result = comparator.compare(stocks)
                 if result:
-                    st.dataframe(pd.DataFrame(result.get('comparison', [])), use_container_width=True)
+                    st.dataframe(pd.DataFrame(result.get('comparison', [])), width='stretch')
             except Exception as e:
                 st.error(f'对比失败: {e}')
 
@@ -1453,7 +1492,7 @@ elif page == '📡 智能盯盘':
         try:
             df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
             if df_north is not None and len(df_north) > 0:
-                st.dataframe(df_north.tail(10), use_container_width=True)
+                st.dataframe(df_north.tail(10), width='stretch')
         except Exception:
             pass
     except Exception:
@@ -1499,7 +1538,7 @@ elif page == '💼 我的组合':
             holdings_data = [{'股票代码': h.stock_code, '股票名称': h.stock_name,
                               '持股数': h.quantity, '成本价': h.avg_cost,
                               '现价': h.current_price, '盈亏': h.pnl} for h in portfolio.holdings]
-            st.dataframe(pd.DataFrame(holdings_data), use_container_width=True)
+            st.dataframe(pd.DataFrame(holdings_data), width='stretch')
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric('总市值', f"¥{portfolio.total_market_value:,.0f}")
@@ -1543,12 +1582,22 @@ elif page == '📈 模拟交易':
 
     if st.button('🚀 执行交易', type='primary', key='exec_trade'):
         try:
+            # 市价单：获取最新成交价
+            exec_price = float(o_price) if o_price > 0 else 0.0
+            order_type = 'limit' if exec_price > 0 else 'market'
+            if order_type == 'market':
+                with st.spinner('正在获取市价...'):
+                    exec_price = get_current_price(o_symbol)
+                if exec_price <= 0:
+                    st.error('❌ 无法获取该股票最新价，请改用限价单手动输入价格')
+                    st.stop()
+
             # 构建 Order 对象
             o_order = Order(
                 order_id=f"ORD_{int(datetime.now().timestamp())}",
                 stock_code=o_symbol, stock_name='', side=o_action,
-                quantity=int(o_qty), price=float(o_price) if o_price > 0 else 0.0,
-                order_type='market' if o_price <= 0 else 'limit',
+                quantity=int(o_qty), price=exec_price,
+                order_type=order_type,
                 created_at=datetime.now().isoformat(),
             )
             # 风控检查
@@ -1556,7 +1605,7 @@ elif page == '📈 模拟交易':
             if not risk_check.get('passed', False):
                 st.error(f'❌ 风控拒绝: {risk_check.get("message", "未知")}')
             else:
-                result = sim.place_order(o_symbol, '', o_action, int(o_qty), float(o_price) if o_price > 0 else 0.0, risk_checker=risk)
+                result = sim.place_order(o_symbol, '', o_action, int(o_qty), exec_price, risk_checker=risk)
                 if result and result.status == 'filled':
                     st.success(f"✅ 成交: {result.stock_code} {result.side} {result.quantity}股 @ ¥{result.fill_price:.2f}")
                 elif result and result.status == 'rejected':
@@ -1574,7 +1623,7 @@ elif page == '📈 模拟交易':
         hist_data = [{'订单号': o.order_id, '代码': o.stock_code, '方向': o.side,
                       '数量': o.quantity, '价格': o.price, '状态': o.status,
                       '时间': o.created_at} for o in history]
-        st.dataframe(pd.DataFrame(hist_data), use_container_width=True)
+        st.dataframe(pd.DataFrame(hist_data), width='stretch')
     else:
         st.info('暂无交易记录')
 
