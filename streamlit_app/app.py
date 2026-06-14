@@ -45,11 +45,22 @@ from eastmoney_source import EastMoneyChoiceSource
 def get_llm_config():
     """从 Streamlit Secrets 或环境变量读取 LLM 配置
 
-    支持 3 家 LLM (优先级: SenseNova > DeepSeek > Qwen)
+    支持 4 家 LLM (优先级: MiniMax > SenseNova > DeepSeek > Qwen)
     """
     config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None, 'workspace_id': None}
 
-    # 1. SenseNova (商汤日日新, 国内访问快) - 最高优先级
+    # 1. MiniMax (primary)
+    try:
+        if 'MINIMAX_API_KEY' in st.secrets:
+            config['provider'] = 'minimax'
+            config['api_key'] = st.secrets['MINIMAX_API_KEY']
+            config['model'] = st.secrets.get('MINIMAX_MODEL', 'MiniMax-M3')
+            config['base_url'] = st.secrets.get('MINIMAX_BASE_URL', 'https://api.minimaxi.com/v1/chat/completions')
+            return config
+    except Exception:
+        pass
+
+    # 2. SenseNova (商汤日日新, 国内访问快)
     try:
         if 'SENSENOVA_API_KEY' in st.secrets:
             config['provider'] = 'sensenova'
@@ -60,7 +71,7 @@ def get_llm_config():
     except Exception:
         pass
 
-    # 2. DeepSeek
+    # 3. DeepSeek
     try:
         if 'DEEPSEEK_API_KEY' in st.secrets:
             config['provider'] = 'deepseek'
@@ -71,7 +82,7 @@ def get_llm_config():
     except Exception:
         pass
 
-    # 3. Qwen (DashScope)
+    # 4. Qwen (DashScope)
     try:
         if 'QWEN_API_KEY' in st.secrets:
             config['provider'] = 'qwen'
@@ -84,7 +95,12 @@ def get_llm_config():
         pass
 
     # 备选环境变量 (本地测试)
-    if os.environ.get('SENSENOVA_API_KEY'):
+    if os.environ.get('MINIMAX_API_KEY'):
+        config['provider'] = 'minimax'
+        config['api_key'] = os.environ['MINIMAX_API_KEY']
+        config['model'] = os.environ.get('MINIMAX_MODEL', 'MiniMax-M3')
+        config['base_url'] = os.environ.get('MINIMAX_BASE_URL', 'https://api.minimaxi.com/v1/chat/completions')
+    elif os.environ.get('SENSENOVA_API_KEY'):
         config['provider'] = 'sensenova'
         config['api_key'] = os.environ['SENSENOVA_API_KEY']
         config['model'] = os.environ.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
