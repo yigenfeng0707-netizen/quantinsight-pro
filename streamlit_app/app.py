@@ -1621,7 +1621,9 @@ elif page == '📈 模拟交易':
     history = sim.get_trade_history()
     if history:
         hist_data = [{'订单号': o.order_id, '代码': o.stock_code, '方向': o.side,
-                      '数量': o.quantity, '价格': o.price, '状态': o.status,
+                      '数量': o.quantity,
+                      '成交价': f"{o.fill_price:.2f}" if o.fill_price > 0 else ('待成交' if o.status == 'pending' else f"{o.price:.2f}"),
+                      '状态': o.status,
                       '时间': o.created_at} for o in history]
         st.dataframe(pd.DataFrame(hist_data), width='stretch')
     else:
