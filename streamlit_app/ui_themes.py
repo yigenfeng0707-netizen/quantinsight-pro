@@ -306,14 +306,129 @@ LIGHT_THEME_CSS = f"""
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }}
 .feature-card:hover {{
-    border-left-color: #00D4AA;
+    border-left-color: #D4AF37;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
 }}
 .feature-card h4 {{
     font-size: 1rem;
     margin: 0 0 0.5rem 0;
     color: #1F4E78;
     font-weight: 600;
+}}
+
+/* ===== 上海金融中心风格：金色高亮 + 霓虹青数据条 ===== */
+.gold-accent {{
+    color: #D4AF37 !important;
+    font-weight: 700;
+}}
+.neon-text {{
+    color: #00D4FF !important;
+    text-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+}}
+.data-pulse {{
+    background: linear-gradient(90deg, #00D4FF 0%, #D4AF37 100%);
+    height: 3px;
+    border-radius: 2px;
+    animation: pulse 2s ease-in-out infinite;
+}}
+@keyframes pulse {{
+    0%, 100% {{ opacity: 0.6; }}
+    50% {{ opacity: 1; }}
+}}
+
+/* ===== 侧边栏对比度增强（关键修复） ===== */
+section[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, #0A1628 0%, #0F2236 100%) !important;
+    border-right: 2px solid rgba(0, 212, 255, 0.2);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+}}
+section[data-testid="stSidebar"] * {{
+    color: #FFFFFF !important;
+    font-weight: 500;
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px;
+    margin: 2px 0;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {{
+    background: rgba(0, 212, 255, 0.15);
+    border-left-color: #00D4FF;
+}}
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"]:has(input:checked),
+section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:has(input:checked) {{
+    background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), rgba(212, 175, 55, 0.1)) !important;
+    border-left: 3px solid #D4AF37 !important;
+    color: #D4AF37 !important;
+    font-weight: 600 !important;
+}}
+section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] h4 {{
+    color: #D4AF37 !important;
+    letter-spacing: 0.5px;
+}}
+section[data-testid="stSidebar"] .stMarkdown {{
+    color: #FFFFFF !important;
+}}
+section[data-testid="stSidebar"] .stMarkdown p {{
+    color: #E8ECF1 !important;
+    font-size: 0.9rem;
+}}
+
+/* ===== Tabs 升级：金色下划线 ===== */
+.stTabs [data-baseweb="tab-list"] {{
+    background: linear-gradient(90deg, rgba(0, 212, 255, 0.05), rgba(212, 175, 55, 0.05));
+    border-radius: 8px;
+    padding: 4px;
+}}
+.stTabs [data-baseweb="tab"] {{
+    background: transparent;
+    color: #1F4E78 !important;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+}}
+.stTabs [aria-selected="true"] {{
+    background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+    box-shadow: 0 2px 12px rgba(31, 78, 120, 0.3);
+}}
+
+/* ===== 按钮升级：金色描边主按钮 ===== */
+.stButton > button[kind="primary"] {{
+    background: linear-gradient(135deg, #1F4E78 0%, #D4AF37 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #D4AF37 !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(31, 78, 120, 0.2);
+}}
+.stButton > button[kind="primary"]:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(212, 175, 55, 0.4);
+}}
+
+/* ===== 数据卡片升级 ===== */
+[data-testid="stMetric"] {{
+    background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
+    border: 1px solid #E8ECF1;
+    border-left: 4px solid #00D4FF;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}}
+[data-testid="stMetric"] label {{
+    color: #1F4E78 !important;
+    font-weight: 600;
+}}
+[data-testid="stMetric"] [data-testid="stMetricValue"] {{
+    color: #0A1628 !important;
+    font-weight: 800;
+    font-size: 1.4rem;
 }}
 </style>
 """

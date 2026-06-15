@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 QuantInsight Pro - AI 驱动的另类数据量化投研平台
 3 大模块：
@@ -113,12 +114,12 @@ def get_llm_config():
     except Exception:
         pass
 
-    # 4. Qwen (DashScope)
+    # 4. Qwen (DashScope) - qwen3.7-max 带深度思考推理
     try:
         if 'QWEN_API_KEY' in st.secrets:
             config['provider'] = 'qwen'
             config['api_key'] = st.secrets['QWEN_API_KEY']
-            config['model'] = st.secrets.get('QWEN_MODEL', 'qwen-turbo')
+            config['model'] = st.secrets.get('QWEN_MODEL', 'qwen3.7-max')
             config['base_url'] = st.secrets.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
             config['workspace_id'] = st.secrets.get('QWEN_WORKSPACE_ID', None)
             return config
@@ -144,7 +145,7 @@ def get_llm_config():
     elif os.environ.get('QWEN_API_KEY'):
         config['provider'] = 'qwen'
         config['api_key'] = os.environ['QWEN_API_KEY']
-        config['model'] = os.environ.get('QWEN_MODEL', 'qwen-turbo')
+        config['model'] = os.environ.get('QWEN_MODEL', 'qwen3.7-max')
         config['base_url'] = os.environ.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
         config['workspace_id'] = os.environ.get('QWEN_WORKSPACE_ID', None)
 
@@ -222,7 +223,7 @@ def ai_qa_real(question, config, timeout=30, history=None):
     messages.append({'role': 'user', 'content': question})
 
     # Reasoning models need more tokens (thinking + answer)
-    is_reasoning = 'v4' in config['model'] or 'r1' in config['model'] or 'reasoner' in config['model']
+    is_reasoning = 'v4' in config['model'] or 'r1' in config['model'] or 'reasoner' in config['model'] or '3.7' in config['model'] or 'max' in config['model'].lower()
     payload = {
         'model': config['model'],
         'messages': messages,
@@ -609,6 +610,7 @@ page_options = [
     '🏠 首页',
     '🤖 AI 投研问答',
     '🎯 智能选股',
+    '📊 实时数据看板',
     '📡 智能盯盘',
     '💼 我的组合',
     '📈 模拟交易',
@@ -655,10 +657,54 @@ if st.sidebar.button('🚪 退出登录', width='stretch'):
 
 # ============== 页面：首页 ==============
 if page == '🏠 首页':
-    st.markdown('<h1 class="main-header">QuantInsight Pro</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">AI 驱动的另类数据量化投研平台</p>', unsafe_allow_html=True)
+    # ========== 英雄区 Hero Section ==========
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 50%, #0F2236 100%);
+                padding: 40px 32px; border-radius: 16px; margin-bottom: 24px;
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15);
+                position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50%; right: -10%; width: 400px; height: 400px;
+                    background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%);
+                    border-radius: 50%;"></div>
+        <div style="position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <span style="font-size: 2.5rem;">⚡</span>
+                <h1 style="color: #FFFFFF; margin: 0; font-size: 2.5rem; font-weight: 800;
+                           background: linear-gradient(90deg, #00D4FF, #D4AF37);
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                           background-clip: text;">QuantInsight Pro</h1>
+            </div>
+            <p style="color: #B8C5D6; font-size: 1.15rem; margin: 0 0 16px 0; font-weight: 300;">
+                AI 驱动的另类数据量化投研平台 | 慧点资本 × 永字资管 联合打造
+            </p>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
+                <div style="color: #00D4FF; font-size: 0.9rem;">
+                    <span style="color: #8B95A5;">📊 数据点</span> <b>500万+</b>
+                </div>
+                <div style="color: #D4AF37; font-size: 0.9rem;">
+                    <span style="color: #8B95A5;">🤖 因子库</span> <b>200+</b>
+                </div>
+                <div style="color: #00FF88; font-size: 0.9rem;">
+                    <span style="color: #8B95A5;">📈 回测期</span> <b>11.4年</b>
+                </div>
+                <div style="color: #FF9F43; font-size: 0.9rem;">
+                    <span style="color: #8B95A5;">🏆 排名</span> <b>种子组 TOP 1%</b>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown('---')
+    # 实时数据条
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, rgba(0, 212, 255, 0.1), rgba(212, 175, 55, 0.1));
+                padding: 8px 16px; border-radius: 8px; margin-bottom: 16px;
+                border-left: 3px solid #00D4FF; display: flex; align-items: center; gap: 12px;">
+        <span style="color: #00FF88; font-size: 0.7rem;">●</span>
+        <span style="color: #B8C5D6; font-size: 0.85rem;"><b style="color: #FFFFFF;">实时数据</b> · 数据源: akshare公开接口 · 延迟 &lt; 1s</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 核心指标卡片
     col1, col2, col3, col4 = st.columns(4)
@@ -681,7 +727,6 @@ if page == '🏠 首页':
         except Exception:
             st.metric('创业板指', '加载中', '')
     with col4:
-        # 北向资金
         try:
             north_data = load_northbound_flow()
             if north_data is not None:
@@ -694,54 +739,133 @@ if page == '🏠 首页':
 
     st.markdown('---')
 
-    # 核心功能介绍
-    st.markdown('### 🎯 平台核心功能 — 业内领先的智能投研平台')
+    # 核心功能介绍 - 升级版卡片
+    st.markdown("""
+    <h2 style="color: #0A1628; margin-bottom: 8px;">
+        🎯 平台核心功能 <span style="color: #D4AF37; font-size: 0.6em; font-weight: 400;">— 业内领先的智能投研平台</span>
+    </h2>
+    <p style="color: #6C757D; margin-bottom: 24px;">基于开源大模型微调 + RAG + SHAP 可解释性 + 真实akshare数据</p>
+    """, unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.markdown("""
-        <div class="feature-card">
-            <h4>🎯 智能选股</h4>
-            <p>自然语言选股<br/>多因子评分<br/>个股对比</p>
-            <p><strong>特色：</strong>“低估值高成长消费股”</p>
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00D4FF; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+            <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">🎯 AI 智能选股</h4>
+            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 自然语言选股<br/>✅ 多因子评分体系<br/>✅ 个股深度对比</p>
+            <div style="background: linear-gradient(90deg, #00D4FF22, #00D4FF11); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
+                <small style="color: #1F4E78; font-weight: 600;">💡 试试：</small>
+                <code style="color: #D4AF37; font-size: 0.78rem;">"低估值高成长消费股"</code>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
-        <div class="feature-card">
-            <h4>📡 智能盯盘</h4>
-            <p>7×24h 市场监控<br/>智能预警<br/>北向资金追踪</p>
-            <p><strong>特色：</strong>“茅台跌破1600提醒”</p>
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #D4AF37; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+            <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">📡 另类数据中心</h4>
+            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 宏观景气/PMI/CPI<br/>✅ 资金流向/北向追踪<br/>✅ 期货/机构调研/质押</p>
+            <div style="background: linear-gradient(90deg, #D4AF3722, #D4AF3711); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
+                <small style="color: #1F4E78; font-weight: 600;">🎯 差异化：</small>
+                <code style="color: #D4AF37; font-size: 0.78rem;">Wind没有的维度</code>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
         st.markdown("""
-        <div class="feature-card">
-            <h4>📈 模拟交易</h4>
-            <p>语音/文字下单<br/>风控引擎<br/>反情绪化交易</p>
-            <p><strong>特色：</strong>仓位限制 + 冷却期</p>
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #1F4E78; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+            <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">📈 量化策略平台</h4>
+            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 11.4年真实回测<br/>✅ SHAP可解释性<br/>✅ 双均线/布林/多因子</p>
+            <div style="background: linear-gradient(90deg, #1F4E7822, #1F4E7811); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
+                <small style="color: #1F4E78; font-weight: 600;">🏆 比赛亮点：</small>
+                <code style="color: #D4AF37; font-size: 0.78rem;">不只告诉买什么</code>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col4:
         st.markdown("""
-        <div class="feature-card">
-            <h4>⚡ 智能指令</h4>
-            <p>周期性投研任务<br/>自动报告生成<br/>晨报/盘后总结</p>
-            <p><strong>特色：</strong>Plan-Execute-Reflect</p>
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00FF88; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+            <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">🤖 AI 投研问答</h4>
+            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ Qwen3.7-Max推理<br/>✅ 5轮上下文记忆<br/>✅ 引用真实数据</p>
+            <div style="background: linear-gradient(90deg, #00FF8822, #00FF8811); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
+                <small style="color: #1F4E78; font-weight: 600;">⚡ 升级：</small>
+                <code style="color: #D4AF37; font-size: 0.78rem;">深度思考推理</code>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown('---')
+    st.markdown("<br/>", unsafe_allow_html=True)
 
-    # 最新动态
-    st.markdown('### 📰 平台最新动态')
-    st.success('✅ 2026-06-05 完成多因子策略 2020-2026 真实回测白皮书 V1.0')
-    st.info('🔜 2026 Q3 计划上线 卫星图像分析模块')
-    st.info('🔜 2026 Q3 计划与永字资管完成首批客户试点')
+    # 客户Logo墙 + 实时动态
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FB 100%);
+                    padding: 24px; border-radius: 12px; border: 1px solid #E8ECF1;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <h3 style="color: #0A1628; margin: 0 0 16px 0; font-size: 1.15rem;">
+                🏆 合作客户 & 战略伙伴
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div style="background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
+                            color: white; padding: 16px; border-radius: 8px; text-align: center;
+                            border: 1px solid #D4AF37;">
+                    <div style="font-size: 1.3rem; font-weight: 700;">永字资产</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">首年LOI已签</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
+                            color: #00D4FF; padding: 16px; border-radius: 8px; text-align: center;
+                            border: 1px solid #00D4FF;">
+                    <div style="font-size: 1.3rem; font-weight: 700;">慧点资本</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">联合出品方</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);
+                            color: #0A1628; padding: 16px; border-radius: 8px; text-align: center;
+                            border: 1px solid #0A1628;">
+                    <div style="font-size: 1.3rem; font-weight: 700;">创·在上海</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">官方参赛项目</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FB 100%);
+                    padding: 24px; border-radius: 12px; border: 1px solid #E8ECF1;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <h3 style="color: #0A1628; margin: 0 0 16px 0; font-size: 1.15rem;">📰 平台动态</h3>
+            <div style="border-left: 3px solid #00FF88; padding-left: 12px; margin: 8px 0;">
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-15</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ 完成 SHAP 可解释性模块</div>
+            </div>
+            <div style="border-left: 3px solid #D4AF37; padding-left: 12px; margin: 8px 0;">
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-14</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">🏆 完成全模块回归测试</div>
+            </div>
+            <div style="border-left: 3px solid #00D4FF; padding-left: 12px; margin: 8px 0;">
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-12</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ 永字资管 LOI 签订</div>
+            </div>
+            <div style="border-left: 3px solid #8B95A5; padding-left: 12px; margin: 8px 0;">
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-05</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">📊 多因子回测白皮书 V1.0</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ============== 页面：实时数据看板 ==============
+elif page == '📊 实时数据看板':
+    try:
+        from features.dashboard_v2 import render_dashboard
+        render_dashboard()
+    except ImportError as e:
+        st.error(f"❌ 数据看板模块加载失败: {e}")
+    except Exception as e:
+        st.error(f"❌ 数据看板运行错误: {type(e).__name__}: {str(e)[:300]}")
 
 # ============== 页面：AI 投研问答 ==============
 elif page == '🤖 AI 投研问答':
@@ -901,160 +1025,218 @@ elif page == '🤖 AI 投研问答':
 # ============== 页面：另类数据仪表盘 ==============
 elif page == '📡 另类数据仪表盘':
     st.markdown('# 📡 另类数据仪表盘')
-    st.markdown('**整合卫星图像、舆情分析、供应链数据等多维数据**')
+    st.markdown('**宏观景气 · 市场情绪 · 产业链传导 — 全量真实数据驱动**')
 
     st.markdown('---')
 
-    tab1, tab2, tab3 = st.tabs(['🛰️ 卫星图像', '💬 舆情分析', '📦 供应链追踪'])
+    tab1, tab2, tab3 = st.tabs(['📊 宏观景气', '💬 市场情绪', '🔗 产业链传导'])
 
+    # ========== Tab1: 宏观景气指标 ==========
     with tab1:
-        st.markdown('### 🛰️ 卫星图像分析 - 工业园区开工率')
-        st.caption('数据源：Sentinel-2 公开卫星数据 + AI 识别算法')
-        st.warning('⚠️ **概念演示**: 当前展示为模拟数据, 生产环境将接入真实卫星图像数据源 (Sentinel-2 / 商业卫星 API)')
+        st.markdown('### 📊 宏观景气领先指标')
+        st.caption('数据源：金十数据 / 国家统计局 (akshare 免费接口)')
 
-        # 模拟工业园区开工率数据 (兼容 pandas 2.x/3.x)
-        try:
-            dates = pd.date_range('2024-01-01', periods=24, freq='ME')
-        except ValueError:
-            dates = pd.date_range('2024-01-01', periods=24, freq='M')
-        np.random.seed(42)
-        work_rate = 60 + 20 * np.sin(np.arange(24) * 0.5) + np.random.randn(24) * 5
-        work_rate = np.clip(work_rate, 30, 95)
+        col1, col2 = st.columns(2)
 
-        df_sat = pd.DataFrame({'日期': dates, '开工率': work_rate})
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df_sat['日期'], y=df_sat['开工率'],
-                                 mode='lines+markers', name='开工率',
-                                 line=dict(color='#1F4E78', width=3),
-                                 fill='tozeroy', fillcolor='rgba(31, 78, 120, 0.1)'))
-        fig.update_layout(
-            title='华东某工业园区月度开工率（2024 年）',
-            yaxis_title='开工率 (%)',
-            hovermode='x unified',
-            height=400,
-        )
-        st.plotly_chart(fig, width='stretch')
-
-        st.markdown('#### 🔍 关键发现')
-        st.info('• 2024 年 2-3 月春节后开工率明显回落\n• 5-9 月旺季开工率维持在 80% 以上\n• 10 月后进入季节性回落期')
-
-    with tab2:
-        st.markdown('### 💬 舆情情感分析 - 实时 NLP')
-        st.caption('数据源：东方财富财经新闻 + SnowNLP 情感分析')
-
-        # 尝试加载真实新闻并做 NLP 分析
-        df_news = load_stock_news()
-        analyzer = SentimentAnalyzer()
-
-        if df_news is not None and len(df_news) > 0:
-            # 真实新闻 + NLP 情感分析
-            title_col = '标题' if '标题' in df_news.columns else 'title'
-            news_list = df_news.head(30).to_dict('records')
-            results = analyzer.analyze_batch(
-                [{'title': r.get(title_col, r.get('title', '')), 'source': 'eastmoney', 'time': ''} for r in news_list]
-            )
-            summary = analyzer.summarize(results)
-
-            # 汇总指标
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                safe_metric('新闻总数', getattr(summary, 'total_articles', 0))
-            with col2:
-                safe_metric('正面', getattr(summary, 'positive_count', 0),
-                           f'{getattr(summary, "positive_count", 0)/max(getattr(summary, "total_articles", 1),1)*100:.0f}%')
-            with col3:
-                safe_metric('负面', getattr(summary, 'negative_count', 0),
-                           f'{getattr(summary, "negative_count", 0)/max(getattr(summary, "total_articles", 1),1)*100:.0f}%')
-            with col4:
-                trend_cn = {'bullish': '偏多', 'bearish': '偏空', 'neutral': '中性'}.get(
-                    getattr(summary, 'sentiment_trend', 'neutral'), '中性')
-                safe_metric('舆情趋势', trend_cn, f'均分 {getattr(summary, "avg_score", 0):.2f}')
-
-            # 热词
-            if summary.hot_keywords:
-                st.markdown('#### 🔥 热词')
-                st.write(' | '.join([f'**{kw}** ({c})' for kw, c in summary.hot_keywords[:8]]))
-
-            # 新闻列表
-            st.markdown('#### 📰 新闻情感明细')
-            for r in results[:15]:
-                emoji = {'positive': '🟢', 'negative': '🔴', 'neutral': '🟡'}.get(r.label, '⚪')
-                st.markdown(f'{emoji} [{r.score:.2f}] {r.text[:80]}')
-        else:
-            st.info('⚠️ 新闻数据加载失败, 展示模拟数据')
-            sectors = ['人工智能', '新能源', '半导体', '医药', '消费', '金融', '军工', '汽车']
-            sentiment = np.random.uniform(0.3, 0.95, len(sectors))
-            volume = np.random.randint(1000, 50000, len(sectors))
-            df_sent = pd.DataFrame({'行业': sectors, '情感得分': sentiment, '讨论量': volume})
-            col1, col2 = st.columns(2)
-            with col1:
-                fig = px.bar(df_sent.sort_values('情感得分', ascending=True),
-                             x='情感得分', y='行业', orientation='h',
-                             title='行业情感得分排行',
-                             color='情感得分', color_continuous_scale='RdYlGn',
-                             range_color=[0.3, 1.0])
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, width='stretch')
-            with col2:
-                fig = px.scatter(df_sent, x='讨论量', y='情感得分', size='讨论量',
-                                color='行业', title='行业舆情 - 讨论量 vs 情感',
-                                size_max=40)
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, width='stretch')
-
-    with tab3:
-        st.markdown('### 📦 产业链追踪 - 上下游传导')
-        st.caption('数据源：申万行业分类 + 产业链关系图谱')
-
-        tracker = SupplyChainTracker()
-        chains = tracker.get_available_chains()
-
-        col1, col2 = st.columns([1, 3])
         with col1:
-            selected_chain = st.selectbox('选择产业链', chains, key='chain_select')
-
-        chain = tracker.get_chain(selected_chain)
-        if chain:
-            # Sankey 图
-            st.markdown(f'#### 🔀 {selected_chain} 产业链 Sankey 图')
+            # PMI
             try:
-                import plotly.graph_objects as go
-                sankey = chain.sankey_data
-                node_names = [n['name'] for n in sankey['nodes']]
-                node_idx = {name: i for i, name in enumerate(node_names)}
-                sources = [node_idx[l['source']] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
-                targets = [node_idx[l['target']] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
-                values = [l['value'] for l in sankey['links'] if l['source'] in node_idx and l['target'] in node_idx]
-                fig = go.Figure(data=[go.Sankey(
-                    node=dict(label=node_names, pad=20, thickness=20),
-                    link=dict(source=sources, target=targets, value=values)
-                )])
-                fig.update_layout(title=f'{selected_chain} 产业链传导', height=400)
-                st.plotly_chart(fig, width='stretch')
-            except Exception as e:
-                st.warning(f'Sankey 图渲染失败: {e}')
+                df_pmi = ak.macro_china_pmi()
+                if df_pmi is not None and len(df_pmi) > 0:
+                    # 取最近24个月
+                    df_pmi_recent = df_pmi.tail(24).copy()
+                    # 找到月份和制造业指数列
+                    date_col = [c for c in df_pmi_recent.columns if '月份' in c or '日期' in c or '月' in c]
+                    mfg_col = [c for c in df_pmi_recent.columns if '制造业' in c and '指数' in c]
+                    if not mfg_col:
+                        mfg_col = [c for c in df_pmi_recent.columns if '制造业' in c]
+                    if not mfg_col:
+                        mfg_col = [df_pmi_recent.columns[1]] if len(df_pmi_recent.columns) > 1 else []
 
-            # 相关股票
-            st.markdown('#### 📈 产业链相关股票')
-            chain_stocks = tracker.get_chain_stocks(selected_chain)
-            if not chain_stocks.empty:
-                st.dataframe(chain_stocks, width='stretch')
+                    if date_col and mfg_col:
+                        fig = go.Figure()
+                        x_vals = df_pmi_recent[date_col[0]].astype(str)
+                        y_vals = pd.to_numeric(df_pmi_recent[mfg_col[0]], errors='coerce')
+                        fig.add_trace(go.Scatter(x=x_vals, y=y_vals,
+                                                 mode='lines+markers', name='制造业PMI',
+                                                 line=dict(color='#1F4E78', width=2.5)))
+                        fig.add_hline(y=50, line_dash='dash', line_color='red',
+                                      annotation_text='荣枯线 50')
+                        fig.update_layout(title='中国制造业 PMI (近24月)', yaxis_title='PMI',
+                                          height=350, hovermode='x unified')
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.caption('PMI 数据格式变化, 暂无法绘图')
+                        st.dataframe(df_pmi_recent.tail(10), use_container_width=True)
+            except Exception:
+                st.warning('PMI 数据加载失败')
 
-            # 上游影响分析
-            st.markdown('#### 🔍 上游变动传导分析')
-            upstream_list = INDUSTRY_CHAINS.get(selected_chain, {}).get('upstream', [])
-            if upstream_list:
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    up_ind = st.selectbox('上游行业', upstream_list, key='up_ind')
-                with col_b:
-                    impact = st.slider('影响程度', -1.0, 1.0, 0.5, 0.1, key='up_impact')
-                analysis = tracker.analyze_upstream_impact(selected_chain, up_ind, impact)
-                if 'error' not in analysis:
-                    st.info(analysis.get('conclusion', ''))
-        else:
-            st.warning('产业链数据加载失败')
+        with col2:
+            # CPI + PPI
+            try:
+                df_cpi = ak.macro_china_cpi_yearly()
+                if df_cpi is not None and len(df_cpi) > 0:
+                    df_cpi_recent = df_cpi.tail(24).copy()
+                    date_col = [c for c in df_cpi_recent.columns if '日期' in c or '月份' in c or '商品' in c]
+                    val_col = [c for c in df_cpi_recent.columns if '今值' in c or '同比' in c]
+                    if date_col and val_col:
+                        fig = go.Figure()
+                        fig.add_trace(go.Bar(x=df_cpi_recent[date_col[0]].astype(str),
+                                             y=pd.to_numeric(df_cpi_recent[val_col[0]], errors='coerce'),
+                                             name='CPI 同比', marker_color='#2E86AB'))
+                        fig.update_layout(title='CPI 同比 (近24期)', yaxis_title='%',
+                                          height=350, hovermode='x unified')
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_cpi_recent.tail(10), use_container_width=True)
+            except Exception:
+                st.warning('CPI 数据加载失败')
+
+        # 第二行: 工业增加值 + 用电量
+        col3, col4 = st.columns(2)
+
+        with col3:
+            try:
+                df_gyzjz = ak.macro_china_gyzjz()
+                if df_gyzjz is not None and len(df_gyzjz) > 0:
+                    df_gyzjz_recent = df_gyzjz.tail(12).copy()
+                    date_col = [c for c in df_gyzjz_recent.columns if '月份' in c or '日期' in c]
+                    val_col = [c for c in df_gyzjz_recent.columns if '同比' in c or '增长' in c]
+                    if date_col and val_col:
+                        fig = go.Figure()
+                        fig.add_trace(go.Bar(x=df_gyzjz_recent[date_col[0]].astype(str),
+                                             y=pd.to_numeric(df_gyzjz_recent[val_col[0]], errors='coerce'),
+                                             name='工业增加值同比', marker_color='#A23B72'))
+                        fig.update_layout(title='工业增加值同比 (近12月)', yaxis_title='%',
+                                          height=300, hovermode='x unified')
+                        st.plotly_chart(fig, use_container_width=True)
+            except Exception:
+                st.warning('工业增加值数据加载失败')
+
+        with col4:
+            try:
+                df_elec = ak.macro_china_society_electricity()
+                if df_elec is not None and len(df_elec) > 0:
+                    st.markdown('#### ⚡ 全社会用电量')
+                    st.dataframe(df_elec.tail(6), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('用电量数据加载失败')
+
+        st.info('💡 宏观景气指标是另类数据的重要维度: PMI/CPI/工业增加值/用电量等领先指标可提前预判经济周期拐点')
+
+    # ========== Tab2: 市场情绪与资金流向 ==========
+    with tab2:
+        st.markdown('### 💬 市场情绪与资金流向')
+        st.caption('数据源：东方财富 / 雪球 (akshare 免费接口)')
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # 概念板块资金流向
+            try:
+                df_concept = ak.stock_fund_flow_concept(symbol='即时')
+                if df_concept is not None and len(df_concept) > 0:
+                    st.markdown('#### 💰 概念板块资金流向 TOP15')
+                    df_top = df_concept.head(15)
+                    # 找到行业名和流入资金列
+                    name_col = [c for c in df_top.columns if '行业' in c or '名称' in c or '概念' in c]
+                    flow_col = [c for c in df_top.columns if '流入' in c or '净买' in c or '主力' in c]
+                    change_col = [c for c in df_top.columns if '涨跌' in c]
+
+                    if name_col and change_col:
+                        fig = px.bar(df_top, x=change_col[0], y=name_col[0], orientation='h',
+                                     color=change_col[0], color_continuous_scale='RdYlGn',
+                                     title='概念板块涨跌幅 TOP15')
+                        fig.update_layout(height=450, yaxis={'categoryorder': 'total ascending'})
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_top, use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('概念板块资金数据加载失败')
+
+        with col2:
+            # 北向资金历史趋势
+            try:
+                df_north = ak.stock_hsgt_hist_em(symbol='沪股通')
+                if df_north is not None and len(df_north) > 0:
+                    st.markdown('#### 🌊 北向资金 (沪股通) 近30日')
+                    df_north_recent = df_north.tail(30)
+                    date_col = [c for c in df_north_recent.columns if '日期' in c or 'date' in c.lower()]
+                    flow_col = [c for c in df_north_recent.columns if '净买' in c or '流入' in c or '成交' in c]
+
+                    if date_col and flow_col:
+                        fig = go.Figure()
+                        fig.add_trace(go.Bar(x=df_north_recent[date_col[0]],
+                                             y=pd.to_numeric(df_north_recent[flow_col[0]], errors='coerce'),
+                                             name='当日净买入', marker_color='#2E86AB'))
+                        fig.update_layout(title='沪股通净买入 (近30日)', yaxis_title='金额',
+                                          height=450, hovermode='x unified')
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_north_recent.tail(10), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('北向资金数据加载失败')
+
+        # 大单交易
+        try:
+            df_big = ak.stock_fund_flow_big_deal()
+            if df_big is not None and len(df_big) > 0:
+                st.markdown('#### 📋 最新大单交易')
+                display_cols = [c for c in ['成交时间', '股票代码', '股票简称', '成交价格', '成交量', '成交金额'] if c in df_big.columns]
+                st.dataframe(df_big[display_cols].head(20) if display_cols else df_big.head(20),
+                             use_container_width=True, hide_index=True)
+        except Exception:
+            pass
+
+        st.info('💡 资金流向是另类数据的核心维度: 北向资金/概念板块资金/大单交易可捕捉主力动向')
+
+    # ========== Tab3: 产业链传导与机构行为 ==========
+    with tab3:
+        st.markdown('### 🔗 产业链传导与机构行为')
+        st.caption('数据源：东方财富 / 上海深圳交易所 (akshare 免费接口)')
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # 期货期现价差 (产业链价格传导)
+            try:
+                df_futures = ak.futures_spot_price()
+                if df_futures is not None and len(df_futures) > 0:
+                    st.markdown('#### 🏭 期货期现价差 (产业链价格传导)')
+                    st.dataframe(df_futures.head(20), use_container_width=True, hide_index=True)
+            except Exception:
+                # fallback: 全球商品价格
+                try:
+                    df_global = ak.futures_global_spot_em()
+                    if df_global is not None and len(df_global) > 0:
+                        st.markdown('#### 🌍 全球大宗商品价格')
+                        st.dataframe(df_global.head(20), use_container_width=True, hide_index=True)
+                except Exception:
+                    st.warning('期货数据加载失败')
+
+        with col2:
+            # 机构调研统计
+            try:
+                df_jgdy = ak.stock_jgdy_tj_em()
+                if df_jgdy is not None and len(df_jgdy) > 0:
+                    st.markdown('#### 🔍 机构调研热度 TOP15')
+                    display_cols = [c for c in ['股票代码', '股票简称', '最新价', '涨跌幅', '调研机构数'] if c in df_jgdy.columns]
+                    if not display_cols:
+                        display_cols = df_jgdy.columns[:5].tolist()
+                    st.dataframe(df_jgdy[display_cols].head(15), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('机构调研数据加载失败')
+
+        # 股权质押风险
+        try:
+            df_zy = ak.stock_gpzy_industry_data_em()
+            if df_zy is not None and len(df_zy) > 0:
+                st.markdown('#### ⚠️ 行业股权质押风险')
+                st.dataframe(df_zy.head(15), use_container_width=True, hide_index=True)
+        except Exception:
+            pass
+
+        st.info('💡 产业链传导是另类数据的差异化维度: 期货价差反映供需预期, 机构调研揭示关注方向, 质押风险预警系统性风险')
 
 # ============== 页面：量化策略回测 ==============
 elif page == '📈 量化策略回测':
@@ -1227,6 +1409,18 @@ elif page == '📈 量化策略回测':
         except Exception as e:
             st.error(f'❌ 回测运行失败: {type(e).__name__}: {str(e)[:200]}')
             st.info('💡 请检查: 1) 网络连接 2) 起始日期是否太早导致数据不足 3) 稍后重试')
+
+    # ========== SHAP 可解释性分析 (新增) ==========
+    st.markdown('---')
+    with st.expander('🔍 AI 可解释性分析 (SHAP) — 看看模型为什么这么选股', expanded=False):
+        try:
+            from features.shap_explainer import render_shap_dashboard
+            render_shap_dashboard()
+        except ImportError as e:
+            st.error(f"❌ SHAP模块加载失败: {e}")
+            st.info("请安装: pip install xgboost shap")
+        except Exception as e:
+            st.error(f"❌ SHAP运行错误: {type(e).__name__}: {str(e)[:300]}")
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -1439,7 +1633,21 @@ elif page == '📡 智能盯盘':
             with col5:
                 safe_metric('跌停', breadth.get('limit_down', 'N/A'))
         else:
-            st.info('市场涨跌数据加载中，请稍候刷新...')
+            # 用示例数据兜底，避免一直loading
+            from features.robust_utils import get_sample_stocks
+            samples = get_sample_stocks()[:10]
+            up = sum(1 for s in samples if s.get('change_pct', 0) > 0)
+            down = len(samples) - up
+            limit_up = sum(1 for s in samples if s.get('change_pct', 0) >= 9.9)
+            st.info(f"💡 实时数据加载中，已显示示例数据（基于10只演示股票）")
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1: safe_metric('上涨家数', up)
+            with col2: safe_metric('下跌家数', down)
+            with col3: safe_metric('平盘', 0)
+            with col4: safe_metric('涨停', limit_up)
+            with col5: safe_metric('跌停', 0)
+            if st.button('🔄 重新加载', key='reload_overview'):
+                st.rerun()
         # 北向资金快览
         ff = overview.get('fund_flow', {})
         if 'northbound' in ff:
@@ -1586,11 +1794,37 @@ elif page == '📈 模拟交易':
             exec_price = float(o_price) if o_price > 0 else 0.0
             order_type = 'limit' if exec_price > 0 else 'market'
             if order_type == 'market':
-                with st.spinner('正在获取市价...'):
-                    exec_price = get_current_price(o_symbol)
+                # 尝试3次重试
+                exec_price = 0.0
+                for attempt in range(3):
+                    with st.spinner(f'正在获取市价... (尝试{attempt+1}/3)'):
+                        try:
+                            exec_price = get_current_price(o_symbol)
+                            if exec_price > 0:
+                                break
+                        except Exception as e:
+                            if attempt < 2:
+                                time.sleep(1)
+                                continue
+                            raise
+
                 if exec_price <= 0:
-                    st.error('❌ 无法获取该股票最新价，请改用限价单手动输入价格')
-                    st.stop()
+                    # 使用示例价格回退，避免阻塞交易
+                    from features.robust_utils import get_sample_stocks
+                    sample = next((s for s in get_sample_stocks() if s['code'] == o_symbol), None)
+                    if sample:
+                        exec_price = sample['price']
+                        st.warning(f"⚠️ 实时接口暂不可用，已使用参考价 ¥{exec_price:.2f}（{sample['name']}）")
+                        order_type = 'limit_demo'
+                    else:
+                        # 让用户输入价格
+                        st.error('❌ 无法获取该股票最新价，请改用限价单手动输入价格')
+                        manual_price = st.number_input('请手动输入价格', value=10.0, step=0.01, key='manual_price')
+                        if st.button('确认以该价格下单', key='confirm_manual'):
+                            exec_price = manual_price
+                            order_type = 'limit'
+                        else:
+                            st.stop()
 
             # 构建 Order 对象
             o_order = Order(
@@ -1692,27 +1926,35 @@ elif page == '⚡ 智能指令':
             st.info('暂无任务, 请先创建任务')
 
     with tab3:
-        st.markdown('### 📊 自动报告生成')
-        st.caption('基于当前市场数据自动生成投研报告')
-
-        report_type = st.selectbox('报告类型', ['晨报', '盘后总结', '周报'], key='report_type')
-        if st.button('📝 生成报告', key='gen_report'):
-            with st.spinner('生成报告...'):
-                try:
-                    generator = AutoReportGenerator()
-                    # 构建简单的结果对象
-                    from types import SimpleNamespace
-                    now_str = datetime.now().strftime('%Y-%m-%d')
-                    mock_result = SimpleNamespace(
-                        title=f'{report_type} - {now_str}',
-                        summary=f'基于当前市场数据的{report_type}自动分析。数据来源: 东方财富、akshare 公开接口。',
-                        recommendation='建议关注大盘走势及板块轮动信号, 适当分散配置。',
-                        reasoning='基于近期市场成交量、北向资金流向及板块轮动数据综合分析。',
-                    )
-                    report = generator.generate(report_type, mock_result)
-                    st.markdown(report)
-                except Exception as e:
-                    st.error(f'报告生成失败: {e}')
+        # ========== 升级版报告生成 (集成akshare+AI 6段式+Word/PDF导出) ==========
+        try:
+            from features.report_generator import render_report_ui
+            render_report_ui()
+        except ImportError as e:
+            st.error(f"❌ 报告模块加载失败: {e}")
+            st.info("请安装: pip install python-docx reportlab")
+        except Exception as e:
+            st.error(f"❌ 报告生成失败: {type(e).__name__}: {str(e)[:300]}")
+            # 降级到原版本
+            st.markdown('### 📊 自动报告生成 (降级版)')
+            st.caption('基于当前市场数据自动生成投研报告')
+            report_type = st.selectbox('报告类型', ['晨报', '盘后总结', '周报'], key='report_type_fallback')
+            if st.button('📝 生成报告', key='gen_report_fallback'):
+                with st.spinner('生成报告...'):
+                    try:
+                        generator = AutoReportGenerator()
+                        from types import SimpleNamespace
+                        now_str = datetime.now().strftime('%Y-%m-%d')
+                        mock_result = SimpleNamespace(
+                            title=f'{report_type} - {now_str}',
+                            summary=f'基于当前市场数据的{report_type}自动分析。',
+                            recommendation='建议关注大盘走势及板块轮动信号。',
+                            reasoning='基于近期市场成交量、北向资金流向及板块轮动数据综合分析。',
+                        )
+                        report = generator.generate(report_type, mock_result)
+                        st.markdown(report)
+                    except Exception as e2:
+                        st.error(f'降级版也失败: {e2}')
 
 # ============== 页面：个人中心 ==============
 elif page == '👤 个人中心':

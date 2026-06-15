@@ -350,7 +350,42 @@ class NaturalLanguageScreener:
             lines.append(f"**筛选条件**: {' | '.join(filter_desc)}\n")
 
         if len(top_results) == 0:
-            lines.append("\n⚠️ 未找到符合条件的股票, 建议放宽筛选条件.")
+            lines.append("\n⚠️ 严格条件下未找到符合股票, 为您智能放宽条件推荐:\n")
+
+            # 回退方案：放宽条件重试
+            relaxed_filters = dict(filters)
+            if "pe_max" in relaxed_filters:
+                relaxed_filters["pe_max"] = relaxed_filters["pe_max"] * 1.5
+            if "pct_change_min" in relaxed_filters:
+                relaxed_filters["pct_change_min"] = max(0, relaxed_filters["pct_change_min"] - 2)
+
+            try:
+                relaxed_results = self._apply_filters(universe, relaxed_filters)
+                if len(relaxed_results) > 0:
+                    relaxed_top = relaxed_results.sort_values('涨跌幅', ascending=False).head(5)
+                    lines.append("\n**💡 放宽条件后 Top 5**:\n")
+                    for i, (_, row) in enumerate(relaxed_top.iterrows(), 1):
+                        lines.append(
+                            f"{i}. **{row.get('名称', 'N/A')}** ({row.get('代码', '')}) "
+                            f"- 价:{row.get('最新价', 0):.2f} "
+                            f"涨幅:{row.get('涨跌幅', 0):+.2f}% "
+                            f"PE:{row.get('市盈率-动态', 0):.1f}"
+                        )
+            except Exception:
+                pass
+
+            # 提供建议
+            suggestions = []
+            if "pe_max" in filters:
+                suggestions.append(f"将PE上限从{filters['pe_max']}放宽到{filters['pe_max']*1.5:.0f}")
+            if "pct_change_min" in filters:
+                suggestions.append("降低涨幅要求")
+            if "market_cap_min" in filters:
+                suggestions.append("降低市值门槛")
+            if "keywords" in filters:
+                suggestions.append("尝试其他行业关键词")
+            if suggestions:
+                lines.append("\n**🎯 建议**:\n" + "\n".join([f"- {s}" for s in suggestions]))
             return "\n".join(lines)
 
         # 结果表格

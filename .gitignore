@@ -61,3 +61,79 @@ secrets.toml
 
 # 临时数据 (akshare 可重新下载)
 _data_*
+
+# ============ Q1 冠军冲刺新增 (2026-06-16) ============
+# Python 部署虚拟环境
+.deploy_venv/
+venv/
+env/
+
+# 运行时数据 (Streamlit 模拟交易/任务)
+_tasks_data/
+_trades_data/
+
+# 临时生成脚本 (一次性,无需入库)
+_check_*.py
+_generate_*.py
+_fix_quotes.py
+
+# 临时部署/调试脚本
+_deploy_*.py
+_deploy_*.sh
+_deploy_*.ps1
+_deploy_output.txt
+_ecs_*.py
+_dns_*.py
+_domain_*.py
+_screen_*.py
+_verify_*.png
+_aliyun_*.png
+_dns_*.png
+_domain_*.png
+_ecs_*.sh
+_ecs_hotfix.py
+_ecs_update_secrets.py
+_ecs_deploy.py
+_ecs_deploy_*.py
+_enable_https.py
+_setup_domain.py
+_update_*.py
+_check_*.png
+_userdata_b64.txt
+_install_deps.py
+_check_server.py
+_check_pdf.py
+_check_whitepaper.py
+_check_dns_and_ssl.py
+_narration_*
+_video_*.mp4
+_final_verify.py
+_cleanup.py
+_debug_sig.py
+_cloud_init.sh
+_read_v2_financial.py
+_run_*.py
+_run_*.bat
+_run_check.bat
+_run_backtest.py
+_run_backtest_v2.py
+_regen_chart_v3.py
+_verify_v3.py
+_whitepaper_*
+_stress_test.py
+_screenshot_demo.py
+_backup_*.ps1
+_backup_*.txt
+_fetch_*.py
+_*.png
+_*.jpg
+_*.jpeg
+_*.gif
+_*.mp3
+_*.wav
+_*.mp4  (部署视频单独提交)
+_*.avi
+
+# Streamlit 内部测试脚本
+streamlit_app/_check_*.py
+streamlit_app/_run_check.bat
