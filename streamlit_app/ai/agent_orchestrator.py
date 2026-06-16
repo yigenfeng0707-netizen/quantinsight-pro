@@ -278,9 +278,11 @@ class MainAgent:
 
         策略:
         - 如果只有1个Agent成功, 直接用其输出
-        - 如果有多个Agent, 合并各自的 summary/data
+        - 如果有多个Agent, 用 LLM 合并各自的 summary/data
         - 添加统一的 reasoning chain 和 citations
         """
+        from ai.sub_agents import _call_llm
+
         # 收集成功结果
         success_results = {k: v for k, v in results.items() if v.success}
         all_results = list(results.values())
@@ -309,13 +311,41 @@ class MainAgent:
 
         title = " + ".join(title_parts) if title_parts else "AI 投研分析"
 
-        # 合并摘要
+        # 合并摘要 - 多个 Agent 时用 LLM 合成
         summary_parts = []
         for name, r in success_results.items():
             if r.summary:
-                summary_parts.append(r.summary)
+                summary_parts.append(f"[{name}] {r.summary}")
 
-        summary = "\n\n---\n\n".join(summary_parts)
+        if len(success_results) > 1 and self.llm_config and self.llm_config.get('api_key'):
+            # 多 Agent 结果用 LLM 合成统一摘要
+            agent_summaries = "\n\n---\n\n".join(summary_parts)
+            synthesize_prompt = f"""你是 QuantInsight Pro 的投研合成助手. 请将以下多个专业Agent的分析结果合成为一份连贯、结构化的投研报告摘要.
+
+用户问题: {question}
+
+各Agent分析结果:
+{agent_summaries}
+
+请输出合成后的摘要 (Markdown格式), 要求:
+1. 保留各Agent的核心观点和数据
+2. 消除重复内容
+3. 突出关键结论和投资建议
+4. 标注数据来源"""
+            try:
+                llm_summary = _call_llm(
+                    [{"role": "user", "content": synthesize_prompt}],
+                    self.llm_config,
+                    temperature=0.5,
+                )
+                if llm_summary and len(llm_summary) > 50:
+                    summary = llm_summary
+                else:
+                    summary = "\n\n---\n\n".join(summary_parts)
+            except Exception:
+                summary = "\n\n---\n\n".join(summary_parts)
+        else:
+            summary = "\n\n---\n\n".join(summary_parts)
 
         # 合并数据
         merged_data = {}

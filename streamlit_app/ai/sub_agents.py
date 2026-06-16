@@ -383,12 +383,37 @@ class AnalysisAgent:
                 except Exception:
                     pass
 
+            # 如果 DataGrounder 没有提供上下文, 尝试获取实时市场数据
+            if not analysis_context:
+                try:
+                    from features.report_generator import fetch_macro_data
+                    macro = fetch_macro_data()
+                    if macro and macro.get('indices'):
+                        indices_str = ", ".join([
+                            f"{idx['name']}: {idx.get('price', 'N/A')} ({idx.get('change_pct', 0):+.2f}%)"
+                            for idx in macro['indices']
+                        ])
+                        analysis_context = f"实时市场数据 - 主要指数: {indices_str}"
+                        if macro.get('north_flow'):
+                            try:
+                                nf = float(macro['north_flow'])
+                                analysis_context += f"; 北向资金净流入: {nf/1e8:.2f}亿元" if abs(nf) > 1e8 else f"; 北向资金净流入: {nf:.2f}亿元"
+                            except (TypeError, ValueError):
+                                pass
+                        if macro.get('breadth'):
+                            b = macro['breadth']
+                            analysis_context += f"; 上涨{b.get('advance',0)}家/下跌{b.get('decline',0)}家"
+                        analysis_context += f" (来源: {macro.get('source', 'akshare')})"
+                except Exception:
+                    pass
+
             # LLM 分析
             system_prompt = (
                 "你是 QuantInsight Pro 的深度分析助手. "
                 "基于提供的市场数据和专业知识, 进行深度投资分析.\n"
+                "回答时请引用提供的实时数据并标注来源.\n"
                 "输出结构化JSON:\n"
-                '{"title": "分析标题", "summary": "Markdown格式分析", '
+                '{"title": "分析标题", "summary": "Markdown格式分析(引用数据并标注来源)", '
                 '"data": {"指标": "值"}, "recommendation": "建议", "risk": "风险提示"}'
             )
 

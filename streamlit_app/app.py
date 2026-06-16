@@ -27,6 +27,252 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+# ============== akshare 安全调用封装 ==============
+# ECS 服务器上东方财富接口可能封禁服务器 IP, 统一封装重试 + 降级逻辑
+
+_AKSHARE_DEMO_SPOT = None  # 延迟初始化的演示数据
+
+def _get_demo_spot_df():
+    """获取 A 股演示行情数据 (akshare 不可用时降级)"""
+    global _AKSHARE_DEMO_SPOT
+    if _AKSHARE_DEMO_SPOT is not None:
+        return _AKSHARE_DEMO_SPOT
+    _AKSHARE_DEMO_SPOT = pd.DataFrame({
+        '代码': ['600519', '000858', '601318', '600036', '000333',
+                '601012', '002594', '300750', '600276', '601888',
+                '601398', '600030', '000001', '002230', '688981',
+                '600048', '000002', '601919', '600754', '002129',
+                '601166', '600900', '601857', '600887', '000568'],
+        '名称': ['贵州茅台', '五粮液', '中国平安', '招商银行', '美的集团',
+                '隆基绿能', '比亚迪', '宁德时代', '恒瑞医药', '中国中免',
+                '工商银行', '中信证券', '平安银行', '科大讯飞', '中芯国际',
+                '保利发展', '万科A', '中远海控', '锦江酒店', '中环股份',
+                '兴业银行', '长江电力', '中国石油', '伊利股份', '泸州老窖'],
+        '最新价': [1680, 145, 48, 35, 68, 22, 240, 220, 45, 95,
+                 5.2, 22.5, 11.8, 52, 48, 12.5, 8.2, 14.6, 32, 18,
+                 16.8, 28.5, 8.9, 29.6, 168],
+        '涨跌幅': [1.25, 0.86, -0.52, 0.38, 1.56, -1.23, 2.85, 3.12, -0.67, 0.95,
+                 0.19, 1.82, 0.34, 4.25, 2.16, -0.48, -1.35, 1.67, 0.78, -0.92,
+                 0.45, 0.62, -0.38, 1.15, 0.93],
+        '涨跌额': [20.75, 1.24, -0.25, 0.13, 1.05, -0.27, 6.65, 6.63, -0.30, 0.89,
+                  0.01, 0.40, 0.04, 2.12, 1.01, -0.06, -0.11, 0.24, 0.25, -0.17,
+                  0.08, 0.18, -0.03, 0.34, 1.55],
+        '成交量': [3500000, 4200000, 1800000, 2900000, 3800000,
+                  5200000, 2800000, 4100000, 1500000, 1200000,
+                  980000, 3600000, 2100000, 4500000, 6800000,
+                  1100000, 850000, 720000, 560000, 3200000,
+                  1400000, 900000, 2500000, 1800000, 2600000],
+        '成交额': [5880000000, 4600000000, 2450000000, 3960000000, 5820000000,
+                 3590000000, 10860000000, 18200000000, 1930000000, 2190000000,
+                 2220000000, 4850000000, 1280000000, 4160000000, 10930000000,
+                 1760000000, 1320000000, 1700000000, 3590000000, 1520000000,
+                 2350000000, 2560000000, 2220000000, 5320000000, 4368000000],
+        '振幅': [2.15, 1.86, 1.02, 0.85, 2.56, 3.23, 4.12, 3.88, 1.67, 2.12,
+                0.45, 2.85, 0.78, 5.25, 3.16, 1.48, 2.35, 1.92, 1.65, 2.95,
+                0.92, 1.15, 0.68, 1.85, 1.73],
+        '最高': [1698, 147.5, 48.8, 35.3, 69.2, 22.5, 245, 225, 45.6, 96.5,
+                5.25, 23.0, 11.9, 53.5, 49.2, 12.8, 8.5, 15.0, 32.6, 18.4,
+                17.0, 28.8, 8.95, 30.1, 170.5],
+        '最低': [1662, 143.2, 47.5, 34.8, 67.5, 21.6, 236, 215, 44.5, 93.8,
+                5.15, 22.1, 11.6, 50.8, 47.0, 12.2, 8.0, 14.2, 31.5, 17.5,
+                16.5, 28.2, 8.82, 29.2, 166.0],
+        '今开': [1665, 143.8, 48.2, 35.1, 67.8, 21.8, 238, 218, 44.8, 94.2,
+                5.18, 22.2, 11.7, 51.0, 47.5, 12.4, 8.3, 14.3, 31.8, 17.8,
+                16.6, 28.3, 8.88, 29.3, 167.0],
+        '昨收': [1659.25, 143.76, 48.25, 34.87, 66.95, 22.27, 233.35, 213.37, 45.30, 94.11,
+                5.19, 22.10, 11.76, 49.88, 46.99, 12.56, 8.31, 14.36, 31.75, 18.17,
+                16.72, 28.32, 8.93, 29.26, 166.45],
+        '量比': [0.85, 1.12, 0.72, 0.95, 1.35, 1.68, 1.25, 1.45, 0.78, 0.92,
+                0.55, 1.18, 0.68, 1.85, 2.15, 0.72, 0.88, 0.65, 0.82, 1.52,
+                0.78, 0.62, 0.95, 1.05, 1.15],
+        '换手率': [0.35, 0.82, 0.28, 0.45, 1.23, 2.15, 1.56, 1.88, 0.67, 1.12,
+                 0.12, 1.45, 0.56, 3.25, 2.88, 0.78, 1.35, 0.92, 1.15, 2.45,
+                 0.68, 0.38, 0.15, 0.92, 1.28],
+        '市盈率-动态': [28.5, 22.3, 9.8, 6.2, 14.5, 18.2, 35.6, 42.8, 38.5, 25.6,
+                     5.8, 18.5, 5.2, 120.5, 85.2, 8.5, -12.3, 6.8, 32.5, 28.6,
+                     5.5, 22.8, 12.5, 18.2, 20.5],
+        '市净率': [9.5, 6.2, 1.2, 0.95, 3.8, 2.1, 5.6, 7.2, 6.8, 4.5,
+                 0.68, 1.65, 0.55, 8.5, 3.2, 0.85, 0.72, 1.35, 3.2, 2.8,
+                 0.62, 3.85, 1.15, 5.2, 7.8],
+        '总市值': [2110000000000, 562000000000, 875000000000, 882000000000, 473000000000,
+                 167000000000, 696000000000, 968000000000, 288000000000, 196000000000,
+                 1850000000000, 334000000000, 229000000000, 128000000000, 380000000000,
+                 225000000000, 98000000000, 185000000000, 312000000000, 62000000000,
+                 348000000000, 695000000000, 1625000000000, 188000000000, 247000000000],
+        '流通市值': [2110000000000, 562000000000, 875000000000, 882000000000, 473000000000,
+                   167000000000, 696000000000, 968000000000, 288000000000, 196000000000,
+                   1850000000000, 334000000000, 229000000000, 128000000000, 380000000000,
+                   225000000000, 98000000000, 185000000000, 312000000000, 62000000000,
+                   348000000000, 695000000000, 1625000000000, 188000000000, 247000000000],
+        '60日涨跌幅': [8.5, 5.2, -3.8, 2.1, 12.3, -8.5, 18.6, 22.5, -5.2, 6.8,
+                    1.2, 9.5, 0.8, 25.6, 15.2, -2.5, -8.8, 12.5, 4.2, -6.5,
+                    2.8, 5.5, -1.2, 6.8, 7.2],
+    })
+    return _AKSHARE_DEMO_SPOT
+
+
+def safe_akshare_call(func, *args, **kwargs):
+    """安全调用 akshare 接口, 带重试和 User-Agent 轮换
+
+    Args:
+        func: akshare 函数引用 (如 ak.stock_zh_a_spot_em)
+        *args, **kwargs: 传递给 akshare 函数的参数
+
+    Returns:
+        DataFrame 或 None (失败时返回 None)
+    """
+    import random
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
+    ]
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            # 尝试设置环境变量中的 User-Agent (akshare 部分接口支持)
+            os.environ.setdefault('AKSHARE_UA', random.choice(user_agents))
+            result = func(*args, **kwargs)
+            if result is not None and len(result) > 0:
+                return result
+        except Exception as e:
+            logger.warning(f'akshare 调用失败 (attempt {attempt+1}/{max_retries}): {e}')
+            if attempt < max_retries - 1:
+                time.sleep(1 * (attempt + 1))  # 递增等待
+    return None
+
+
+def safe_get_spot_df():
+    """安全获取 A 股实时行情: SQLite → 东方财富直连 → akshare → 演示数据
+
+    Returns:
+        pd.DataFrame: 包含 代码/名称/最新价/涨跌幅 等列的 DataFrame
+    """
+    # 1. Try SQLite first (fastest, always available)
+    if HAS_SQLITE_DB:
+        try:
+            df = _qi_db.get_stock_spot()
+            if df is not None and len(df) > 0:
+                # Map SQLite column names to akshare-style column names
+                col_map = {
+                    'code': '代码', 'name': '名称', 'latest_price': '最新价',
+                    'change_pct': '涨跌幅', 'pe_ttm': '市盈率-动态',
+                    'pb': '市净率', 'total_mv': '总市值',
+                    'turnover_rate': '换手率', 'amount': '成交额',
+                    'change_pct_60d': '60日涨跌幅',
+                }
+                rename_map = {k: v for k, v in col_map.items() if k in df.columns}
+                if rename_map:
+                    df = df.rename(columns=rename_map)
+                return df
+        except Exception:
+            pass
+
+    # 2. Try 东方财富直连 HTTP API (works on ECS servers)
+    try:
+        from features.eastmoney_direct import fetch_stock_spot
+        df = fetch_stock_spot()
+        if df is not None and len(df) > 0:
+            # 同时写入 SQLite 缓存
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_stock_spot(df)
+                except Exception:
+                    pass
+            return df
+    except Exception as e:
+        logger.warning(f'东方财富直连 API 失败: {e}')
+
+    # 3. Try Baostock (服务器环境可用, 不封 IP)
+    try:
+        from features.eastmoney_direct import _baostock_fetch_spot
+        df = _baostock_fetch_spot()
+        if df is not None and len(df) > 0:
+            # 同时写入 SQLite 缓存
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_stock_spot(df)
+                except Exception:
+                    pass
+            return df
+    except Exception as e:
+        logger.warning(f'Baostock 行情获取失败: {e}')
+
+    # 4. Try akshare (existing logic)
+    result = safe_akshare_call(ak.stock_zh_a_spot_em)
+    if result is not None:
+        # 同时写入 SQLite 缓存
+        if HAS_SQLITE_DB:
+            try:
+                _qi_db.upsert_stock_spot(result)
+            except Exception:
+                pass
+        return result
+
+    # 4. Demo data fallback (existing)
+    logger.warning('akshare stock_zh_a_spot_em 不可用, 使用演示数据')
+    return _get_demo_spot_df()
+
+
+def safe_get_stock_info(stock_code: str) -> dict:
+    """安全获取个股基本信息: SQLite → 东方财富直连 → akshare → 空 dict
+
+    Args:
+        stock_code: 股票代码 (如 600519)
+
+    Returns:
+        dict: {item: value} 格式的个股信息
+    """
+    # 1. Try SQLite first
+    if HAS_SQLITE_DB:
+        try:
+            profile = _qi_db.get_stock_profile(stock_code)
+            if profile:
+                return profile
+        except Exception:
+            pass
+
+    # 2. Try 东方财富直连
+    try:
+        from features.eastmoney_direct import fetch_stock_profile
+        profile = fetch_stock_profile(stock_code)
+        if profile:
+            # 写入 SQLite 缓存
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_stock_profile(stock_code, json.dumps(profile, ensure_ascii=False))
+                except Exception:
+                    pass
+            return profile
+    except Exception as e:
+        logger.warning(f'东方财富直连个股信息失败 ({stock_code}): {e}')
+
+    # 3. Try akshare
+    try:
+        df_info = safe_akshare_call(ak.stock_individual_info_em, symbol=stock_code)
+        if df_info is not None and len(df_info) > 0:
+            info_dict = {}
+            item_col = [c for c in df_info.columns if 'item' in c.lower() or '指标' in c]
+            val_col = [c for c in df_info.columns if 'value' in c.lower() or '值' in c]
+            if item_col and val_col:
+                for _, row in df_info.iterrows():
+                    info_dict[str(row[item_col[0]])] = str(row[val_col[0]])
+            else:
+                for _, row in df_info.iterrows():
+                    info_dict[str(row.iloc[0])] = str(row.iloc[1])
+            # 写入 SQLite 缓存
+            if HAS_SQLITE_DB and info_dict:
+                try:
+                    _qi_db.upsert_stock_profile(stock_code, json.dumps(info_dict, ensure_ascii=False))
+                except Exception:
+                    pass
+            return info_dict
+    except Exception as e:
+        logger.warning(f'个股信息获取失败 ({stock_code}): {e}')
+    return {}
+
+
 def safe_metric(label, value, delta=None):
     """Safe st.metric wrapper - handles list/dict/None values gracefully"""
     try:
@@ -89,6 +335,14 @@ try:
     HAS_MACRO_FUSION = True
 except ImportError:
     HAS_MACRO_FUSION = False
+
+try:
+    from features.sqlite_data_layer import QIDataDB
+    _qi_db = QIDataDB()
+    HAS_SQLITE_DB = True
+except ImportError:
+    _qi_db = None
+    HAS_SQLITE_DB = False
 from data_cache import DataCacheManager
 from eastmoney_source import EastMoneyChoiceSource
 
@@ -96,90 +350,89 @@ from eastmoney_source import EastMoneyChoiceSource
 def get_llm_config():
     """从 Streamlit Secrets 或环境变量读取 LLM 配置
 
-    V2 升级: Qwen3-Max (qwen3.7-max) 作为 primary
-    支持 5 家 LLM 优先级: Qwen3-Max > DeepSeek-V3 > SenseNova > MiniMax > 离线兜底
+    V3.11 升级: 优化 LLM 优先级链, MiniMax 余额不足降级
+    支持 5 家 LLM 优先级: Qwen3.6-Plus > SenseNova > DeepSeek > MiniMax-M3 > GLM-4 > 离线兜底
 
-    Qwen3-Max 优势:
-    - 阿里云百炼 API, 国内访问速度最优 (30-50ms)
-    - 支持 1M tokens 上下文窗口
-    - 中文金融语料训练, 投研场景准确率 +18%
-    - 支持深度思考 (reasoning_content) + 联网搜索 + RAG
+    V3.11 变更:
+    - MiniMax-M3 余额耗尽 (402 insufficient_balance), 降级到第 4 优先级
+    - SenseNova 升级到第 2 优先级 (速度快, 稳定)
+    - DeepSeek 升级到第 3 优先级 (deepseek-v4-pro, 能力强)
+    - 添加余额检测: 首次调用失败 (402/429) 后自动跳过该 provider
+
+    Qwen3.6-Plus 优势:
+    - 阿里云百炼最新旗舰模型, 综合能力最强
+    - 中文金融场景表现最优, 支持长上下文
+    - API 稳定, 国内延迟低
     """
     config = {'provider': None, 'api_key': None, 'model': None, 'base_url': None, 'workspace_id': None}
 
-    # 1. Qwen3-Max (PRIMARY - 阿里云百炼, 国内速度最优 + 金融场景最强)
+    # 读取已知的失败 provider 列表 (余额不足/限流等), 跳过它们
+    _failed_providers = set()
     try:
-        if 'QWEN_API_KEY' in st.secrets:
-            config['provider'] = 'qwen'
-            config['api_key'] = st.secrets['QWEN_API_KEY']
-            config['model'] = st.secrets.get('QWEN_MODEL', 'qwen3.7-max')
-            config['base_url'] = st.secrets.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
-            config['workspace_id'] = st.secrets.get('QWEN_WORKSPACE_ID', None)
-            return config
+        _failed_providers = set(st.session_state.get('_llm_failed_providers', []))
     except Exception:
         pass
 
-    # 2. DeepSeek-V3 (BACKUP 1 - 性能稳定 + 价格低)
-    try:
-        if 'DEEPSEEK_API_KEY' in st.secrets:
-            config['provider'] = 'deepseek'
-            config['api_key'] = st.secrets['DEEPSEEK_API_KEY']
-            config['model'] = st.secrets.get('DEEPSEEK_MODEL', 'deepseek-chat')
-            config['base_url'] = st.secrets.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/chat/completions')
-            return config
-    except Exception:
-        pass
+    def _try_provider(name, provider_key, default_model, default_url, extra_field=None):
+        """尝试加载某个 provider 配置, 如果在失败列表中则跳过"""
+        if provider_key in _failed_providers:
+            return False
+        try:
+            secret_key = provider_key + '_API_KEY'
+            if secret_key in st.secrets:
+                config['provider'] = name
+                config['api_key'] = st.secrets[secret_key]
+                config['model'] = st.secrets.get(provider_key + '_MODEL', default_model)
+                config['base_url'] = st.secrets.get(provider_key + '_BASE_URL', default_url)
+                if extra_field:
+                    config['workspace_id'] = st.secrets.get(provider_key + '_WORKSPACE_ID', None)
+                return True
+        except Exception:
+            pass
+        return False
 
-    # 3. SenseNova (BACKUP 2 - 商汤日日新, 国内访问快)
-    try:
-        if 'SENSENOVA_API_KEY' in st.secrets:
-            config['provider'] = 'sensenova'
-            config['api_key'] = st.secrets['SENSENOVA_API_KEY']
-            config['model'] = st.secrets.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
-            config['base_url'] = st.secrets.get('SENSENOVA_BASE_URL', 'https://token.sensenova.cn/v1/chat/completions')
-            return config
-    except Exception:
-        pass
+    # 1. Qwen3.6-Plus (PRIMARY - 能力最强, 中文金融最优)
+    if _try_provider('qwen', 'QWEN', 'qwen3.6-plus',
+                     'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions',
+                     extra_field=True):
+        return config
 
-    # 4. MiniMax (BACKUP 3)
-    try:
-        if 'MINIMAX_API_KEY' in st.secrets:
-            config['provider'] = 'minimax'
-            config['api_key'] = st.secrets['MINIMAX_API_KEY']
-            config['model'] = st.secrets.get('MINIMAX_MODEL', 'MiniMax-M3')
-            config['base_url'] = st.secrets.get('MINIMAX_BASE_URL', 'https://api.minimaxi.com/v1/chat/completions')
-            return config
-    except Exception:
-        pass
+    # 2. SenseNova (BACKUP 1 - 商汤日日新, 速度快, V3.11 升级)
+    if _try_provider('sensenova', 'SENSENOVA', 'sensenova-6.7-flash-lite',
+                     'https://token.sensenova.cn/v1/chat/completions'):
+        return config
+
+    # 3. DeepSeek (BACKUP 2 - deepseek-v4-pro, 能力强, V3.11 升级)
+    if _try_provider('deepseek', 'DEEPSEEK', 'deepseek-chat',
+                     'https://api.deepseek.com/chat/completions'):
+        return config
+
+    # 4. MiniMax-M3 (BACKUP 3 - V3.11 降级, 余额不足待充值)
+    if _try_provider('minimax', 'MINIMAX', 'MiniMax-M3',
+                     'https://api.minimaxi.com/v1/chat/completions'):
+        return config
 
     # 5. GLM-4 (BACKUP 4 - 智谱 AI)
-    try:
-        if 'GLM_API_KEY' in st.secrets:
-            config['provider'] = 'glm'
-            config['api_key'] = st.secrets['GLM_API_KEY']
-            config['model'] = st.secrets.get('GLM_MODEL', 'glm-4-plus')
-            config['base_url'] = st.secrets.get('GLM_BASE_URL', 'https://open.bigmodel.cn/api/paas/v4/chat/completions')
-            return config
-    except Exception:
-        pass
+    if _try_provider('glm', 'GLM', 'glm-4-plus',
+                     'https://open.bigmodel.cn/api/paas/v4/chat/completions'):
+        return config
 
-    # 备选环境变量 (本地测试)
+    # 备选环境变量 (本地测试) - V3.11 同样调整优先级
     if os.environ.get('QWEN_API_KEY'):
         config['provider'] = 'qwen'
         config['api_key'] = os.environ['QWEN_API_KEY']
-        config['model'] = os.environ.get('QWEN_MODEL', 'qwen3.7-max')
-        config['base_url'] = os.environ.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions')
-        config['workspace_id'] = os.environ.get('QWEN_WORKSPACE_ID', None)
-    elif os.environ.get('DEEPSEEK_API_KEY'):
-        config['provider'] = 'deepseek'
-        config['api_key'] = os.environ['DEEPSEEK_API_KEY']
-        config['model'] = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
-        config['base_url'] = os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/chat/completions')
+        config['model'] = os.environ.get('QWEN_MODEL', 'qwen3.6-plus')
+        config['base_url'] = os.environ.get('QWEN_BASE_URL', 'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions')
     elif os.environ.get('SENSENOVA_API_KEY'):
         config['provider'] = 'sensenova'
         config['api_key'] = os.environ['SENSENOVA_API_KEY']
         config['model'] = os.environ.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
         config['base_url'] = os.environ.get('SENSENOVA_BASE_URL', 'https://token.sensenova.cn/v1/chat/completions')
+    elif os.environ.get('DEEPSEEK_API_KEY'):
+        config['provider'] = 'deepseek'
+        config['api_key'] = os.environ['DEEPSEEK_API_KEY']
+        config['model'] = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
+        config['base_url'] = os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/chat/completions')
     elif os.environ.get('MINIMAX_API_KEY'):
         config['provider'] = 'minimax'
         config['api_key'] = os.environ['MINIMAX_API_KEY']
@@ -192,6 +445,21 @@ def get_llm_config():
         config['base_url'] = os.environ.get('GLM_BASE_URL', 'https://open.bigmodel.cn/api/paas/v4/chat/completions')
 
     return config
+
+
+def _mark_llm_failed(provider: str):
+    """标记某个 LLM provider 为失败状态 (余额不足/限流等), 后续自动跳过
+
+    V3.11 新增: 自动降级机制, 避免反复调用已失败的 provider
+    """
+    try:
+        failed = st.session_state.get('_llm_failed_providers', [])
+        if provider not in failed:
+            failed.append(provider)
+            st.session_state['_llm_failed_providers'] = failed
+            logger.warning("LLM provider '%s' 已标记为失败, 后续将跳过", provider)
+    except Exception:
+        pass
 
 
 def _extract_json_from_text(text):
@@ -222,6 +490,67 @@ def _extract_json_from_text(text):
     return None
 
 
+def _fetch_market_context() -> str:
+    """获取实时市场数据上下文, 用于注入 AI Q&A 的系统提示
+
+    Returns:
+        str: 格式化的市场数据文本, 失败时返回空字符串
+    """
+    context_parts = []
+
+    # 1. 尝试从 report_generator.fetch_macro_data 获取宏观市场数据
+    try:
+        from features.report_generator import fetch_macro_data
+        macro = fetch_macro_data()
+        if macro and macro.get('indices'):
+            indices_str = ", ".join([
+                f"{idx['name']}: {idx.get('price', 'N/A')} ({idx.get('change_pct', 0):+.2f}%)"
+                for idx in macro['indices']
+            ])
+            context_parts.append(f"【主要指数】{indices_str}")
+        if macro and macro.get('north_flow'):
+            try:
+                nf = float(macro['north_flow'])
+                context_parts.append(f"【北向资金】净流入: {nf/1e8:.2f}亿元" if abs(nf) > 1e8 else f"【北向资金】净流入: {nf:.2f}亿元")
+            except (TypeError, ValueError):
+                pass
+        if macro and macro.get('limit_up') is not None:
+            context_parts.append(f"【涨跌停】涨停: {macro.get('limit_up', 0)}只, 跌停: {macro.get('limit_down', 0)}只")
+        if macro and macro.get('breadth'):
+            b = macro['breadth']
+            context_parts.append(f"【市场宽度】上涨: {b.get('advance', 0)}家, 下跌: {b.get('decline', 0)}家, 平盘: {b.get('equal', 0)}家")
+        context_parts.append(f"(数据来源: {macro.get('source', 'akshare')})")
+    except Exception as e:
+        logger.warning(f'fetch_macro_data 失败: {e}')
+
+    # 2. 尝试获取 A 股行情概况 (涨幅前5 + 跌幅前5)
+    try:
+        df_spot = safe_get_spot_df()
+        if df_spot is not None and len(df_spot) > 0:
+            chg_col = None
+            for col in ['涨跌幅', '涨跌幅(%)']:
+                if col in df_spot.columns:
+                    chg_col = col
+                    break
+            name_col = '名称' if '名称' in df_spot.columns else None
+            if chg_col and name_col:
+                df_tmp = df_spot.copy()
+                df_tmp[chg_col] = pd.to_numeric(df_tmp[chg_col], errors='coerce')
+                df_tmp = df_tmp.dropna(subset=[chg_col])
+                # 涨幅前5
+                top5 = df_tmp.nlargest(5, chg_col)
+                top5_str = ", ".join([f"{r[name_col]}({r[chg_col]:+.2f}%)" for _, r in top5.iterrows()])
+                context_parts.append(f"【涨幅前5】{top5_str}")
+                # 跌幅前5
+                bot5 = df_tmp.nsmallest(5, chg_col)
+                bot5_str = ", ".join([f"{r[name_col]}({r[chg_col]:+.2f}%)" for _, r in bot5.iterrows()])
+                context_parts.append(f"【跌幅前5】{bot5_str}")
+    except Exception as e:
+        logger.warning(f'获取行情概况失败: {e}')
+
+    return "\n".join(context_parts) if context_parts else ""
+
+
 def ai_qa_real(question, config, timeout=30, history=None):
     """真实 LLM 调用 (SenseNova / DeepSeek / Qwen)
 
@@ -235,15 +564,21 @@ def ai_qa_real(question, config, timeout=30, history=None):
         dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str, 'reasoning': str}
     """
     system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由慧点资本 (InsightQuant) 联合杭州永字资管打造.
-请基于公开数据和金融专业知识, 用结构化方式回答用户的投研问题.
+请基于提供的实时市场数据和金融专业知识, 用结构化方式回答用户的投研问题.
+回答时务必引用提供的实时数据, 并标注数据来源.
 
 回答格式 (严格 JSON, 不要 markdown 代码块):
 {
   "title": "一句话标题",
-  "summary": "3-5 个关键点 (Markdown 格式)",
+  "summary": "3-5 个关键点 (Markdown 格式, 引用实时数据并标注来源)",
   "data": {"指标1": "值1", "指标2": "值2", "指标3": "值3"},
   "recommendation": "2-3 条投资建议"
 }"""
+
+    # === 注入实时市场数据到系统提示 ===
+    market_context = _fetch_market_context()
+    if market_context:
+        system_prompt += f"\n\n以下是当前实时市场数据，请在回答中引用并标注来源:\n{market_context}"
 
     headers = {
         'Authorization': f'Bearer {config["api_key"]}',
@@ -279,15 +614,33 @@ def ai_qa_real(question, config, timeout=30, history=None):
 
     try:
         resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=timeout)
+        # V3.11: 检测余额不足/限流, 自动标记失败并降级
+        if resp.status_code in (402, 429):
+            _mark_llm_failed(config['provider'].upper())
+            raise RuntimeError(f"LLM {config['provider']} 返回 {resp.status_code} (余额不足/限流), 已标记降级")
         resp.raise_for_status()
         result = resp.json()
 
         msg = result['choices'][0]['message']
         content = msg.get('content', '') or ''
         reasoning = msg.get('reasoning_content', '') or ''  # SenseNova / DeepSeek-R1/V4 特有
+        # SenseNova: content 可能在不同位置
+        if not content.strip():
+            # 尝试从 delta 或 text 字段获取
+            content = msg.get('text', '') or msg.get('delta', {}).get('content', '') if isinstance(msg.get('delta'), dict) else ''
         # Reasoning model: content may be empty, actual answer in reasoning_content
         if not content.strip() and reasoning.strip():
             content = reasoning
+        # 最终兜底: 从整个 result 中提取文本
+        if not content.strip():
+            for key in ['output', 'text', 'result']:
+                if key in result and isinstance(result[key], str):
+                    content = result[key]
+                    break
+                elif key in result and isinstance(result[key], dict):
+                    content = result[key].get('text', result[key].get('content', ''))
+                    if content:
+                        break
 
         # 解析 JSON
         parsed = _extract_json_from_text(content)
@@ -432,7 +785,7 @@ def load_stock_news():
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_northbound_flow():
-    """加载北向资金数据 (缓存 5 分钟, 多端点回退)
+    """加载北向资金数据 (缓存 5 分钟, 多端点回退): SQLite → 东方财富直连 → akshare
     Returns: (net_amount, direction_str) or None
     """
     def _valid_number(v):
@@ -440,7 +793,56 @@ def load_northbound_flow():
             return not (math.isnan(v) or math.isinf(v))
         return False
 
-    # Primary
+    # 0. Try SQLite first
+    if HAS_SQLITE_DB:
+        try:
+            nb_df = _qi_db.get_northbound_flow(days=5)
+            if nb_df is not None and len(nb_df) > 0:
+                # Find the net flow column
+                flow_col = None
+                for c in nb_df.columns:
+                    if 'net_flow' in c.lower() or '净流入' in c or '净买' in c:
+                        flow_col = c
+                        break
+                if flow_col is None:
+                    # Try last numeric column
+                    for c in nb_df.columns:
+                        if nb_df[c].dtype in ['float64', 'int64', 'float32', 'int32']:
+                            flow_col = c
+                            break
+                if flow_col:
+                    net = float(nb_df[flow_col].iloc[-1])
+                    if _valid_number(net):
+                        direction = '净流入' if net >= 0 else '净流出'
+                        return (net, direction)
+        except Exception as e:
+            logger.warning(f'北向资金 SQLite 读取失败: {e}')
+
+    # 1. Try 东方财富直连
+    try:
+        from features.eastmoney_direct import fetch_northbound_flow
+        nb_df = fetch_northbound_flow(days=5)
+        if nb_df is not None and len(nb_df) > 0:
+            # 写入 SQLite 缓存
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_northbound_flow(nb_df)
+                except Exception:
+                    pass
+            flow_col = None
+            for c in nb_df.columns:
+                if '净流入' in c or 'net_flow' in c.lower():
+                    flow_col = c
+                    break
+            if flow_col:
+                net = float(nb_df[flow_col].iloc[-1])
+                if _valid_number(net):
+                    direction = '净流入' if net >= 0 else '净流出'
+                    return (net, direction)
+    except Exception as e:
+        logger.warning(f'北向资金东方财富直连失败: {e}')
+
+    # 2. Primary: akshare
     try:
         df = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
         if df is not None and len(df) > 0:
@@ -451,7 +853,7 @@ def load_northbound_flow():
                 return (float(net), direction)
     except Exception as e:
         logger.warning(f'北向资金主接口失败: {e}')
-    # Fallback: sum 沪股通 + 深股通
+    # 3. Fallback: sum 沪股通 + 深股通
     try:
         total = 0.0
         valid_parts = 0
@@ -474,7 +876,7 @@ def load_northbound_flow():
 def get_current_price(stock_code: str) -> float:
     """获取股票最新价（用于模拟交易市价单）"""
     try:
-        df = ak.stock_zh_a_spot_em()
+        df = safe_get_spot_df()
         if df is not None and len(df) > 0:
             # 代码列可能带 .sh/.sz 后缀，统一处理
             normalized = str(stock_code).strip()
@@ -497,14 +899,61 @@ def get_current_price(stock_code: str) -> float:
 
 @st.cache_data(ttl=300)
 def load_stock_pool():
-    """加载 A 股股票池（部分代表性股票）"""
+    """加载 A 股股票池（部分代表性股票）: SQLite → 东方财富直连 → akshare → 静态列表"""
+    # 1. Try SQLite first
+    if HAS_SQLITE_DB:
+        try:
+            df = _qi_db.get_stock_spot()
+            if df is not None and len(df) > 0:
+                # Map column names
+                col_map = {
+                    'code': '代码', 'name': '名称', 'latest_price': '最新价',
+                    'change_pct': '涨跌幅', 'pe_ttm': '市盈率-动态',
+                    'pb': '市净率', 'total_mv': '总市值',
+                    'turnover_rate': '换手率', 'amount': '成交额',
+                    'change_pct_60d': '60日涨跌幅',
+                }
+                rename_map = {k: v for k, v in col_map.items() if k in df.columns}
+                if rename_map:
+                    df = df.rename(columns=rename_map)
+                return df.head(200)
+        except Exception:
+            pass
+    # 2. Try 东方财富直连
     try:
-        df = ak.stock_zh_a_spot_em()
+        from features.eastmoney_direct import fetch_stock_spot
+        df = fetch_stock_spot()
+        if df is not None and len(df) > 0:
+            # 同时写入 SQLite 缓存
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_stock_spot(df)
+                except Exception:
+                    pass
+            return df.head(200)
+    except Exception:
+        pass
+    # 3. Try Baostock (服务器环境可用)
+    try:
+        from features.eastmoney_direct import _baostock_fetch_spot
+        df = _baostock_fetch_spot()
+        if df is not None and len(df) > 0:
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_stock_spot(df)
+                except Exception:
+                    pass
+            return df.head(200)
+    except Exception:
+        pass
+    # 4. Try akshare via safe_get_spot_df
+    try:
+        df = safe_get_spot_df()
         if df is not None and len(df) > 0:
             return df.head(200)  # 取前 200 只做演示
     except Exception:
         pass
-    # Fallback: 静态列表（包含完整列以支持筛选）
+    # 3. Fallback: 静态列表（包含完整列以支持筛选）
     return pd.DataFrame({
         '代码': ['600519', '000858', '601318', '600036', '000333',
                 '601012', '002594', '300750', '600276', '601888',
@@ -872,7 +1321,7 @@ if page == '🏠 首页':
     st.markdown("<br/>", unsafe_allow_html=True)
 
     # 客户Logo墙 + 实时动态
-    col1, col2 = st.columns([3, 2])
+    col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
         <div style="background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FB 100%);
@@ -1366,7 +1815,7 @@ elif page == '📡 另类数据仪表盘':
         with col3:
             # 涨跌家数统计
             try:
-                df_spot = ak.stock_zh_a_spot_em()
+                df_spot = safe_get_spot_df()
                 if df_spot is not None and len(df_spot) > 0:
                     chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
                     if chg_col:
@@ -1397,7 +1846,31 @@ elif page == '📡 另类数据仪表盘':
         with col4:
             # 融资融券余额趋势
             try:
-                df_margin = ak.stock_margin_underlying_info_sz_sh(date=pd.Timestamp.today().strftime('%Y%m%d'))
+                df_margin = None
+                # Try SQLite first
+                if HAS_SQLITE_DB:
+                    try:
+                        df_margin = _qi_db.get_margin_trading()
+                    except Exception:
+                        pass
+                # Try 东方财富直连
+                if df_margin is None or len(df_margin) == 0:
+                    try:
+                        from features.eastmoney_direct import fetch_margin_trading
+                        df_margin = fetch_margin_trading(days=30)
+                        if df_margin is not None and len(df_margin) > 0 and HAS_SQLITE_DB:
+                            try:
+                                _qi_db.upsert_margin_trading(df_margin)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                # Fallback to akshare
+                if df_margin is None or len(df_margin) == 0:
+                    try:
+                        df_margin = ak.stock_margin_underlying_info_sz_sh(date=pd.Timestamp.today().strftime('%Y%m%d'))
+                    except Exception:
+                        pass
                 if df_margin is not None and len(df_margin) > 0:
                     st.markdown('#### 📈 融资融券标的')
                     st.dataframe(df_margin.head(15), use_container_width=True, hide_index=True)
@@ -1784,7 +2257,7 @@ elif page == '🔬 因子挖掘与IC测试':
         st.markdown('### ⛏️ Alpha因子挖掘')
         st.caption('基于Qlib风格的因子挖掘引擎，自动发现有效Alpha因子')
 
-        col1, col2 = st.columns([1, 2])
+        col1, col2 = st.columns(2)
         with col1:
             mine_stock = st.text_input('📈 股票代码', value='000001', key='qlib_mine_stock',
                                        help='输入A股代码，如 000001')
@@ -1859,7 +2332,7 @@ elif page == '🔬 因子挖掘与IC测试':
         st.markdown('### 📊 因子IC测试')
         st.caption('测试因子的预测能力：IC值、IC衰减、换手率分析')
 
-        col1, col2 = st.columns([1, 2])
+        col1, col2 = st.columns(2)
         with col1:
             ic_factor = st.text_input('📝 因子名称', value='momentum_20', key='qlib_ic_factor',
                                       help='输入要测试的因子名称')
@@ -2157,7 +2630,7 @@ elif page == '📡 信号验证中心':
     st.markdown('### 🎯 信号验证')
     st.caption('对卫星/情绪/供应链/资金流信号进行统计验证')
 
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns(2)
     with col1:
         signal_type = st.selectbox('📡 信号类型', [
             '🛰️ 卫星信号', '💬 情绪信号', '🔗 供应链信号', '💰 资金流信号'
@@ -2284,7 +2757,7 @@ elif page == '🔍 语义检索':
     st.markdown('### 🔍 语义检索')
     st.caption('基于FAISS向量索引的语义搜索，支持新闻/研报/公告等多源数据')
 
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns(2)
     with col1:
         search_query = st.text_input('🔎 搜索查询', value='', key='semantic_query',
                                      placeholder='输入自然语言查询，如"新能源车销量增长"')
@@ -2578,10 +3051,30 @@ elif page == '📊 行业分析':
     north_chart_rendered = False
     try:
         df_north = None
-        try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-        except Exception as e:
-            logger.warning(f'北向资金 akshare 主接口失败: {e}')
+        # Try SQLite first
+        if HAS_SQLITE_DB:
+            try:
+                df_north = _qi_db.get_northbound_flow(days=30)
+            except Exception as e:
+                logger.warning(f'北向资金 SQLite 读取失败: {e}')
+        # Try 东方财富直连
+        if df_north is None or len(df_north) == 0:
+            try:
+                from features.eastmoney_direct import fetch_northbound_flow
+                df_north = fetch_northbound_flow(days=30)
+                if df_north is not None and len(df_north) > 0 and HAS_SQLITE_DB:
+                    try:
+                        _qi_db.upsert_northbound_flow(df_north)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f'北向资金东方财富直连失败: {e}')
+        # Fallback to akshare
+        if df_north is None or len(df_north) == 0:
+            try:
+                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            except Exception as e:
+                logger.warning(f'北向资金 akshare 主接口失败: {e}')
         if df_north is not None and len(df_north) > 0:
             df_north_recent = df_north.tail(30).copy()
             # 智能识别日期列和净流入列
@@ -2825,10 +3318,16 @@ elif page == '🔍 个股分析':
     st.markdown('---')
 
     # 股票代码/名称输入
-    default_stock = st.session_state.pop('_hot_stock_code', '')
+    # 热门股票按钮点击后, 通过 _hot_stock_code 传递选中代码
+    # 必须先 pop 再设置 text_input 的 key, 否则 Streamlit 会忽略 value 参数
+    hot_stock_clicked = st.session_state.pop('_hot_stock_code', '')
+    # 如果有热门股票点击, 直接更新 text_input 的 session_state key
+    if hot_stock_clicked:
+        st.session_state['individual_stock_input'] = hot_stock_clicked
+
     stock_input = st.text_input(
         '🔎 输入股票代码或名称',
-        value=default_stock,
+        value=hot_stock_clicked,
         placeholder='例如: 600519 或 贵州茅台',
         key='individual_stock_input'
     )
@@ -2839,7 +3338,7 @@ elif page == '🔍 个股分析':
     if stock_input.strip():
         # 尝试从A股实时行情中匹配
         try:
-            df_spot = ak.stock_zh_a_spot_em()
+            df_spot = safe_get_spot_df()
             if df_spot is not None and len(df_spot) > 0:
                 code_col = [c for c in df_spot.columns if '代码' in c]
                 name_col = [c for c in df_spot.columns if '名称' in c]
@@ -2886,25 +3385,11 @@ elif page == '🔍 个股分析':
             hist_data = None
 
             # 1. 个股基本信息
-            try:
-                df_info = ak.stock_individual_info_em(symbol=stock_code)
-                if df_info is not None and len(df_info) > 0:
-                    # stock_individual_info_em 返回 item/value 两列
-                    item_col = [c for c in df_info.columns if 'item' in c.lower() or '指标' in c]
-                    val_col = [c for c in df_info.columns if 'value' in c.lower() or '值' in c]
-                    if item_col and val_col:
-                        for _, row in df_info.iterrows():
-                            info_dict[str(row[item_col[0]])] = str(row[val_col[0]])
-                    else:
-                        # fallback: 用前两列
-                        for _, row in df_info.iterrows():
-                            info_dict[str(row.iloc[0])] = str(row.iloc[1])
-            except Exception as e:
-                logger.warning(f'个股基本信息加载失败: {e}')
+            info_dict = safe_get_stock_info(stock_code)
 
             # 2. 实时行情数据
             try:
-                df_spot = ak.stock_zh_a_spot_em()
+                df_spot = safe_get_spot_df()
                 if df_spot is not None and len(df_spot) > 0:
                     code_col = [c for c in df_spot.columns if '代码' in c]
                     if code_col:
@@ -2916,15 +3401,67 @@ elif page == '🔍 个股分析':
             except Exception as e:
                 logger.warning(f'实时行情加载失败: {e}')
 
-            # 3. 历史K线数据
+            # 3. 历史K线数据: SQLite → 东方财富直连 → akshare
             try:
-                end_date = datetime.now().strftime('%Y%m%d')
-                start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
-                hist_data = ak.stock_zh_a_hist(symbol=stock_code, period='daily',
-                                                start_date=start_date_hist, end_date=end_date,
-                                                adjust='qfq')
-                if hist_data is not None and len(hist_data) > 0:
-                    hist_data['日期'] = pd.to_datetime(hist_data['日期'])
+                # 3a. Try SQLite first
+                if HAS_SQLITE_DB:
+                    hist_data = _qi_db.get_stock_history(stock_code, days=365)
+                    if hist_data is not None and len(hist_data) > 0:
+                        # Rename columns to Chinese
+                        col_rename = {'date': '日期', 'open': '开盘', 'close': '收盘',
+                                      'high': '最高', 'low': '最低', 'volume': '成交量',
+                                      'amount': '成交额', 'pct_change': '涨跌幅', 'turnover': '换手率'}
+                        hist_data = hist_data.rename(columns={k: v for k, v in col_rename.items() if k in hist_data.columns})
+                        if '日期' in hist_data.columns:
+                            hist_data['日期'] = pd.to_datetime(hist_data['日期'])
+
+                # 3b. Try 东方财富直连
+                if hist_data is None or len(hist_data) == 0:
+                    try:
+                        from features.eastmoney_direct import fetch_stock_history
+                        end_date = datetime.now().strftime('%Y%m%d')
+                        start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+                        hist_data = fetch_stock_history(stock_code, start_date_hist, end_date)
+                        if hist_data is not None and len(hist_data) > 0:
+                            # Write to SQLite cache
+                            if HAS_SQLITE_DB:
+                                try:
+                                    _qi_db.upsert_stock_history(stock_code, hist_data)
+                                except Exception:
+                                    pass
+                    except Exception as e:
+                        logger.warning(f'东方财富直连历史K线失败: {e}')
+
+                # 3c. Try Baostock (服务器环境可用)
+                if hist_data is None or len(hist_data) == 0:
+                    try:
+                        from features.eastmoney_direct import baostock_fetch_history
+                        hist_data = baostock_fetch_history(stock_code, days=365)
+                        if hist_data is not None and len(hist_data) > 0:
+                            # Write to SQLite cache
+                            if HAS_SQLITE_DB:
+                                try:
+                                    _qi_db.upsert_stock_history(stock_code, hist_data)
+                                except Exception:
+                                    pass
+                    except Exception as e:
+                        logger.warning(f'Baostock 历史K线失败: {e}')
+
+                # 3d. Try akshare
+                if hist_data is None or len(hist_data) == 0:
+                    end_date = datetime.now().strftime('%Y%m%d')
+                    start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+                    hist_data = safe_akshare_call(ak.stock_zh_a_hist, symbol=stock_code, period='daily',
+                                                    start_date=start_date_hist, end_date=end_date,
+                                                    adjust='qfq')
+                    if hist_data is not None and len(hist_data) > 0:
+                        hist_data['日期'] = pd.to_datetime(hist_data['日期'])
+                        # Write to SQLite cache
+                        if HAS_SQLITE_DB:
+                            try:
+                                _qi_db.upsert_stock_history(stock_code, hist_data)
+                            except Exception:
+                                pass
             except Exception as e:
                 logger.warning(f'历史K线加载失败: {e}')
 
@@ -3078,9 +3615,43 @@ elif page == '🔍 个股分析':
                 use_real_llm = llm_config['api_key'] is not None
 
                 with st.spinner('🤖 AI 正在分析...'):
+                    # Build context from SQLite/akshare data
+                    stock_context = ""
+                    if HAS_SQLITE_DB:
+                        try:
+                            profile = _qi_db.get_stock_profile(stock_code)
+                            if profile:
+                                stock_context += f"\n个股基本信息: {json.dumps(profile, ensure_ascii=False)}"
+                        except Exception:
+                            pass
+                        try:
+                            history_df = _qi_db.get_stock_history(stock_code, days=90)
+                            if history_df is not None and len(history_df) > 0:
+                                latest = history_df.iloc[-1]
+                                stock_context += f"\n最新行情: 收盘价{latest.get('close','N/A')}, 涨跌幅{latest.get('pct_change', latest.get('change_pct','N/A'))}%"
+                        except Exception:
+                            pass
+                    # Also get spot data for this stock
+                    try:
+                        spot_df = safe_get_spot_df()
+                        if spot_df is not None and len(spot_df) > 0:
+                            code_col = [c for c in spot_df.columns if '代码' in c]
+                            if code_col:
+                                stock_row = spot_df[spot_df[code_col[0]].astype(str).str.strip() == str(stock_code).strip()]
+                                if len(stock_row) > 0:
+                                    row = stock_row.iloc[0]
+                                    stock_context += f"\n实时行情: 最新价{row.get('最新价','N/A')}, 涨跌幅{row.get('涨跌幅','N/A')}%, 市盈率{row.get('市盈率-动态','N/A')}, 市净率{row.get('市净率','N/A')}, 总市值{row.get('总市值','N/A')}"
+                    except Exception:
+                        pass
+
+                    # Enrich question with context
+                    enriched_question = ai_question
+                    if stock_context:
+                        enriched_question = f"以下是{stock_name}({stock_code})的实时数据，请基于这些数据分析：{stock_context}\n\n用户问题：{ai_question}"
+
                     if use_real_llm:
                         try:
-                            result = ai_qa_real(ai_question, llm_config)
+                            result = ai_qa_real(enriched_question, llm_config)
                             st.markdown(f'## 📄 {result["title"]}')
                             st.markdown('### 📋 分析摘要')
                             st.markdown(result['summary'])
@@ -3097,12 +3668,12 @@ elif page == '🔍 个股分析':
                                     st.caption(result['reasoning'])
                         except Exception as e:
                             st.warning(f'⚠️ LLM调用失败: {e}, 使用Mock数据')
-                            result = ai_qa_mock(ai_question)
+                            result = ai_qa_mock(enriched_question)
                             st.markdown(f'## 📄 {result["title"]}')
                             st.markdown(result['summary'])
                             st.success(result['recommendation'])
                     else:
-                        result = ai_qa_mock(ai_question)
+                        result = ai_qa_mock(enriched_question)
                         st.markdown(f'## 📄 {result["title"]}')
                         st.markdown(result['summary'])
                         st.success(result['recommendation'])
@@ -3241,10 +3812,30 @@ elif page == '📡 智能盯盘':
     north_loaded = False
     try:
         df_north = None
-        try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-        except Exception as e:
-            logger.warning(f'北向资金 akshare 主接口失败: {e}')
+        # Try SQLite first
+        if HAS_SQLITE_DB:
+            try:
+                df_north = _qi_db.get_northbound_flow(days=30)
+            except Exception as e:
+                logger.warning(f'北向资金 SQLite 读取失败: {e}')
+        # Try 东方财富直连
+        if df_north is None or len(df_north) == 0:
+            try:
+                from features.eastmoney_direct import fetch_northbound_flow
+                df_north = fetch_northbound_flow(days=30)
+                if df_north is not None and len(df_north) > 0 and HAS_SQLITE_DB:
+                    try:
+                        _qi_db.upsert_northbound_flow(df_north)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f'北向资金东方财富直连失败: {e}')
+        # Fallback to akshare
+        if df_north is None or len(df_north) == 0:
+            try:
+                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            except Exception as e:
+                logger.warning(f'北向资金 akshare 主接口失败: {e}')
         if df_north is not None and len(df_north) > 0:
             north_loaded = True
             # 提取最新一天数据
@@ -3526,7 +4117,16 @@ elif page == '⚡ 智能指令':
     with data_col1:
         # 北向资金
         try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            df_north = None
+            # Try SQLite first
+            if HAS_SQLITE_DB:
+                try:
+                    df_north = _qi_db.get_northbound_flow(days=10)
+                except Exception:
+                    pass
+            # Fallback to akshare
+            if df_north is None or len(df_north) == 0:
+                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
             if df_north is not None and len(df_north) > 0:
                 date_col = [c for c in df_north.columns if '日期' in c or 'date' in c.lower()]
                 flow_col = [c for c in df_north.columns if '净流入' in c or '净买' in c]
@@ -3580,7 +4180,7 @@ elif page == '⚡ 智能指令':
     with rank_col1:
         st.markdown('#### 🔥 涨幅排行 TOP10')
         try:
-            df_spot = ak.stock_zh_a_spot_em()
+            df_spot = safe_get_spot_df()
             if df_spot is not None and len(df_spot) > 0:
                 chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
                 name_col = [c for c in df_spot.columns if '名称' in c]

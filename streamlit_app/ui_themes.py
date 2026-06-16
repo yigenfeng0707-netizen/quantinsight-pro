@@ -621,6 +621,64 @@ hr {{
     border-color: rgba(0,212,255,0.5) !important;
     box-shadow: 0 4px 16px rgba(0,212,255,0.1) !important;
 }}
+
+/* ============ 25. 响应式布局 (V3.10) ============ */
+/* Metric 卡片自适应: 小屏幕下自动换行 */
+[data-testid="stMetric"] {{
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+}}
+[data-testid="stMetricValue"] {{
+    font-size: clamp(16px, 2.5vw, 24px) !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}}
+[data-testid="stMetricLabel"] {{
+    font-size: clamp(11px, 1.5vw, 14px) !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+}}
+/* 列容器自适应: 防止内容溢出 */
+div[data-testid="stHorizontalBlock"] > div {{
+    min-width: 0 !important;
+    overflow: hidden !important;
+}}
+/* 文字自适应换行 */
+.stMarkdown, .stText {{
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}}
+/* 表格自适应 */
+.stDataFrame, .stTable {{
+    overflow-x: auto !important;
+}}
+/* 自定义 HTML 卡片自适应 */
+.qi-card {{
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}}
+/* 侧边栏自适应 */
+[data-testid="stSidebar"] {{
+    min-width: 200px !important;
+    max-width: 320px !important;
+}}
+/* Tab 标签自适应 */
+[data-testid="stTabs"] button {{
+    font-size: clamp(12px, 1.5vw, 14px) !important;
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+}}
+/* 按钮自适应 */
+.stButton > button {{
+    white-space: nowrap !important;
+    min-width: fit-content !important;
+}}
+/* 输入框自适应 */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {{
+    font-size: clamp(13px, 1.5vw, 15px) !important;
+}}
 </style>
 """
     st.markdown(css, unsafe_allow_html=True)

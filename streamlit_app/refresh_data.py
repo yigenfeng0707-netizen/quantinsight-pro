@@ -1,0 +1,523 @@
+# -*- coding: utf-8 -*-
+"""
+QuantInsight Pro - 数据刷新脚本
+=================================
+
+从东方财富直连 HTTP API / akshare 拉取数据并写入 SQLite 缓存.
+设计为 cron 定时任务运行.
+
+数据源优先级:
+1. 东方财富直连 HTTP API (推荐, 服务器可用)
+2. akshare (本地开发可用, ECS 可能被封)
+
+用法:
+    python refresh_data.py           # 快速模式 (~30s): 行情/资金流/宏观
+    python refresh_data.py --full    # 完整模式 (~5min): 含 Top100 个股历史
+
+Cron 示例:
+    # 工作日每 30 分钟刷新行情
+    */30 9-15 * * 1-5 cd /opt/quantinsight && python streamlit_app/refresh_data.py >> /opt/quantinsight/logs/refresh.log 2>&1
+    # 每日收盘后完整刷新
+    0 16 * * 1-5 cd /opt/quantinsight && python streamlit_app/refresh_data.py --full >> /opt/quantinsight/logs/refresh.log 2>&1
+
+版本: 2.0
+日期: 2026-06-16
+License: MIT
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+# 将 streamlit_app 目录加入 sys.path, 以便导入 features 模块
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from features.sqlite_data_layer import QIDataDB
+
+# ============================================================================
+# 日志配置
+# ============================================================================
+
+_ECS_LOG_DIR = Path("/opt/quantinsight/logs")
+_LOCAL_LOG_DIR = Path("./logs")
+
+
+def _setup_logging():
+    """配置日志输出到文件和终端"""
+    log_dir = _ECS_LOG_DIR if _ECS_LOG_DIR.parent.exists() else _LOCAL_LOG_DIR
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "refresh.log"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(str(log_file), encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# 主刷新逻辑: 优先使用东方财富直连 API
+# ============================================================================
+
+def refresh_all(full: bool = False) -> bool:
+    """刷新所有数据
+
+    优先使用东方财富直连 HTTP API (服务器可用),
+    失败时回退到 akshare (本地可用).
+
+    Args:
+        full: 是否执行完整模式 (含 Top100 个股历史)
+
+    Returns:
+        True 表示全部成功, False 表示部分失败
+    """
+    start_time = time.time()
+    print(f"\n{'='*60}")
+    print(f"QuantInsight Pro - 数据刷新 {'[完整模式]' if full else '[快速模式]'}")
+    print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{'='*60}\n")
+
+    # 优先使用东方财富直连 API, 失败则回退到 akshare (新浪数据源)
+    try:
+        from features.eastmoney_direct import refresh_to_sqlite
+        print("📡 使用东方财富直连 HTTP API...")
+        results = refresh_to_sqlite(full=full)
+        # 检查是否全部成功, 如果不是则补充 akshare
+        if not all(results.values()):
+            failed = [k for k, v in results.items() if not v]
+            print(f"⚠️ 东方财富部分失败: {failed}, 使用 akshare 补充...")
+            akshare_results = _refresh_via_akshare(full=full, only_steps=failed)
+            for k, v in akshare_results.items():
+                if v:
+                    results[k] = True
+    except ImportError as e:
+        logger.warning("东方财富直连模块不可用: %s, 回退到 akshare", e)
+        results = _refresh_via_akshare(full=full)
+    except Exception as e:
+        logger.warning("东方财富直连刷新失败: %s, 回退到 akshare", e)
+        results = _refresh_via_akshare(full=full)
+
+    # 汇总
+    elapsed = time.time() - start_time
+    success = sum(1 for v in results.values() if v)
+    total = len(results)
+    all_ok = all(results.values()) if results else False
+
+    print(f"\n{'='*60}")
+    print(f"刷新完成: {success}/{total} 步骤成功, 耗时 {elapsed:.1f}s")
+    for name, ok in results.items():
+        status = "✅" if ok else "❌"
+        print(f"  {status} {name}")
+    print(f"{'='*60}\n")
+
+    return all_ok
+
+
+# ============================================================================
+# akshare 回退 (本地开发用)
+# ============================================================================
+
+import os
+import json
+import pandas as pd
+
+_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
+]
+
+_ua_index = 0
+
+
+def _rotate_ua() -> str:
+    """轮换 User-Agent"""
+    global _ua_index
+    ua = _USER_AGENTS[_ua_index % len(_USER_AGENTS)]
+    _ua_index += 1
+    return ua
+
+
+def _akshare_call_with_retry(func, *args, max_retries=3, **kwargs):
+    """带 UA 轮换和重试的 akshare 调用"""
+    for attempt in range(max_retries):
+        ua = _rotate_ua()
+        os.environ["AKSHARE_UA"] = ua
+        try:
+            result = func(*args, **kwargs)
+            if result is not None and not (isinstance(result, pd.DataFrame) and result.empty):
+                return result
+            logger.warning("akshare 返回空数据 (attempt %d/%d, UA: %s)",
+                           attempt + 1, max_retries, ua[:50])
+        except Exception as e:
+            logger.warning("akshare 调用失败 (attempt %d/%d, UA: %s): %s",
+                           attempt + 1, max_retries, ua[:50], e)
+        if attempt < max_retries - 1:
+            time.sleep(2 * (attempt + 1))
+    return None
+
+
+def _refresh_via_akshare(full: bool = False, only_steps: list = None) -> dict:
+    """使用 akshare 刷新数据 (回退方案)
+
+    Args:
+        full: 是否执行完整模式 (含 Top100 个股历史)
+        only_steps: 仅刷新指定步骤 (None 表示全部刷新).
+                    可选值: stock_spot / northbound_flow / sector_flow /
+                    fund_flow / margin_trading / stock_history
+    """
+    try:
+        import akshare as ak
+    except ImportError:
+        logger.error("akshare 未安装")
+        return {}
+
+    db = QIDataDB()
+    results = {}
+
+    def _should_run(step_name: str) -> bool:
+        """判断是否需要执行该步骤"""
+        if only_steps is None:
+            return True
+        return step_name in only_steps
+
+    # Step 1: 全A股实时行情
+    if not _should_run("stock_spot"):
+        logger.info("跳过 stock_spot (不在 only_steps 列表)")
+    else:
+        print("📊 [1/6] akshare: 全A股实时行情...")
+        try:
+            df = _akshare_call_with_retry(ak.stock_zh_a_spot_em)
+            if df is not None:
+                db.upsert_stock_spot(df)
+                results["stock_spot"] = True
+                print(f"  ✅ stock_spot: {len(df)} rows")
+            else:
+                results["stock_spot"] = False
+                print("  ❌ stock_spot: 获取失败")
+        except Exception as e:
+            results["stock_spot"] = False
+            print(f"  ❌ stock_spot: {e}")
+
+    # Step 2: 北向资金
+    if not _should_run("northbound_flow"):
+        logger.info("跳过 northbound_flow (不在 only_steps 列表)")
+    else:
+        print("📊 [2/6] akshare: 北向资金...")
+        try:
+            # 尝试多种 akshare API 名称 (不同版本名称不同)
+            df = None
+            for api_name in ["stock_hsgt_north_net_flow_in_em", "stock_hsgt_hist_em"]:
+                try:
+                    func = getattr(ak, api_name, None)
+                    if func is not None:
+                        if api_name == "stock_hsgt_north_net_flow_in_em":
+                            df = _akshare_call_with_retry(func, symbol="北向")
+                        else:
+                            df = _akshare_call_with_retry(func, symbol="沪股通")
+                        if df is not None:
+                            break
+                except Exception:
+                    continue
+
+            if df is not None:
+                db.upsert_northbound_flow(df)
+                results["northbound_flow"] = True
+                print(f"  ✅ northbound_flow: {len(df)} rows")
+            else:
+                results["northbound_flow"] = False
+                print("  ❌ northbound_flow: 获取失败")
+        except Exception as e:
+            results["northbound_flow"] = False
+            print(f"  ❌ northbound_flow: {e}")
+
+    # Step 3: 板块资金流
+    if not _should_run("sector_flow"):
+        logger.info("跳过 sector_flow (不在 only_steps 列表)")
+    else:
+        print("📊 [3/6] akshare: 板块资金流...")
+        try:
+            df = _akshare_call_with_retry(ak.stock_board_industry_name_em)
+            if df is not None:
+                db.upsert_sector_flow(df)
+                results["sector_flow"] = True
+                print(f"  ✅ sector_flow: {len(df)} rows")
+            else:
+                results["sector_flow"] = False
+                print("  ❌ sector_flow: 获取失败")
+        except Exception as e:
+            results["sector_flow"] = False
+            print(f"  ❌ sector_flow: {e}")
+
+    # Step 4: 资金流向
+    if not _should_run("fund_flow"):
+        logger.info("跳过 fund_flow (不在 only_steps 列表)")
+    else:
+        print("📊 [4/6] akshare: 资金流向...")
+        try:
+            df = _akshare_call_with_retry(ak.stock_market_fund_flow)
+            if df is not None:
+                data = {}
+                for _, row in df.iterrows():
+                    date_str = str(row.iloc[0]) if len(row) > 0 else None
+                    if date_str is None:
+                        continue
+                    data[date_str] = {
+                        "main_flow": float(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else None,
+                        "retail_flow": float(row.iloc[2]) if len(row) > 2 and pd.notna(row.iloc[2]) else None,
+                        "north_flow": float(row.iloc[3]) if len(row) > 3 and pd.notna(row.iloc[3]) else None,
+                    }
+                db.upsert_fund_flow(data)
+                results["fund_flow"] = True
+                print(f"  ✅ fund_flow: {len(data)} rows")
+            else:
+                results["fund_flow"] = False
+                print("  ❌ fund_flow: 获取失败")
+        except Exception as e:
+            results["fund_flow"] = False
+            print(f"  ❌ fund_flow: {e}")
+
+    # Step 5: 融资融券
+    if not _should_run("margin_trading"):
+        logger.info("跳过 margin_trading (不在 only_steps 列表)")
+    else:
+        print("📊 [5/6] akshare: 融资融券...")
+        try:
+            df = None
+            for source_func, source_name in [
+                (lambda: ak.stock_margin_underlying_info_sz_szse(date=datetime.now().strftime("%Y%m%d")), "深交所"),
+                (lambda: ak.stock_margin_underlying_info_sh_sse(date=datetime.now().strftime("%Y%m%d")), "上交所"),
+            ]:
+                df = _akshare_call_with_retry(source_func)
+                if df is not None:
+                    logger.info("融资融券数据来源: %s", source_name)
+                    break
+
+            if df is not None:
+                db.upsert_margin_trading(df)
+                results["margin_trading"] = True
+                print(f"  ✅ margin_trading: {len(df)} rows")
+            else:
+                results["margin_trading"] = False
+                print("  ❌ margin_trading: 获取失败")
+        except Exception as e:
+            results["margin_trading"] = False
+            print(f"  ❌ margin_trading: {e}")
+
+    # Step 6 (--full): 个股历史
+    if full and _should_run("stock_history"):
+        print("📊 [6/6] akshare: Top100 个股历史...")
+        try:
+            spot_df = db.get_stock_spot()
+            if spot_df is not None and len(spot_df) > 0:
+                if "total_mv" in spot_df.columns:
+                    top100 = spot_df.nlargest(100, "total_mv")
+                else:
+                    top100 = spot_df.head(100)
+
+                codes = top100["code"].tolist() if "code" in top100.columns else []
+                success_count = 0
+                fail_count = 0
+
+                for i, code in enumerate(codes):
+                    try:
+                        df = _akshare_call_with_retry(
+                            ak.stock_zh_a_hist,
+                            symbol=code,
+                            period="daily",
+                            start_date=(datetime.now().replace(year=datetime.now().year - 1)).strftime("%Y%m%d"),
+                            end_date=datetime.now().strftime("%Y%m%d"),
+                            adjust="qfq",
+                        )
+                        if df is not None:
+                            db.upsert_stock_history(code, df)
+                            success_count += 1
+                        else:
+                            fail_count += 1
+
+                        if (i + 1) % 20 == 0:
+                            print(f"    进度: {i+1}/{len(codes)} (成功: {success_count}, 失败: {fail_count})")
+
+                        time.sleep(0.5)
+                    except Exception as e:
+                        fail_count += 1
+                        logger.warning("stock_history (%s) 失败: %s", code, e)
+
+                results["stock_history"] = fail_count < success_count
+                print(f"  ✅ stock_history: 成功 {success_count}, 失败 {fail_count}")
+            else:
+                results["stock_history"] = False
+                print("  ❌ stock_history: stock_spot 为空")
+        except Exception as e:
+            results["stock_history"] = False
+            print(f"  ❌ stock_history: {e}")
+    elif full and not _should_run("stock_history"):
+        logger.info("跳过 stock_history (不在 only_steps 列表)")
+    elif not full:
+        print("📊 [6/6] 跳过个股历史 (使用 --full 启用)")
+
+    # Step 7: 个股基本面 (V3.11 新增)
+    if not _should_run("stock_profile"):
+        logger.info("跳过 stock_profile (不在 only_steps 列表)")
+    else:
+        print("📊 [7/8] akshare: Top50 个股基本面...")
+        try:
+            spot_df = db.get_stock_spot()
+            if spot_df is not None and len(spot_df) > 0:
+                if "total_mv" in spot_df.columns:
+                    top50 = spot_df.nlargest(50, "total_mv")
+                else:
+                    top50 = spot_df.head(50)
+
+                codes = top50["code"].tolist() if "code" in top50.columns else []
+                success_count = 0
+                fail_count = 0
+
+                for i, code in enumerate(codes):
+                    try:
+                        # akshare 个股信息
+                        df_info = _akshare_call_with_retry(
+                            ak.stock_individual_info_em, symbol=code
+                        )
+                        if df_info is not None and not df_info.empty:
+                            # 转为 JSON 存储
+                            info_dict = {}
+                            for _, row in df_info.iterrows():
+                                item = row.iloc[0] if len(row) > 0 else ""
+                                value = row.iloc[1] if len(row) > 1 else ""
+                                info_dict[str(item)] = str(value)
+                            db.upsert_stock_profile(code, json.dumps(info_dict, ensure_ascii=False))
+                            success_count += 1
+                        else:
+                            fail_count += 1
+
+                        if (i + 1) % 10 == 0:
+                            print(f"    进度: {i+1}/{len(codes)} (成功: {success_count}, 失败: {fail_count})")
+
+                        time.sleep(0.3)
+                    except Exception as e:
+                        fail_count += 1
+                        logger.warning("stock_profile (%s) 失败: %s", code, e)
+
+                results["stock_profile"] = success_count > 0
+                print(f"  ✅ stock_profile: 成功 {success_count}, 失败 {fail_count}")
+            else:
+                results["stock_profile"] = False
+                print("  ❌ stock_profile: stock_spot 为空")
+        except Exception as e:
+            results["stock_profile"] = False
+            print(f"  ❌ stock_profile: {e}")
+
+    # Step 8: 宏观指数 (V3.11 新增)
+    if not _should_run("macro_indices"):
+        logger.info("跳过 macro_indices (不在 only_steps 列表)")
+    else:
+        print("📊 [8/8] akshare: 宏观经济指数...")
+        try:
+            macro_data = {}
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            # 尝试获取宏观经济数据 (CPI/PPI/PMI 等)
+            macro_apis = [
+                ("CPI", lambda: _akshare_call_with_retry(ak.macro_china_cpi_monthly)),
+                ("PPI", lambda: _akshare_call_with_retry(ak.macro_china_ppi_yearly)),
+                ("PMI", lambda: _akshare_call_with_retry(ak.macro_china_pmi)),
+                ("GDP", lambda: _akshare_call_with_retry(ak.macro_china_gdp_yearly)),
+                ("M2", lambda: _akshare_call_with_retry(ak.macro_china_money_supply)),
+            ]
+
+            for indicator_name, api_func in macro_apis:
+                try:
+                    df = api_func()
+                    if df is not None and not df.empty:
+                        # 取最近 12 条记录
+                        recent = df.tail(12)
+                        date_value = {}
+                        for _, row in recent.iterrows():
+                            # 尝试多种列名
+                            date_col = None
+                            value_col = None
+                            for col in recent.columns:
+                                col_lower = str(col).lower()
+                                if any(k in col_lower for k in ["date", "月份", "日期", "time", "year"]):
+                                    date_col = col
+                                elif any(k in col_lower for k in ["value", "值", "cpi", "ppi", "pmi", "gdp", "m2"]):
+                                    value_col = col
+
+                            if date_col and value_col:
+                                d = str(row[date_col])
+                                try:
+                                    v = float(row[value_col])
+                                    date_value[d] = v
+                                except (ValueError, TypeError):
+                                    pass
+
+                        if date_value:
+                            macro_data[indicator_name] = date_value
+                            print(f"    {indicator_name}: {len(date_value)} 条")
+                    time.sleep(0.5)
+                except Exception as e:
+                    logger.warning("宏观指标 %s 获取失败: %s", indicator_name, e)
+
+            if macro_data:
+                db.upsert_macro_indices(macro_data)
+                results["macro_indices"] = True
+                total_indicators = sum(len(v) for v in macro_data.values())
+                print(f"  ✅ macro_indices: {len(macro_data)} 个指标, {total_indicators} 条数据")
+            else:
+                results["macro_indices"] = False
+                print("  ❌ macro_indices: 未获取到数据")
+        except Exception as e:
+            results["macro_indices"] = False
+            print(f"  ❌ macro_indices: {e}")
+
+    return results
+
+
+# ============================================================================
+# CLI 入口
+# ============================================================================
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="QuantInsight Pro - 数据刷新脚本",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  python refresh_data.py           # 快速模式 (~30s)
+  python refresh_data.py --full    # 完整模式 (~5min)
+        """,
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="完整模式: 同时刷新 Top100 个股历史行情 (~5min)",
+    )
+    args = parser.parse_args()
+
+    _setup_logging()
+
+    try:
+        all_ok = refresh_all(full=args.full)
+        sys.exit(0 if all_ok else 1)
+    except Exception as e:
+        logger.critical("刷新脚本异常退出: %s", e, exc_info=True)
+        print(f"\n💥 刷新脚本异常: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
