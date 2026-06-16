@@ -167,7 +167,7 @@ class RiskControlEngine:
         self._trade_timestamps: list[float] = []
         self._stoploss_time: float = 0
 
-    def check_order(self, order: Order, portfolio_value: float = 100000,
+    def check_order(self, order: Order, portfolio_value: float = 1000000,
                     current_holdings: dict = None) -> dict:
         """风控检查"""
         current_holdings = current_holdings or {}

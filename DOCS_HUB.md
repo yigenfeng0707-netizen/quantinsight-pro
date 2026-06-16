@@ -1,8 +1,8 @@
 # 📚 DOCS HUB — QuantInsight Pro 文档索引
 
-> **一站式入口 · 22 份核心文档 · 6 大分类 · Q1 冠军冲刺版**
+> **一站式入口 · 26+ 份核心文档 · 7 大分类 · V3.5 Exabel-Grade版**
 >
-> 文档版本：V1.0 / 2026-06-16 / 奇亮花智能科技（上海）有限公司筹备组
+> 文档版本：V1.5 / 2026-06-16 / 奇亮花智能科技（上海）有限公司筹备组
 >
 > **本索引目的**：让评委、合作伙伴、新员工 5 分钟内找到所需文档
 
@@ -29,10 +29,15 @@
 | **Demo 视频脚本** | [QuantInsight_Pro_Demo_Video_Script_V2.md](QuantInsight_Pro_Demo_Video_Script_V2.md) | Markdown |
 | **路演 PPT** | [QuantInsight_Pro_PPT_V3_15pages.md](QuantInsight_Pro_PPT_V3_15pages.md) | Markdown |
 | **视觉锤大屏** | [QuantInsight_Pro_视觉锤大屏背景_V1.md](QuantInsight_Pro_视觉锤大屏背景_V1.md) | Markdown |
+| **因子挖掘架构** | [QuantInsight_Pro_AlphaFactorMiner_架构设计.md](QuantInsight_Pro_AlphaFactorMiner_架构设计.md) | Markdown |
+| **宏观因子融合** | [QuantInsight_Pro_MacroFactorFusion_设计文档.md](QuantInsight_Pro_MacroFactorFusion_设计文档.md) | Markdown |
+| **信号验证中心** | [QuantInsight_Pro_SignalVerifier_设计文档.md](QuantInsight_Pro_SignalVerifier_设计文档.md) | Markdown |
+| **语义检索引擎** | [QuantInsight_Pro_SentimentVectorStore_设计文档.md](QuantInsight_Pro_SentimentVectorStore_设计文档.md) | Markdown |
+| **Exabel-Grade架构** | [QuantInsight_Pro_Exabel_Grade_Architecture.md](QuantInsight_Pro_Exabel_Grade_Architecture.md) | Markdown |
 
 ---
 
-## 📂 文档分类（6 大类 · 22 份核心文档）
+## 📂 文档分类（7 大类 · 26+ 份核心文档）
 
 ### 🎯 A 类：项目门面（3 份）
 
@@ -87,6 +92,16 @@
 | [QuantInsight_Pro_3轮模拟答辩脚本_V1.md](QuantInsight_Pro_3轮模拟答辩脚本_V1.md) | Markdown | 3 轮模拟（温和/实战/魔鬼） | 答辩团队 |
 | [QuantInsight_Pro_风险预案_V2.md](QuantInsight_Pro_风险预案_V2.md) | Markdown | 5 大风险 + 5 套预案 | 管理层/答辩 |
 
+### 🔬 G 类：Exabel-Grade 架构文档（V3.5 新增，5 份）
+
+| 文档 | 类型 | 用途 | 受众 |
+|------|------|------|------|
+| [QuantInsight_Pro_Exabel_Grade_Architecture.md](QuantInsight_Pro_Exabel_Grade_Architecture.md) | Markdown | V3.5 Exabel-Grade整体架构设计 | 工程师/技术评委 |
+| [QuantInsight_Pro_AlphaFactorMiner_架构设计.md](QuantInsight_Pro_AlphaFactorMiner_架构设计.md) | Markdown | Qlib-style因子挖掘+IC测试架构 | 量化工程师 |
+| [QuantInsight_Pro_MacroFactorFusion_设计文档.md](QuantInsight_Pro_MacroFactorFusion_设计文档.md) | Markdown | 8类18因子宏观融合引擎设计 | 量化工程师 |
+| [QuantInsight_Pro_SignalVerifier_设计文档.md](QuantInsight_Pro_SignalVerifier_设计文档.md) | Markdown | 信号验证中心全生命周期设计 | 量化/产品 |
+| [QuantInsight_Pro_SentimentVectorStore_设计文档.md](QuantInsight_Pro_SentimentVectorStore_设计文档.md) | Markdown | FAISS语义检索引擎设计 | AI工程师 |
+
 ---
 
 ## 🔥 关键数据速查
@@ -101,6 +116,9 @@
 | **回测年化** | 23.6% | 5 年实证年化收益率 |
 | **夏普比率** | 1.87 | 风险调整后收益 |
 | **最大回撤** | 14.2% | 5 年最大回撤 |
+| **功能模块** | 13+ | V3.5 Exabel-Grade升级 |
+| **宏观因子** | 8类18个 | MacroFactorModel动态融合 |
+| **因子体系** | 35+ | 量价17因子+宏观18因子 |
 | **高校 MOU** | 5 所 | 复旦/上交/上财/同济/华师大 |
 | **诺奖顾问** | 5 位 | 拟邀顾问委员会 |
 | **Y5 目标** | ¥8,000 万 | 5 年 ARR 目标 |
@@ -148,10 +166,15 @@
 1. **[streamlit_app/README.md](streamlit_app/README.md)** — 应用模块全景
 2. **[QuantInsight_Pro_项目技术栈架构图.md](QuantInsight_Pro_项目技术栈架构图.md)** — 5 层架构
 3. **[QuantInsight_Pro_技术白皮书_V1.md](QuantInsight_Pro_技术白皮书_V1.md)** — 技术细节
-4. **[streamlit_app/docs/Demo_技术说明.md](streamlit_app/docs/Demo_技术说明.md)** — Demo 技术
-5. **[streamlit_app/docs/GitHub_部署指南.md](streamlit_app/docs/GitHub_部署指南.md)** — 部署指南
+4. **[QuantInsight_Pro_Exabel_Grade_Architecture.md](QuantInsight_Pro_Exabel_Grade_Architecture.md)** — V3.5 Exabel-Grade架构
+5. **[QuantInsight_Pro_AlphaFactorMiner_架构设计.md](QuantInsight_Pro_AlphaFactorMiner_架构设计.md)** — 因子挖掘架构
+6. **[QuantInsight_Pro_MacroFactorFusion_设计文档.md](QuantInsight_Pro_MacroFactorFusion_设计文档.md)** — 宏观因子融合
+7. **[QuantInsight_Pro_SignalVerifier_设计文档.md](QuantInsight_Pro_SignalVerifier_设计文档.md)** — 信号验证中心
+8. **[QuantInsight_Pro_SentimentVectorStore_设计文档.md](QuantInsight_Pro_SentimentVectorStore_设计文档.md)** — 语义检索引擎
+9. **[streamlit_app/docs/Demo_技术说明.md](streamlit_app/docs/Demo_技术说明.md)** — Demo 技术
+10. **[streamlit_app/docs/GitHub_部署指南.md](streamlit_app/docs/GitHub_部署指南.md)** — 部署指南
 
-**总阅读时间**：90 分钟
+**总阅读时间**：120 分钟
 
 ### 🏆 答辩团队
 
@@ -179,9 +202,41 @@
 
 | 版本 | 日期 | 主要变更 |
 |------|------|----------|
+| V1.5 | 2026-06-16 | V3.5 Exabel-Grade升级：新增G类架构文档5份 + 快速跳转6项 + 关键数据3项 + 工程师路径更新 |
+| V1.1 | 2026-06-16 | 新增 V3.5 升级说明；标记用户手册需更新 |
 | V1.0 | 2026-06-16 | 初版：22 份核心文档 + 6 大分类 + 5 类角色路径 |
 | V0.9 | 2026-06-10 | 内部评审版（17 份文档） |
 | V0.5 | 2026-05-25 | 草稿版（10 份文档） |
+
+---
+
+## ⚠️ 待更新文档
+
+### 📘 用户使用手册需更新（V3.5）
+
+**文件**: [QuantInsight_Pro_用户使用手册.docx](QuantInsight_Pro_用户使用手册.docx)
+
+V3.5 Exabel-Grade Architecture Upgrade 已完成，用户手册需同步更新以下内容：
+
+1. **新增 4 个页面使用说明**：
+   - 🔬 因子挖掘与IC测试 — Alpha 因子挖掘、IC 测试、因子衰减分析
+   - 🔄 宏观因子融合 — 宏观因子建模、三维融合、regime 切换
+   - 📡 信号验证中心 — 信号 IC 验证、交叉验证、衰减分析、随机对照
+   - 🔍 语义检索 — 向量检索、语义搜索、知识库查询
+
+2. **更新模块列表**（13+ 模块）：
+   - 新增 `qlib_integration.py`（AlphaFactorMiner / VectorBTEngine / FactorICTester / SignalVerifier）
+   - 新增 `multi_source_data.py`（DataHub / SentimentVectorStore / AltDataSignalGenerator）
+   - 新增 `macro_factor_fusion.py`（MacroFactorModel / FactorFusionEngine / SignalVerificationData / ExabelStyleDashboard）
+
+3. **新功能描述**：
+   - 因子挖掘：Rolling stats + Technical indicators + Cross-sectional normalization + Factor turnover
+   - 宏观融合：8 大类 18 因子 + Quant/Macro/Alt 三维融合 + regime-adjusted weights
+   - 信号验证：IC + Turnover + Decay + Cross-validation + Random comparison
+   - 语义检索：FAISS/numpy 向量库 + sentence-transformers/TF-IDF+SVD 双路径
+
+4. **更新截图描述**：
+   - 因子 IC 热力图、宏观因子贡献图、信号验证仪表盘、语义检索结果页
 
 ---
 
@@ -195,15 +250,15 @@
 
 ## 📊 文档统计
 
-- **总文档数**：22 份核心文档 + 50+ 份辅助文档
-- **总字数**：~30 万字
-- **总页数**：~600 页（A4）
-- **覆盖维度**：商业/技术/产品/路演/学术/风控 6 大类
+- **总文档数**：26+ 份核心文档 + 50+ 份辅助文档
+- **总字数**：~35 万字
+- **总页数**：~700 页（A4）
+- **覆盖维度**：商业/技术/产品/路演/学术/风控/Exabel-Grade架构 7 大类
 - **目标受众**：投资人/客户/学术/工程师/答辩团队/新员工 6 类
 
 ---
 
-> **DOCS HUB 结束 · V1.0 · 2026-06-16**
+> **DOCS HUB 结束 · V1.5 · 2026-06-16**
 >
 > 📧 contact@quantinsight.ai | 🌐 https://www.quantinsight.ai
 >

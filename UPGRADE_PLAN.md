@@ -425,3 +425,101 @@ Task 1-7 ──→ Task 8 (基础设施) ──→ Task 9 (UI/UX)
 
 **总代码量**: ~6000 行生产代码，**测试通过率**: 100% (7/7 模块 + 4/4 报告)
 
+---
+
+# V3.5 Exabel-Grade Architecture Upgrade（2026-06-16）
+
+**核心定位**: 对标 Exabel + Quant Insight，差异化 AlphaSense
+
+**实施日期**: 2026-06-16 · **版本**: V3.5.0
+
+---
+
+## 新增模块（3 文件，~4300 行）
+
+### 1. `features/qlib_integration.py` (~1600 行)
+
+| 组件 | 功能 |
+|------|------|
+| **AlphaFactorMiner** | Rolling stats + Technical indicators + Cross-sectional normalization + Factor turnover |
+| **VectorBTEngine** | 5 策略（MA Cross / Momentum / Mean Reversion / Multi-Factor / Pairs）+ auto-fallback |
+| **FactorICTester** | Spearman IC + Rolling IC + IC summary + IC heatmap |
+| **SignalVerifier** | IC + Cross-validation + Decay analysis |
+
+### 2. `features/multi_source_data.py` (~1300 行)
+
+| 组件 | 功能 |
+|------|------|
+| **DataHub** | 4 数据源（AKShare / yfinance / OpenBB / Finnhub）auto-switching + 5 alt-data types |
+| **SentimentVectorStore** | FAISS → numpy fallback，sentence-transformers → TF-IDF+SVD fallback |
+| **AltDataSignalGenerator** | Satellite / Sentiment / Supply chain / Fund flow / Insider signals |
+
+### 3. `features/macro_factor_fusion.py` (~1400 行)
+
+| 组件 | 功能 |
+|------|------|
+| **MacroFactorModel** | 8 大类（Monetary / Fiscal / External / Credit / RealEstate / PMI / Inflation / Employment），18 因子 |
+| **FactorFusionEngine** | Quant + Macro + Alt 三维融合，regime-adjusted weights |
+| **SignalVerificationData** | IC + Turnover + Decay + Cross-validation + Random comparison |
+| **ExabelStyleDashboard** | Signal overview + Correlation + Contribution + Freshness |
+
+---
+
+## 新增页面（4 页）
+
+| 页面 | 侧边栏标签 | 核心功能 |
+|------|-----------|----------|
+| 因子挖掘与IC测试 | 🔬 因子挖掘与IC测试 | Alpha 因子挖掘、IC 测试、因子衰减分析 |
+| 宏观因子融合 | 🔄 宏观因子融合 | 宏观因子建模、三维融合、regime 切换 |
+| 信号验证中心 | 📡 信号验证中心 | 信号 IC 验证、交叉验证、衰减分析、随机对照 |
+| 语义检索 | 🔍 语义检索 | 向量检索、语义搜索、知识库查询 |
+
+---
+
+## Bug 修复（12 项，来自 V3.0）
+
+| # | 修复项 | 说明 |
+|---|--------|------|
+| 1 | AI投研问答真实LLM调用 | 修复 AI 问答页面未调用真实 LLM 的问题 |
+| 2 | 智能选股自然语言解析 | 修复自然语言选股解析失败的问题 |
+| 3 | 数据看板fetch_macro_data导入 | 修复数据看板缺少 fetch_macro_data 导入 |
+| 4 | 智能盯盘北向资金数据 | 修复智能盯盘页面北向资金数据缺失 |
+| 5 | 模拟交易风控逻辑 | 修复模拟交易风控逻辑异常 |
+| 6 | 报告Word乱码 | 修复 Word 报告导出中文乱码 |
+| 7 | 智能指令数据预览 | 修复智能指令数据预览功能异常 |
+| 8 | 另类数据仪表盘可视化 | 修复另类数据仪表盘图表渲染问题 |
+| 9 | SHAP 7大标准可视化 | 完善 SHAP 7 大标准可视化图表 |
+| 10 | 行业分析北向趋势图 | 修复行业分析页面北向资金趋势图显示异常 |
+| 11 | 全站UI V3.0统一 | 统一全站 UI 风格至 V3.0 设计规范 |
+| 12 | 其他鲁棒性修复 | 边界条件处理、异常捕获、空数据防护等 |
+
+---
+
+## 竞争定位
+
+| 竞品 | 其核心方向 | 我们的差异化 |
+|------|-----------|-------------|
+| **Exabel** | Alt-data signal verification | A 股本地化 + SHAP 可解释性 |
+| **Quant Insight** | Macro/quant factor fusion | AI 可解释性 + 数据接地 |
+| **AlphaSense** | Text NLP | 信号验证（不仅是读新闻） |
+| **Microsoft Qlib** | Factor mining + backtesting | A 股因子 + 多源数据 + LLM |
+
+---
+
+## V3.5 文件变更清单
+
+### 新建文件（3 个）
+
+| 文件 | 估计行数 | 说明 |
+|------|---------|------|
+| `streamlit_app/features/qlib_integration.py` | ~1600 | 因子挖掘 + IC 测试 + 向量回测 + 信号验证 |
+| `streamlit_app/features/multi_source_data.py` | ~1300 | 多源数据 + 语义向量库 + 另类信号生成 |
+| `streamlit_app/features/macro_factor_fusion.py` | ~1400 | 宏观因子建模 + 三维融合 + 信号验证 + Exabel 仪表盘 |
+
+### 修改文件
+
+| 文件 | 修改范围 |
+|------|---------|
+| `streamlit_app/app.py` | 新增 4 个侧边栏页面，集成 V3.5 模块 |
+| `streamlit_app/requirements.txt` | 添加 qlib / faiss-cpu / sentence-transformers 等依赖 |
+

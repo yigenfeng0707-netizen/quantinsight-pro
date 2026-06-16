@@ -152,27 +152,87 @@ class NaturalLanguageScreener:
         return self._rule_parse(query)
 
     def _rule_parse(self, query: str) -> dict:
-        """规则解析"""
+        """增强规则解析 - 支持常见中文选股查询模式"""
         f = {}
 
-        # 估值
-        if any(kw in query for kw in ["低估值", "便宜", "低PE"]):
-            f["pe_max"] = 20
-        if any(kw in query for kw in ["高分红", "高股息", "红利"]):
-            f.setdefault("pe_max", 25)
-        if any(kw in query for kw in ["高成长", "高增长"]):
-            f["pe_min"] = 15
-            f["pe_max"] = 80
+        # ---- 数值提取辅助 ----
+        def _extract_num(pattern, text, group=1):
+            m = re.search(pattern, text)
+            return float(m.group(group)) if m else None
 
-        # 市值
-        if any(kw in query for kw in ["大盘", "蓝筹"]):
+        # ---- 市盈率 (PE) ----
+        # "市盈率小于20" / "PE<20" / "市盈率低于30"
+        pe_val = _extract_num(r'(?:市盈率|PE|pe)[^\d]*?(?:小于|低于|不超过|<|＜|不超过)\s*(\d+\.?\d*)', query)
+        if pe_val is not None:
+            f["pe_max"] = pe_val
+        pe_val = _extract_num(r'(?:市盈率|PE|pe)[^\d]*?(?:大于|高于|超过|>|＞)\s*(\d+\.?\d*)', query)
+        if pe_val is not None:
+            f["pe_min"] = pe_val
+        # 关键词兜底
+        if "pe_max" not in f and any(kw in query for kw in ["低估值", "便宜", "低PE"]):
+            f["pe_max"] = 20
+        if "pe_min" not in f and any(kw in query for kw in ["高成长", "高增长"]):
+            f["pe_min"] = 15
+            f.setdefault("pe_max", 80)
+
+        # ---- ROE ----
+        roe_val = _extract_num(r'(?:ROE|roe|净资产收益率)[^\d]*?(?:大于|高于|超过|>|＞)\s*(\d+\.?\d*)', query)
+        if roe_val is not None:
+            f["roe_min"] = roe_val
+        roe_val = _extract_num(r'(?:ROE|roe|净资产收益率)[^\d]*?(?:小于|低于|不超过|<|＜)\s*(\d+\.?\d*)', query)
+        if roe_val is not None:
+            f["roe_max"] = roe_val
+
+        # ---- 股价区间 ----
+        # "股价在50到100之间" / "价格50-100" / "股价大于50"
+        price_low = _extract_num(r'(?:股价|价格|现价)[^\d]*?(?:在|从)?\s*(\d+\.?\d*)\s*(?:到|至|-|—|~)', query)
+        price_high = _extract_num(r'(?:股价|价格|现价)[^\d]*?(?:到|至|-|—|~)\s*(\d+\.?\d*)', query)
+        if price_low is not None:
+            f["price_min"] = price_low
+        if price_high is not None:
+            f["price_max"] = price_high
+        # "股价大于50" / "股价超过100"
+        price_val = _extract_num(r'(?:股价|价格|现价)[^\d]*?(?:大于|高于|超过|>|＞)\s*(\d+\.?\d*)', query)
+        if price_val is not None and "price_min" not in f:
+            f["price_min"] = price_val
+        price_val = _extract_num(r'(?:股价|价格|现价)[^\d]*?(?:小于|低于|不超过|<|＜)\s*(\d+\.?\d*)', query)
+        if price_val is not None and "price_max" not in f:
+            f["price_max"] = price_val
+
+        # ---- 市值 ----
+        # "市值超过1000亿" / "市值大于500亿" / "市值小于100亿"
+        cap_val = _extract_num(r'(?:市值|总市值)[^\d]*?(?:超过|大于|高于|>|＞)\s*(\d+\.?\d*)\s*亿', query)
+        if cap_val is not None:
+            f["market_cap_min"] = cap_val
+        cap_val = _extract_num(r'(?:市值|总市值)[^\d]*?(?:小于|低于|不超过|<|＜)\s*(\d+\.?\d*)\s*亿', query)
+        if cap_val is not None:
+            f["market_cap_max"] = cap_val
+        # 万亿级别
+        cap_val = _extract_num(r'(?:市值|总市值)[^\d]*?(?:超过|大于|高于|>|＞)\s*(\d+\.?\d*)\s*万亿', query)
+        if cap_val is not None:
+            f["market_cap_min"] = cap_val * 10000
+        # 关键词兜底
+        if "market_cap_min" not in f and any(kw in query for kw in ["大盘", "蓝筹"]):
             f["market_cap_min"] = 500
-        if any(kw in query for kw in ["小盘", "中小"]):
+        if "market_cap_max" not in f and any(kw in query for kw in ["小盘", "中小"]):
             f["market_cap_max"] = 200
         if "微盘" in query:
             f["market_cap_max"] = 50
 
-        # 行业
+        # ---- 营收增长 ----
+        # "连续3年营收增长" / "营收增长超过20%"
+        rev_val = _extract_num(r'(?:营收|收入|营业收入)[^\d]*?(?:增长|增速|同比)[^\d]*?(?:超过|大于|高于|>|＞)?\s*(\d+\.?\d*)\s*%?', query)
+        if rev_val is not None:
+            f["revenue_growth_min"] = rev_val
+        # "连续N年营收增长"
+        years_val = _extract_num(r'连续\s*(\d+)\s*年(?:营收|收入|盈利)?增长', query)
+        if years_val is not None:
+            f["revenue_growth_years"] = int(years_val)
+            f.setdefault("revenue_growth_min", 0)
+        if any(kw in query for kw in ["高成长", "高增长", "连续增长"]):
+            f.setdefault("revenue_growth_min", 10)
+
+        # ---- 行业 ----
         industries = {
             "银行": ["银行", "工商银行", "招商银行"],
             "新能源": ["新能源", "宁德时代", "隆基", "比亚迪"],
@@ -185,17 +245,52 @@ class NaturalLanguageScreener:
             "证券": ["证券", "券商", "中信证券"],
             "AI": ["AI", "人工智能", "算力", "大模型"],
             "汽车": ["汽车", "新能源车"],
+            "保险": ["保险", "中国平安", "人寿"],
+            "钢铁": ["钢铁", "宝钢"],
+            "煤炭": ["煤炭", "中国神华"],
+            "电力": ["电力", "长江电力", "华能"],
         }
         for industry, keywords in industries.items():
             if any(kw in query for kw in keywords):
                 f["keywords"] = [industry]
                 break
 
-        # 动量
+        # ---- 高分红/股息 ----
+        if any(kw in query for kw in ["高分红", "高股息", "红利"]):
+            f.setdefault("pe_max", 25)
+            f["dividend_yield_min"] = 3
+
+        # ---- 动量 ----
         if any(kw in query for kw in ["涨停", "强势", "突破"]):
             f["pct_change_min"] = 5
         if any(kw in query for kw in ["跌停", "超跌", "下跌"]):
             f["pct_change_max"] = -3
+        # "涨幅超过5%" / "涨幅大于3%"
+        chg_val = _extract_num(r'(?:涨幅|涨跌)[^\d]*?(?:超过|大于|高于|>|＞)\s*(\d+\.?\d*)', query)
+        if chg_val is not None:
+            f["pct_change_min"] = chg_val
+        chg_val = _extract_num(r'(?:跌幅|跌)[^\d]*?(?:超过|大于|高于|>|＞)\s*(\d+\.?\d*)', query)
+        if chg_val is not None:
+            f["pct_change_max"] = -chg_val
+
+        # ---- 换手率 ----
+        turn_val = _extract_num(r'(?:换手率)[^\d]*?(?:大于|高于|超过|>|＞)\s*(\d+\.?\d*)', query)
+        if turn_val is not None:
+            f["turnover_min"] = turn_val
+
+        # ---- 排序 ----
+        if any(kw in query for kw in ["涨幅最大", "涨幅排序", "涨幅前"]):
+            f["sort_by"] = "pct_change"
+            f["sort_asc"] = False
+        elif any(kw in query for kw in ["估值最低", "PE最低", "市盈率最低"]):
+            f["sort_by"] = "pe"
+            f["sort_asc"] = True
+        elif any(kw in query for kw in ["市值最大", "市值排序"]):
+            f["sort_by"] = "market_cap"
+            f["sort_asc"] = False
+        elif any(kw in query for kw in ["股息最高", "分红最高"]):
+            f["sort_by"] = "dividend_yield"
+            f["sort_asc"] = False
 
         f.setdefault("top_n", 20)
         return f

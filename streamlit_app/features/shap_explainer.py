@@ -5,24 +5,54 @@ QuantInsight Pro - SHAP 可解释性分析模块
 
 功能:
   1. 训练多因子选股模型 (XGBoost)
-  2. 生成3种SHAP图:
-     - Summary Bar (全局特征重要性)
-     - Summary Beeswarm (特征影响分布)
-     - Force Plot (单股预测解释)
+  2. 生成7种标准SHAP图:
+     - 蜂群图 (Beeswarm)   - 全局特征重要性 + 分布
+     - 条形图 (Bar)        - 全局重要性排名
+     - 瀑布图 (Waterfall)  - 单样本详细解释
+     - 力图 (Force)        - 单样本紧凑解释
+     - 依赖图 (Dependence) - 单特征 vs 模型输出
+     - 决策图 (Decision)   - 多样本决策路径
+     - 交互作用图 (Interaction) - 特征交互效应
   3. AI自然语言解读
 
 数据: akshare 拉取 500只A股 × 15+ 财务/行情因子 × 近3年
 目标: 未来20日收益率
 """
 import os
+import io
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+def _safe_col(df, *candidates):
+    """在 DataFrame 中按候选列名顺序查找，返回第一个匹配的列名，找不到返回 None"""
+    for c in candidates:
+        if c in df.columns:
+            return c
+    return None
 import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
 from typing import Dict, List, Tuple, Optional
 import warnings
 warnings.filterwarnings('ignore')
+
+# 暗色主题 matplotlib 全局配置
+_DARK_BG = '#0A0E27'
+_DARK_FG = 'white'
+plt.rcParams.update({
+    'figure.facecolor': _DARK_BG,
+    'axes.facecolor': _DARK_BG,
+    'axes.edgecolor': '#333',
+    'axes.labelcolor': _DARK_FG,
+    'xtick.color': _DARK_FG,
+    'ytick.color': _DARK_FG,
+    'text.color': _DARK_FG,
+    'grid.color': 'rgba(255,255,255,0.1)',
+    'savefig.facecolor': _DARK_BG,
+    'savefig.edgecolor': _DARK_BG,
+})
 
 # 量化配色（与平台一致）
 COLORS = {
@@ -297,13 +327,18 @@ def _train_sklearn_fallback(df):
 
 @st.cache_data(ttl=3600, show_spinner="计算SHAP值...")
 def compute_shap_values(_model, X: pd.DataFrame, feature_cols: List[str]) -> Optional[object]:
-    """计算SHAP值（带降级方案）"""
+    """计算SHAP值（带降级方案），返回 explainer 供多种图表使用"""
     try:
         import shap
         # TreeExplainer 对XGBoost/LightGBM快且准
         explainer = shap.TreeExplainer(_model)
         shap_values = explainer.shap_values(X)
-        return {'shap_values': shap_values, 'explainer': explainer, 'method': 'TreeExplainer'}
+        return {
+            'shap_values': shap_values,
+            'explainer': explainer,
+            'base_value': float(explainer.expected_value),
+            'method': 'TreeExplainer',
+        }
     except Exception as e:
         # 降级: 用 feature_importances_ 模拟
         try:
@@ -311,6 +346,7 @@ def compute_shap_values(_model, X: pd.DataFrame, feature_cols: List[str]) -> Opt
             return {
                 'shap_values': np.tile(importances, (len(X), 1)),
                 'explainer': None,
+                'base_value': 0.0,
                 'method': 'feature_importance_fallback',
                 'note': str(e),
             }
@@ -318,249 +354,126 @@ def compute_shap_values(_model, X: pd.DataFrame, feature_cols: List[str]) -> Opt
             return None
 
 
-# ============== 5. 可视化（Plotly版） ==============
+# ============== 5. 可视化（Matplotlib版 - 7种标准SHAP图） ==============
 
-def plot_shap_summary_bar(shap_values: np.ndarray, X: pd.DataFrame, feature_cols: List[str], top_n: int = 15) -> go.Figure:
-    """SHAP Summary Bar: 全局特征重要性（横向条形图）"""
-    mean_abs_shap = np.abs(shap_values).mean(axis=0)
-    sorted_idx = np.argsort(mean_abs_shap)[::-1][:top_n]
-
-    # 中文名称映射
-    name_map = {f['name']: f['desc'] for f in FACTOR_DEFINITIONS}
-
-    fig = go.Figure(go.Bar(
-        x=mean_abs_shap[sorted_idx],
-        y=[name_map.get(feature_cols[i], feature_cols[i]) for i in sorted_idx],
-        orientation='h',
-        marker=dict(
-            color=mean_abs_shap[sorted_idx],
-            colorscale=[[0, COLORS['primary']], [0.5, COLORS['accent']], [1, COLORS['gold']]],
-            line=dict(color=COLORS['accent'], width=1),
-        ),
-        text=[f'{v:.3f}' for v in mean_abs_shap[sorted_idx]],
-        textposition='outside',
-        textfont=dict(color=COLORS['text'], size=11),
-        hovertemplate='<b>%{y}</b><br>平均|SHAP|: %{x:.4f}<extra></extra>',
-    ))
-
-    fig.update_layout(
-        title=dict(
-            text='<b>SHAP 全局特征重要性</b><br><sub>量化选股模型各因子贡献度</sub>',
-            font=dict(color=COLORS['text'], size=18),
-            x=0.5,
-        ),
-        xaxis=dict(
-            title='平均 |SHAP 值|',
-            gridcolor='rgba(255,255,255,0.1)',
-            color=COLORS['text'],
-        ),
-        yaxis=dict(
-            autorange='reversed',
-            gridcolor='rgba(255,255,255,0.05)',
-            color=COLORS['text'],
-        ),
-        plot_bgcolor=COLORS['gray'],
-        paper_bgcolor=COLORS['primary'],
-        font=dict(color=COLORS['text'], family='Arial'),
-        height=500,
-        margin=dict(l=20, r=20, t=80, b=20),
-    )
+def _apply_dark_theme(fig):
+    """统一为 matplotlib figure 应用暗色主题"""
+    fig.set_facecolor(_DARK_BG)
+    for ax_obj in fig.axes:
+        ax_obj.set_facecolor(_DARK_BG)
+        ax_obj.tick_params(colors=_DARK_FG)
+        ax_obj.xaxis.label.set_color(_DARK_FG)
+        ax_obj.yaxis.label.set_color(_DARK_FG)
+        for spine in ax_obj.spines.values():
+            spine.set_edgecolor('#333')
     return fig
 
 
-def plot_shap_beeswarm(shap_values: np.ndarray, X: pd.DataFrame, feature_cols: List[str], top_n: int = 12) -> go.Figure:
-    """SHAP Beeswarm: 特征值分布对预测的影响（散点）"""
-    mean_abs_shap = np.abs(shap_values).mean(axis=0)
-    sorted_idx = np.argsort(mean_abs_shap)[::-1][:top_n]
-    name_map = {f['name']: f['desc'] for f in FACTOR_DEFINITIONS}
-
-    fig = go.Figure()
-
-    # 为每个特征画散点
-    for plot_idx, feat_idx in enumerate(sorted_idx):
-        feat_name = name_map.get(feature_cols[feat_idx], feature_cols[feat_idx])
-        feat_values = X.iloc[:, feat_idx].values
-        shap_vals = shap_values[:, feat_idx]
-
-        # 颜色按特征值
-        fig.add_trace(go.Scatter(
-            x=shap_vals,
-            y=[plot_idx] * len(shap_vals) + np.random.uniform(-0.3, 0.3, len(shap_vals)),
-            mode='markers',
-            name=feat_name,
-            marker=dict(
-                size=8,
-                color=feat_values,
-                colorscale=[[0, COLORS['red']], [0.5, COLORS['gray']], [1, COLORS['green']]],
-                showscale=(plot_idx == 0),  # 只第一个显示色条
-                colorbar=dict(
-                    title='特征值<br>(红=低,绿=高)',
-                    x=1.02,
-                    tickfont=dict(color=COLORS['text']),
-                ),
-                line=dict(width=0.5, color='rgba(255,255,255,0.2)'),
-                opacity=0.7,
-            ),
-            hovertemplate=f'<b>{feat_name}</b><br>SHAP: %{{x:.3f}}<br>特征值: %{{marker.color:.3f}}<extra></extra>',
-            showlegend=False,
-        ))
-
-    fig.update_layout(
-        title=dict(
-            text='<b>SHAP 特征影响分布</b><br><sub>每个点是一只股票: 横向位置=对预测的贡献, 颜色=特征值大小</sub>',
-            font=dict(color=COLORS['text'], size=18),
-            x=0.5,
-        ),
-        xaxis=dict(
-            title='SHAP 值 (对预测的贡献)',
-            gridcolor='rgba(255,255,255,0.1)',
-            color=COLORS['text'],
-            zerolinecolor=COLORS['gold'],
-            zerolinewidth=2,
-        ),
-        yaxis=dict(
-            tickmode='array',
-            tickvals=list(range(top_n)),
-            ticktext=[name_map.get(feature_cols[i], feature_cols[i]) for i in sorted_idx],
-            color=COLORS['text'],
-        ),
-        plot_bgcolor=COLORS['gray'],
-        paper_bgcolor=COLORS['primary'],
-        font=dict(color=COLORS['text']),
-        height=600,
-        margin=dict(l=20, r=80, t=80, b=20),
-    )
+def plot_shap_beeswarm(shap_values: np.ndarray, X: pd.DataFrame, feature_cols: List[str],
+                       top_n: int = 12) -> plt.Figure:
+    """蜂群图 (Beeswarm) - 全局特征重要性 + 分布"""
+    import shap
+    shap.summary_plot(shap_values, X, plot_type="beeswarm", max_display=top_n, show=False)
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle('蜂群图 - 全局特征重要性 & 分布', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
     return fig
 
 
-def plot_shap_force_single(shap_values: np.ndarray, X: pd.DataFrame, base_value: float,
-                            stock_idx: int, feature_cols: List[str], top_n: int = 10) -> go.Figure:
-    """SHAP Force Plot: 单只股票预测解释（瀑布图风格）"""
-    name_map = {f['name']: f['desc'] for f in FACTOR_DEFINITIONS}
-    sv = shap_values[stock_idx]
-    sorted_idx = np.argsort(np.abs(sv))[::-1][:top_n]
+def plot_shap_bar(shap_values: np.ndarray, X: pd.DataFrame, feature_cols: List[str],
+                  top_n: int = 15) -> plt.Figure:
+    """条形图 (Bar) - 全局重要性排名"""
+    import shap
+    shap.summary_plot(shap_values, X, plot_type="bar", max_display=top_n, show=False)
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle('条形图 - 全局特征重要性排名', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
+    return fig
 
-    # 构建瀑布图
-    features = [name_map.get(feature_cols[i], feature_cols[i]) for i in sorted_idx]
-    values = sv[sorted_idx]
-    feat_values = X.iloc[stock_idx, sorted_idx].values
 
-    # 颜色：正向(青)/负向(红)
-    colors = [COLORS['green'] if v > 0 else COLORS['red'] for v in values]
-
-    # 累积位置
-    cumulative = np.cumsum([base_value] + list(values))[:-1]
-
-    fig = go.Figure()
-
-    # 背景柱
-    for i in range(len(features)):
-        start = cumulative[i]
-        end = cumulative[i] + values[i]
-        fig.add_trace(go.Bar(
-            x=[features[i]],
-            y=[abs(values[i])],
-            base=min(start, end),
-            marker_color=colors[i],
-            marker_line=dict(color='white', width=1),
-            text=f'{values[i]:+.3f}',
-            textposition='outside',
-            textfont=dict(color=COLORS['text'], size=10),
-            hovertemplate=f'<b>{features[i]}</b><br>SHAP贡献: {values[i]:.4f}<br>特征值: {feat_values[i]:.3f}<extra></extra>',
-            showlegend=False,
-        ))
-
-    # 基准线
-    fig.add_hline(y=base_value, line_dash='dash', line_color=COLORS['gold'],
-                  annotation_text=f'基准值: {base_value:.3f}',
-                  annotation_position='top left',
-                  annotation_font_color=COLORS['gold'])
-
-    # 预测值
-    pred_value = base_value + sv.sum()
-    fig.add_hline(y=pred_value, line_dash='dot', line_color=COLORS['accent'],
-                  annotation_text=f'预测收益: {pred_value:.3f}',
-                  annotation_position='top right',
-                  annotation_font_color=COLORS['accent'])
-
-    fig.update_layout(
-        title=dict(
-            text=f'<b>SHAP 单股解释: {X.iloc[stock_idx]["name"]}</b> ({X.iloc[stock_idx]["code"]})<br><sub>各因子对预测的具体贡献</sub>',
-            font=dict(color=COLORS['text'], size=16),
-            x=0.5,
-        ),
-        xaxis=dict(color=COLORS['text']),
-        yaxis=dict(
-            title='SHAP 累积贡献',
-            gridcolor='rgba(255,255,255,0.1)',
-            color=COLORS['text'],
-        ),
-        plot_bgcolor=COLORS['gray'],
-        paper_bgcolor=COLORS['primary'],
-        font=dict(color=COLORS['text']),
-        height=500,
-        margin=dict(l=20, r=20, t=80, b=80),
-        barmode='overlay',
+def plot_shap_waterfall(explainer, shap_values: np.ndarray, X: pd.DataFrame,
+                        feature_cols: List[str], sample_idx: int = 0) -> plt.Figure:
+    """瀑布图 (Waterfall) - 单样本详细解释"""
+    import shap
+    # 构建 Explanation 对象
+    sv = shap.Explanation(
+        values=shap_values[sample_idx],
+        base_values=explainer.expected_value,
+        data=X.iloc[sample_idx].values,
+        feature_names=feature_cols,
     )
+    shap.plots.waterfall(sv, max_display=15, show=False)
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle(f'瀑布图 - 样本 #{sample_idx} 详细解释', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
+    return fig
+
+
+def plot_shap_force(explainer, shap_values: np.ndarray, X: pd.DataFrame,
+                    feature_cols: List[str], sample_idx: int = 0) -> plt.Figure:
+    """力图 (Force) - 单样本紧凑解释"""
+    import shap
+    shap.plots.force(
+        explainer.expected_value,
+        shap_values[sample_idx],
+        X.iloc[sample_idx].values,
+        feature_names=feature_cols,
+        matplotlib=True,
+        show=False,
+    )
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle(f'力图 - 样本 #{sample_idx} 紧凑解释', color=_DARK_FG, fontsize=12, y=1.05)
+    plt.tight_layout()
     return fig
 
 
 def plot_shap_dependence(shap_values: np.ndarray, X: pd.DataFrame, feature_cols: List[str],
-                          top_n: int = 4) -> go.Figure:
-    """SHAP Dependence Plot: 特征交互（多子图）"""
-    from plotly.subplots import make_subplots
-    mean_abs_shap = np.abs(shap_values).mean(axis=0)
-    sorted_idx = np.argsort(mean_abs_shap)[::-1][:top_n]
-    name_map = {f['name']: f['desc'] for f in FACTOR_DEFINITIONS}
+                         feature_name: str) -> plt.Figure:
+    """依赖图 (Dependence) - 单特征 vs 模型输出"""
+    import shap
+    fig, ax = plt.subplots(figsize=(10, 7))
+    shap.dependence_plot(feature_name, shap_values, X, ax=ax, show=False)
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle(f'依赖图 - {feature_name}', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
+    return fig
 
-    fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=[name_map.get(feature_cols[i], feature_cols[i]) for i in sorted_idx],
-        vertical_spacing=0.15,
-        horizontal_spacing=0.1,
+
+def plot_shap_decision(explainer, shap_values: np.ndarray, X: pd.DataFrame,
+                       feature_cols: List[str], n_samples: int = 20) -> plt.Figure:
+    """决策图 (Decision) - 多样本决策路径"""
+    import shap
+    n = min(n_samples, len(shap_values))
+    shap.decision_plot(
+        explainer.expected_value,
+        shap_values[:n],
+        X.iloc[:n],
+        feature_names=feature_cols,
+        show=False,
     )
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle(f'决策图 - 前{n}个样本的决策路径', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
+    return fig
 
-    positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
-    for (r, c), feat_idx in zip(positions, sorted_idx):
-        fig.add_trace(
-            go.Scatter(
-                x=X.iloc[:, feat_idx].values,
-                y=shap_values[:, feat_idx],
-                mode='markers',
-                marker=dict(
-                    size=6,
-                    color=shap_values[:, feat_idx],
-                    colorscale=[[0, COLORS['red']], [0.5, COLORS['gray']], [1, COLORS['green']]],
-                    showscale=(r == 1 and c == 1),
-                    colorbar=dict(
-                        title='SHAP',
-                        x=1.05,
-                        tickfont=dict(color=COLORS['text']),
-                    ),
-                    line=dict(width=0.5, color='rgba(255,255,255,0.2)'),
-                ),
-                hovertemplate=f'{name_map.get(feature_cols[feat_idx], feature_cols[feat_idx])}<br>特征值: %{{x:.3f}}<br>SHAP: %{{y:.3f}}<extra></extra>',
-                showlegend=False,
-            ),
-            row=r, col=c,
-        )
 
-    fig.update_layout(
-        title=dict(
-            text='<b>SHAP 特征依赖图</b><br><sub>Top 4 因子 - 因子值 vs 对预测的贡献</sub>',
-            font=dict(color=COLORS['text'], size=18),
-            x=0.5,
-        ),
-        plot_bgcolor=COLORS['gray'],
-        paper_bgcolor=COLORS['primary'],
-        font=dict(color=COLORS['text']),
-        height=700,
-    )
-    # 统一轴样式
-    for r in [1, 2]:
-        for c in [1, 2]:
-            fig.update_xaxes(gridcolor='rgba(255,255,255,0.1)', color=COLORS['text'], row=r, col=c)
-            fig.update_yaxes(gridcolor='rgba(255,255,255,0.1)', color=COLORS['text'], row=r, col=c)
+def plot_shap_interaction(explainer, X: pd.DataFrame, feature_cols: List[str],
+                          n_samples: int = 100) -> plt.Figure:
+    """交互作用图 (Interaction) - 特征交互效应"""
+    import shap
+    X_sub = X.iloc[:n_samples]
+    shap_interaction = explainer.shap_interaction_values(X_sub)
+    shap.summary_plot(shap_interaction, X_sub, show=False)
+    fig = plt.gcf()
+    _apply_dark_theme(fig)
+    fig.suptitle('交互作用图 - 特征间交互效应', color=_DARK_FG, fontsize=14, y=1.02)
+    plt.tight_layout()
     return fig
 
 
@@ -619,7 +532,7 @@ def generate_ai_interpretation(shap_summary: pd.DataFrame, top_stock: Dict, conf
 # ============== 7. 主入口 UI ==============
 
 def render_shap_dashboard():
-    """SHAP可视化主面板 - 在app.py的AI量化策略模块调用"""
+    """SHAP可视化主面板 - 7种标准SHAP图，在app.py的AI量化策略模块调用"""
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
                 padding: 24px; border-radius: 12px; margin-bottom: 24px;
@@ -627,7 +540,7 @@ def render_shap_dashboard():
         <h2 style="color: #00D4FF; margin: 0;">SHAP 可解释性分析</h2>
         <p style="color: #B8C5D6; margin: 8px 0 0 0;">
             不只告诉你买什么，还告诉你<b style="color: #D4AF37;">为什么买</b> ——
-            AI选股模型的透明化解释</p>
+            AI选股模型的透明化解释 · 7种标准SHAP可视化</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -652,11 +565,12 @@ def render_shap_dashboard():
         shap_result = compute_shap_values(model, X, feature_cols)
 
     if shap_result is None:
-        st.error("SHAP计算失败")
+        st.error("❌ SHAP计算失败，请检查模型和数据")
         return
 
     shap_values = shap_result['shap_values']
-    base_value = float(shap_result.get('explainer').expected_value) if shap_result.get('explainer') else 0.0
+    explainer = shap_result.get('explainer')
+    base_value = shap_result.get('base_value', 0.0)
 
     # 数据源标识
     data_source = df['data_source'].iloc[0]
@@ -673,48 +587,123 @@ def render_shap_dashboard():
 
     st.divider()
 
-    # 4种SHAP图（4个tab）
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Summary Bar (重要性)",
-        "Beeswarm (分布)",
-        "Force Plot (单股)",
-        "Dependence (依赖)",
+    # 7种SHAP图（7个tab）
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "🐝 蜂群图 (Beeswarm)",
+        "📊 条形图 (Bar)",
+        "🌊 瀑布图 (Waterfall)",
+        "⚡ 力图 (Force)",
+        "📈 依赖图 (Dependence)",
+        "🔀 决策图 (Decision)",
+        "🔄 交互作用图 (Interaction)",
     ])
 
+    # ---- Tab 1: 蜂群图 ----
     with tab1:
-        st.plotly_chart(
-            plot_shap_summary_bar(shap_values, X, feature_cols, top_n=top_n_features),
-            use_container_width=True,
-        )
-        st.caption("💡 平均|SHAP| 越大 → 该因子对预测影响越大 → 越重要")
+        st.markdown("**蜂群图**展示每个特征对所有样本的SHAP值分布，颜色表示特征值高低。")
+        st.caption("💡 红=低特征值, 蓝/绿=高特征值. 横向位置=该股票在该因子上的贡献方向和大小")
+        try:
+            fig = plot_shap_beeswarm(shap_values, X, feature_cols, top_n=top_n_features)
+            st.pyplot(fig)
+            plt.close(fig)
+        except Exception as e:
+            st.error(f"蜂群图渲染失败: {e}")
 
+    # ---- Tab 2: 条形图 ----
     with tab2:
-        st.plotly_chart(
-            plot_shap_beeswarm(shap_values, X, feature_cols, top_n=top_n_features),
-            use_container_width=True,
-        )
-        st.caption("💡 红=低特征值, 绿=高特征值. 横向位置=该股票在该因子上的贡献方向")
+        st.markdown("**条形图**按平均|SHAP值|排名，直观展示全局最重要的特征。")
+        st.caption("💡 平均|SHAP| 越大 → 该因子对预测影响越大 → 越重要")
+        try:
+            fig = plot_shap_bar(shap_values, X, feature_cols, top_n=top_n_features)
+            st.pyplot(fig)
+            plt.close(fig)
+        except Exception as e:
+            st.error(f"条形图渲染失败: {e}")
 
+    # ---- Tab 3: 瀑布图 ----
     with tab3:
-        # 选择股票
-        stock_options = [f"{row['name']} ({row['code']})" for _, row in df.iterrows()]
-        selected = st.selectbox("选择要解释的股票", stock_options[:50], key='shap_stock')
-        if selected:
-            stock_idx = stock_options.index(selected)
-            fig = plot_shap_force_single(
-                shap_values, X, base_value, stock_idx, feature_cols, top_n=10
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            # 预测值
-            pred = base_value + shap_values[stock_idx].sum()
-            st.info(f"📊 模型预测 {df.iloc[stock_idx]['name']} 未来20日收益率: **{pred:+.2%}**")
+        st.markdown("**瀑布图**展示单个样本的预测如何从基准值逐步叠加各因子贡献得到最终预测值。")
+        st.caption("💡 红色=负向贡献(拉低预测), 蓝色=正向贡献(推高预测)")
+        _name_col = _safe_col(df, 'name', '名称', '股票名称', '股票')
+        _code_col = _safe_col(df, 'code', '代码', '股票代码')
+        if _name_col and _code_col:
+            stock_options = [f"{row[_name_col]} ({row[_code_col]})" for _, row in df.iterrows()]
+        else:
+            stock_options = [f"样本 #{i}" for i in range(len(df))]
+        selected_wf = st.selectbox("选择要解释的样本", stock_options[:50], key='shap_waterfall_sample')
+        if selected_wf and explainer is not None:
+            sample_idx = stock_options.index(selected_wf)
+            try:
+                fig = plot_shap_waterfall(explainer, shap_values, X, feature_cols, sample_idx=sample_idx)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.error(f"瀑布图渲染失败: {e}")
+        elif explainer is None:
+            st.warning("⚠️ 瀑布图需要 TreeExplainer，当前使用降级方案无法生成")
 
+    # ---- Tab 4: 力图 ----
     with tab4:
-        st.plotly_chart(
-            plot_shap_dependence(shap_values, X, feature_cols, top_n=4),
-            use_container_width=True,
-        )
-        st.caption("💡 每个点是一只股票: 横向=因子值, 纵向=该因子对该股票预测的贡献")
+        st.markdown("**力图**以紧凑方式展示单个样本各因子的正负贡献，红色推高、蓝色拉低。")
+        st.caption("💡 力图是瀑布图的紧凑版，适合快速浏览单样本解释")
+        selected_fc = st.selectbox("选择要解释的样本", stock_options[:50], key='shap_force_sample')
+        if selected_fc and explainer is not None:
+            sample_idx_fc = stock_options.index(selected_fc)
+            try:
+                fig = plot_shap_force(explainer, shap_values, X, feature_cols, sample_idx=sample_idx_fc)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.error(f"力图渲染失败: {e}")
+        elif explainer is None:
+            st.warning("⚠️ 力图需要 TreeExplainer，当前使用降级方案无法生成")
+
+    # ---- Tab 5: 依赖图 ----
+    with tab5:
+        st.markdown("**依赖图**展示某个特征的值与其SHAP值的关系，揭示特征对预测的非线性影响。")
+        st.caption("💡 横轴=特征值, 纵轴=SHAP值, 颜色=交互特征的值. 可发现非线性关系和交互效应")
+        # 构建特征选择器（中文名 + 英文名）
+        name_map = {f['name']: f['desc'] for f in FACTOR_DEFINITIONS}
+        feat_display = [f"{name_map.get(c, c)} ({c})" for c in feature_cols]
+        selected_feat = st.selectbox("选择要分析的特征", feat_display, key='shap_dep_feat')
+        if selected_feat:
+            feat_name = selected_feat.split('(')[-1].rstrip(')').strip()
+            try:
+                fig = plot_shap_dependence(shap_values, X, feature_cols, feature_name=feat_name)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.error(f"依赖图渲染失败: {e}")
+
+    # ---- Tab 6: 决策图 ----
+    with tab6:
+        st.markdown("**决策图**展示多个样本的决策路径，可观察不同样本如何从基准值走向最终预测。")
+        st.caption("💡 每条线代表一个样本，从下到上各因子逐步叠加贡献. 可对比不同样本的决策路径差异")
+        n_decision = st.slider("展示样本数", 5, 50, 20, 5, key='shap_decision_n')
+        if explainer is not None:
+            try:
+                fig = plot_shap_decision(explainer, shap_values, X, feature_cols, n_samples=n_decision)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.error(f"决策图渲染失败: {e}")
+        else:
+            st.warning("⚠️ 决策图需要 TreeExplainer，当前使用降级方案无法生成")
+
+    # ---- Tab 7: 交互作用图 ----
+    with tab7:
+        st.markdown("**交互作用图**展示特征之间的交互效应，揭示哪些特征对之间存在协同或对抗关系。")
+        st.caption("💡 对角线=单个特征的主效应, 非对角线=两个特征的交互效应. 限制100个样本以保证性能")
+        if explainer is not None:
+            try:
+                with st.spinner("正在计算交互作用值（可能需要较长时间）..."):
+                    fig = plot_shap_interaction(explainer, X, feature_cols, n_samples=100)
+                    st.pyplot(fig)
+                    plt.close(fig)
+            except Exception as e:
+                st.error(f"交互作用图渲染失败: {e}")
+        else:
+            st.warning("⚠️ 交互作用图需要 TreeExplainer，当前使用降级方案无法生成")
 
     st.divider()
 
@@ -731,9 +720,11 @@ def render_shap_dashboard():
         # 找最被推荐股票
         preds = shap_values.sum(axis=1) + base_value
         top_idx = int(np.argmax(preds))
+        _name_col = _safe_col(df, 'name', '名称', '股票名称', '股票')
+        _code_col = _safe_col(df, 'code', '代码', '股票代码')
         top_stock = {
-            'name': df.iloc[top_idx]['name'],
-            'code': df.iloc[top_idx]['code'],
+            'name': df.iloc[top_idx][_name_col] if _name_col else f'股票{top_idx}',
+            'code': df.iloc[top_idx][_code_col] if _code_col else '',
             'pred_return': preds[top_idx],
             'top_drivers': '、'.join([name_map.get(feature_cols[i], feature_cols[i]) for i in np.argsort(np.abs(shap_values[top_idx]))[::-1][:3]]),
         }

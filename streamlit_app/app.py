@@ -70,6 +70,24 @@ from features.trade_simulator import TradeSimulator, RiskControlEngine, Order
 from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
 from features.sentiment_analyzer import SentimentAnalyzer
 from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
+
+try:
+    from features.qlib_integration import AlphaFactorMiner, VectorBTEngine, FactorICTester, SignalVerifier
+    HAS_QLIB = True
+except ImportError:
+    HAS_QLIB = False
+
+try:
+    from features.multi_source_data import DataHub, SentimentVectorStore, AltDataSignalGenerator
+    HAS_MULTI_SOURCE = True
+except ImportError:
+    HAS_MULTI_SOURCE = False
+
+try:
+    from features.macro_factor_fusion import MacroFactorModel, FactorFusionEngine, SignalVerificationData, ExabelStyleDashboard
+    HAS_MACRO_FUSION = True
+except ImportError:
+    HAS_MACRO_FUSION = False
 from data_cache import DataCacheManager
 from eastmoney_source import EastMoneyChoiceSource
 
@@ -640,6 +658,10 @@ page_options = [
     '⚡ 智能指令',
     '📡 另类数据仪表盘',
     '📈 量化策略回测',
+    '🔬 因子挖掘与IC测试',
+    '🔄 宏观因子融合',
+    '📡 信号验证中心',
+    '🔍 语义检索',
     '📊 行业分析',
     '👤 个人中心',
 ]
@@ -1022,8 +1044,15 @@ elif page == '🤖 AI 投研问答':
                     except Exception:
                         result = ai_qa_mock(question)
             else:
-                time.sleep(1.0)  # 模拟推理时间
-                result = ai_qa_mock(question)
+                if use_real_llm:
+                    try:
+                        result = ai_qa_real(question, llm_config, history=st.session_state.chat_history[-10:])
+                    except Exception as e:
+                        st.warning(f'⚠️ LLM调用失败: {e}, 使用Mock数据')
+                        result = ai_qa_mock(question)
+                else:
+                    time.sleep(1.0)  # 模拟推理时间
+                    result = ai_qa_mock(question)
 
             # 保存到对话历史
             st.session_state.chat_history.append({'role': 'user', 'content': question})
@@ -1050,6 +1079,11 @@ elif page == '📡 另类数据仪表盘':
     st.markdown('# 📡 另类数据仪表盘')
     st.markdown('**宏观景气 · 市场情绪 · 产业链传导 — 全量真实数据驱动**')
 
+    # 品牌色
+    _BRAND = {'deep_blue': '#0A0E27', 'neon_cyan': '#00D4FF', 'gold': '#FFB800', 'violet': '#7B61FF'}
+    _DARK_LAYOUT = go.Layout(template='plotly_dark', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                             font=dict(color='#E0E0E0'), margin=dict(l=50, r=20, t=50, b=40))
+
     st.markdown('---')
 
     tab1, tab2, tab3 = st.tabs(['📊 宏观景气', '💬 市场情绪', '🔗 产业链传导'])
@@ -1066,9 +1100,7 @@ elif page == '📡 另类数据仪表盘':
             try:
                 df_pmi = ak.macro_china_pmi()
                 if df_pmi is not None and len(df_pmi) > 0:
-                    # 取最近24个月
                     df_pmi_recent = df_pmi.tail(24).copy()
-                    # 找到月份和制造业指数列
                     date_col = [c for c in df_pmi_recent.columns if '月份' in c or '日期' in c or '月' in c]
                     mfg_col = [c for c in df_pmi_recent.columns if '制造业' in c and '指数' in c]
                     if not mfg_col:
@@ -1077,22 +1109,37 @@ elif page == '📡 另类数据仪表盘':
                         mfg_col = [df_pmi_recent.columns[1]] if len(df_pmi_recent.columns) > 1 else []
 
                     if date_col and mfg_col:
-                        fig = go.Figure()
+                        fig = go.Figure(layout=_DARK_LAYOUT)
                         x_vals = df_pmi_recent[date_col[0]].astype(str)
                         y_vals = pd.to_numeric(df_pmi_recent[mfg_col[0]], errors='coerce')
                         fig.add_trace(go.Scatter(x=x_vals, y=y_vals,
                                                  mode='lines+markers', name='制造业PMI',
-                                                 line=dict(color='#1F4E78', width=2.5)))
-                        fig.add_hline(y=50, line_dash='dash', line_color='red',
-                                      annotation_text='荣枯线 50')
+                                                 line=dict(color=_BRAND['neon_cyan'], width=2.5),
+                                                 marker=dict(size=6, color=_BRAND['neon_cyan'])))
+                        fig.add_hline(y=50, line_dash='dash', line_color=_BRAND['gold'],
+                                      annotation_text='荣枯线 50', annotation_font_color=_BRAND['gold'])
+                        # 填充荣枯线上下区域
+                        fig.add_trace(go.Scatter(x=x_vals, y=y_vals.clip(lower=50), fill='tozeroy',
+                                                 fillcolor='rgba(0,212,255,0.08)', line=dict(width=0), showlegend=False))
                         fig.update_layout(title='中国制造业 PMI (近24月)', yaxis_title='PMI',
-                                          height=350, hovermode='x unified')
+                                          height=380, hovermode='x unified')
+                        fig.update_xaxes(tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.caption('PMI 数据格式变化, 暂无法绘图')
                         st.dataframe(df_pmi_recent.tail(10), use_container_width=True)
             except Exception:
-                st.warning('PMI 数据加载失败')
+                st.warning('PMI 数据加载失败，使用演示数据')
+                # 演示数据
+                _demo_months = [f'2024-{i:02d}' for i in range(1, 13)] + [f'2025-{i:02d}' for i in range(1, 13)]
+                _demo_pmi = [49.2, 49.1, 50.8, 51.4, 51.7, 51.8, 49.4, 49.1, 50.2, 50.1, 50.3, 50.1,
+                             49.0, 50.2, 50.5, 51.1, 50.4, 50.5, 49.8, 49.5, 50.4, 50.3, 50.6, 50.2]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Scatter(x=_demo_months, y=_demo_pmi, mode='lines+markers',
+                                         name='制造业PMI(演示)', line=dict(color=_BRAND['neon_cyan'], width=2.5)))
+                fig.add_hline(y=50, line_dash='dash', line_color=_BRAND['gold'], annotation_text='荣枯线 50')
+                fig.update_layout(title='中国制造业 PMI (演示数据)', yaxis_title='PMI', height=380, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
 
         with col2:
             # CPI + PPI
@@ -1103,19 +1150,30 @@ elif page == '📡 另类数据仪表盘':
                     date_col = [c for c in df_cpi_recent.columns if '日期' in c or '月份' in c or '商品' in c]
                     val_col = [c for c in df_cpi_recent.columns if '今值' in c or '同比' in c]
                     if date_col and val_col:
-                        fig = go.Figure()
+                        fig = go.Figure(layout=_DARK_LAYOUT)
                         fig.add_trace(go.Bar(x=df_cpi_recent[date_col[0]].astype(str),
                                              y=pd.to_numeric(df_cpi_recent[val_col[0]], errors='coerce'),
-                                             name='CPI 同比', marker_color='#2E86AB'))
+                                             name='CPI 同比',
+                                             marker_color=_BRAND['violet'],
+                                             marker_line=dict(color=_BRAND['violet'], width=1)))
                         fig.update_layout(title='CPI 同比 (近24期)', yaxis_title='%',
-                                          height=350, hovermode='x unified')
+                                          height=380, hovermode='x unified')
+                        fig.update_xaxes(tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_cpi_recent.tail(10), use_container_width=True)
             except Exception:
-                st.warning('CPI 数据加载失败')
+                st.warning('CPI 数据加载失败，使用演示数据')
+                _demo_cpi_months = [f'2024-{i:02d}' for i in range(1, 13)] + [f'2025-{i:02d}' for i in range(1, 7)]
+                _demo_cpi = [0.8, 0.7, 0.1, 0.3, 0.3, 0.2, 0.5, 0.6, 0.4, 0.3, 0.2, -0.3,
+                             -0.8, -0.7, -0.1, 0.3, 0.2, 0.1]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=_demo_cpi_months, y=_demo_cpi, name='CPI同比(演示)',
+                                     marker_color=_BRAND['violet']))
+                fig.update_layout(title='CPI 同比 (演示数据)', yaxis_title='%', height=380, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
 
-        # 第二行: 工业增加值 + 用电量
+        # 第二行: 工业增加值 + 社融规模
         col3, col4 = st.columns(2)
 
         with col3:
@@ -1126,26 +1184,60 @@ elif page == '📡 另类数据仪表盘':
                     date_col = [c for c in df_gyzjz_recent.columns if '月份' in c or '日期' in c]
                     val_col = [c for c in df_gyzjz_recent.columns if '同比' in c or '增长' in c]
                     if date_col and val_col:
-                        fig = go.Figure()
+                        fig = go.Figure(layout=_DARK_LAYOUT)
                         fig.add_trace(go.Bar(x=df_gyzjz_recent[date_col[0]].astype(str),
                                              y=pd.to_numeric(df_gyzjz_recent[val_col[0]], errors='coerce'),
-                                             name='工业增加值同比', marker_color='#A23B72'))
+                                             name='工业增加值同比',
+                                             marker_color=_BRAND['gold'],
+                                             marker_line=dict(color=_BRAND['gold'], width=1)))
                         fig.update_layout(title='工业增加值同比 (近12月)', yaxis_title='%',
-                                          height=300, hovermode='x unified')
+                                          height=350, hovermode='x unified')
+                        fig.update_xaxes(tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
             except Exception:
-                st.warning('工业增加值数据加载失败')
+                st.warning('工业增加值数据加载失败，使用演示数据')
+                _demo_gy_months = [f'2025-{i:02d}' for i in range(1, 13)]
+                _demo_gy = [7.0, 7.0, 4.5, 6.7, 5.6, 5.3, 5.1, 4.5, 5.4, 5.3, 5.0, 5.2]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=_demo_gy_months, y=_demo_gy, name='工业增加值(演示)',
+                                     marker_color=_BRAND['gold']))
+                fig.update_layout(title='工业增加值同比 (演示数据)', yaxis_title='%', height=350, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
 
         with col4:
+            # 社融数据替代用电量（更有宏观意义）
             try:
-                df_elec = ak.macro_china_society_electricity()
-                if df_elec is not None and len(df_elec) > 0:
-                    st.markdown('#### ⚡ 全社会用电量')
-                    st.dataframe(df_elec.tail(6), use_container_width=True, hide_index=True)
+                df_shrzgm = ak.macro_china_shrzgm()
+                if df_shrzgm is not None and len(df_shrzgm) > 0:
+                    df_shrzgm_recent = df_shrzgm.tail(12).copy()
+                    date_col = [c for c in df_shrzgm_recent.columns if '月份' in c or '日期' in c or '时间' in c]
+                    val_col = [c for c in df_shrzgm_recent.columns if '社会融资规模增量' in c or '新增' in c]
+                    if not val_col:
+                        val_col = [df_shrzgm_recent.columns[-1]] if len(df_shrzgm_recent.columns) > 1 else []
+                    if date_col and val_col:
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        fig.add_trace(go.Bar(x=df_shrzgm_recent[date_col[0]].astype(str),
+                                             y=pd.to_numeric(df_shrzgm_recent[val_col[0]], errors='coerce') / 1e4,
+                                             name='社融增量(万亿)',
+                                             marker_color=_BRAND['neon_cyan'],
+                                             marker_line=dict(color=_BRAND['neon_cyan'], width=1)))
+                        fig.update_layout(title='社会融资规模增量 (近12月)', yaxis_title='万亿',
+                                          height=350, hovermode='x unified')
+                        fig.update_xaxes(tickangle=45)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_shrzgm_recent.tail(6), use_container_width=True, hide_index=True)
             except Exception:
-                st.warning('用电量数据加载失败')
+                st.warning('社融数据加载失败，使用演示数据')
+                _demo_sr_months = [f'2025-{i:02d}' for i in range(1, 13)]
+                _demo_sr = [6.5, 1.5, 4.9, -0.2, 2.1, 3.3, 0.8, 3.0, 3.8, 1.4, 2.3, 1.9]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=_demo_sr_months, y=_demo_sr, name='社融增量(演示/万亿)',
+                                     marker_color=_BRAND['neon_cyan']))
+                fig.update_layout(title='社会融资规模增量 (演示数据)', yaxis_title='万亿', height=350, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
 
-        st.info('💡 宏观景气指标是另类数据的重要维度: PMI/CPI/工业增加值/用电量等领先指标可提前预判经济周期拐点')
+        st.info('💡 宏观景气指标是另类数据的重要维度: PMI/CPI/工业增加值/社融等领先指标可提前预判经济周期拐点')
 
     # ========== Tab2: 市场情绪与资金流向 ==========
     with tab2:
@@ -1161,21 +1253,35 @@ elif page == '📡 另类数据仪表盘':
                 if df_concept is not None and len(df_concept) > 0:
                     st.markdown('#### 💰 概念板块资金流向 TOP15')
                     df_top = df_concept.head(15)
-                    # 找到行业名和流入资金列
                     name_col = [c for c in df_top.columns if '行业' in c or '名称' in c or '概念' in c]
                     flow_col = [c for c in df_top.columns if '流入' in c or '净买' in c or '主力' in c]
                     change_col = [c for c in df_top.columns if '涨跌' in c]
 
                     if name_col and change_col:
-                        fig = px.bar(df_top, x=change_col[0], y=name_col[0], orientation='h',
-                                     color=change_col[0], color_continuous_scale='RdYlGn',
-                                     title='概念板块涨跌幅 TOP15')
-                        fig.update_layout(height=450, yaxis={'categoryorder': 'total ascending'})
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in pd.to_numeric(df_top[change_col[0]], errors='coerce').fillna(0)]
+                        fig.add_trace(go.Bar(x=pd.to_numeric(df_top[change_col[0]], errors='coerce').fillna(0),
+                                             y=df_top[name_col[0]],
+                                             orientation='h',
+                                             marker_color=colors,
+                                             name='涨跌幅%'))
+                        fig.update_layout(title='概念板块涨跌幅 TOP15', yaxis_title='',
+                                          height=480, yaxis={'categoryorder': 'total ascending'},
+                                          xaxis_title='涨跌幅(%)')
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_top, use_container_width=True, hide_index=True)
             except Exception:
-                st.warning('概念板块资金数据加载失败')
+                st.warning('概念板块资金数据加载失败，使用演示数据')
+                _demo_concepts = ['AI算力', 'CPO', '机器人', '半导体', '新能源车', '白酒', '医药', '军工', '光伏', '锂电池', '房地产', '银行', '券商', '煤炭', '钢铁']
+                _demo_chg = [5.2, 4.1, 3.8, 2.5, 1.9, -0.5, -1.2, 0.8, -2.1, -1.5, -3.2, 0.3, 1.1, -0.8, -1.0]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in _demo_chg]
+                fig.add_trace(go.Bar(x=_demo_chg, y=_demo_concepts, orientation='h',
+                                     marker_color=colors, name='涨跌幅%'))
+                fig.update_layout(title='概念板块涨跌幅 TOP15 (演示)', yaxis_title='',
+                                  height=480, yaxis={'categoryorder': 'total ascending'}, xaxis_title='涨跌幅(%)')
+                st.plotly_chart(fig, use_container_width=True)
 
         with col2:
             # 北向资金历史趋势
@@ -1188,17 +1294,86 @@ elif page == '📡 另类数据仪表盘':
                     flow_col = [c for c in df_north_recent.columns if '净买' in c or '流入' in c or '成交' in c]
 
                     if date_col and flow_col:
-                        fig = go.Figure()
-                        fig.add_trace(go.Bar(x=df_north_recent[date_col[0]],
-                                             y=pd.to_numeric(df_north_recent[flow_col[0]], errors='coerce'),
-                                             name='当日净买入', marker_color='#2E86AB'))
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        y_data = pd.to_numeric(df_north_recent[flow_col[0]], errors='coerce')
+                        colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in y_data.fillna(0)]
+                        fig.add_trace(go.Bar(x=df_north_recent[date_col[0]], y=y_data,
+                                             name='当日净买入', marker_color=colors))
+                        # 5日均线
+                        if len(y_data) >= 5:
+                            ma5 = y_data.rolling(5).mean()
+                            fig.add_trace(go.Scatter(x=df_north_recent[date_col[0]], y=ma5,
+                                                     mode='lines', name='5日均线',
+                                                     line=dict(color=_BRAND['gold'], width=2)))
                         fig.update_layout(title='沪股通净买入 (近30日)', yaxis_title='金额',
-                                          height=450, hovermode='x unified')
+                                          height=480, hovermode='x unified')
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_north_recent.tail(10), use_container_width=True, hide_index=True)
             except Exception:
-                st.warning('北向资金数据加载失败')
+                st.warning('北向资金数据加载失败，使用演示数据')
+                _demo_north_dates = pd.date_range(end=pd.Timestamp.today(), periods=30)
+                _demo_north_flow = np.random.uniform(-30, 50, 30).round(2)
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in _demo_north_flow]
+                fig.add_trace(go.Bar(x=_demo_north_dates, y=_demo_north_flow, name='净买入(演示)',
+                                     marker_color=colors))
+                ma5 = pd.Series(_demo_north_flow).rolling(5).mean()
+                fig.add_trace(go.Scatter(x=_demo_north_dates, y=ma5, mode='lines', name='5日均线',
+                                         line=dict(color=_BRAND['gold'], width=2)))
+                fig.update_layout(title='沪股通净买入 (演示数据)', yaxis_title='亿元', height=480, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
+
+        # 市场情绪指标: 涨跌家数 + 融资融券
+        col3, col4 = st.columns(2)
+
+        with col3:
+            # 涨跌家数统计
+            try:
+                df_spot = ak.stock_zh_a_spot_em()
+                if df_spot is not None and len(df_spot) > 0:
+                    chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
+                    if chg_col:
+                        chg = pd.to_numeric(df_spot[chg_col[0]], errors='coerce').dropna()
+                        up_count = (chg > 0).sum()
+                        down_count = (chg < 0).sum()
+                        flat_count = (chg == 0).sum()
+                        limit_up = (chg >= 9.9).sum()
+                        limit_down = (chg <= -9.9).sum()
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        fig.add_trace(go.Bar(x=['涨停', '上涨', '平盘', '下跌', '跌停'],
+                                             y=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                             marker_color=[_BRAND['gold'], _BRAND['neon_cyan'], '#888888', '#FF4D6A', '#8B0000'],
+                                             text=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                             textposition='auto'))
+                        fig.update_layout(title='A股涨跌家数分布', yaxis_title='家数', height=350)
+                        st.plotly_chart(fig, use_container_width=True)
+            except Exception:
+                st.warning('涨跌家数加载失败，使用演示数据')
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=['涨停', '上涨', '平盘', '下跌', '跌停'],
+                                     y=[42, 2850, 180, 2150, 35],
+                                     marker_color=[_BRAND['gold'], _BRAND['neon_cyan'], '#888888', '#FF4D6A', '#8B0000'],
+                                     text=[42, 2850, 180, 2150, 35], textposition='auto'))
+                fig.update_layout(title='A股涨跌家数分布 (演示)', yaxis_title='家数', height=350)
+                st.plotly_chart(fig, use_container_width=True)
+
+        with col4:
+            # 融资融券余额趋势
+            try:
+                df_margin = ak.stock_margin_underlying_info_sz_sh(date=pd.Timestamp.today().strftime('%Y%m%d'))
+                if df_margin is not None and len(df_margin) > 0:
+                    st.markdown('#### 📈 融资融券标的')
+                    st.dataframe(df_margin.head(15), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('融资融券数据加载失败，使用演示数据')
+                _demo_margin_dates = pd.date_range(end=pd.Timestamp.today(), periods=20)
+                _demo_margin_val = np.cumsum(np.random.uniform(-50, 80, 20)) + 15000
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Scatter(x=_demo_margin_dates, y=_demo_margin_val, mode='lines+markers',
+                                         name='融资余额(亿)', line=dict(color=_BRAND['violet'], width=2.5)))
+                fig.update_layout(title='融资余额趋势 (演示数据)', yaxis_title='亿元', height=350, hovermode='x unified')
+                st.plotly_chart(fig, use_container_width=True)
 
         # 大单交易
         try:
@@ -1226,16 +1401,48 @@ elif page == '📡 另类数据仪表盘':
                 df_futures = ak.futures_spot_price()
                 if df_futures is not None and len(df_futures) > 0:
                     st.markdown('#### 🏭 期货期现价差 (产业链价格传导)')
-                    st.dataframe(df_futures.head(20), use_container_width=True, hide_index=True)
+                    # 尝试绘制价格柱状图
+                    name_col = [c for c in df_futures.columns if '品种' in c or '名称' in c or '合约' in c]
+                    price_col = [c for c in df_futures.columns if '现价' in c or '最新' in c or '价格' in c or '收盘' in c]
+                    if name_col and price_col:
+                        df_top_futures = df_futures.head(15)
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        fig.add_trace(go.Bar(x=df_top_futures[name_col[0]].astype(str),
+                                             y=pd.to_numeric(df_top_futures[price_col[0]], errors='coerce'),
+                                             name='最新价', marker_color=_BRAND['neon_cyan']))
+                        fig.update_layout(title='主要期货品种价格', yaxis_title='价格', height=400,
+                                          xaxis_tickangle=45)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_futures.head(20), use_container_width=True, hide_index=True)
             except Exception:
                 # fallback: 全球商品价格
                 try:
                     df_global = ak.futures_global_spot_em()
                     if df_global is not None and len(df_global) > 0:
                         st.markdown('#### 🌍 全球大宗商品价格')
-                        st.dataframe(df_global.head(20), use_container_width=True, hide_index=True)
+                        name_col = [c for c in df_global.columns if '品种' in c or '名称' in c or '商品' in c]
+                        price_col = [c for c in df_global.columns if '价格' in c or '现价' in c or '最新' in c]
+                        if name_col and price_col:
+                            df_top_g = df_global.head(15)
+                            fig = go.Figure(layout=_DARK_LAYOUT)
+                            fig.add_trace(go.Bar(x=df_top_g[name_col[0]].astype(str),
+                                                 y=pd.to_numeric(df_top_g[price_col[0]], errors='coerce'),
+                                                 name='价格', marker_color=_BRAND['gold']))
+                            fig.update_layout(title='全球大宗商品价格', yaxis_title='价格', height=400,
+                                              xaxis_tickangle=45)
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.dataframe(df_global.head(20), use_container_width=True, hide_index=True)
                 except Exception:
-                    st.warning('期货数据加载失败')
+                    st.warning('期货数据加载失败，使用演示数据')
+                    _demo_futures = ['螺纹钢', '铁矿石', '焦炭', '原油', '铜', '铝', '锌', '镍', '黄金', '白银', '豆粕', '玉米', '棕榈油', 'PTA', '甲醇']
+                    _demo_fut_prices = [3650, 780, 2350, 580, 72000, 19800, 21500, 125000, 580, 7800, 3200, 2650, 8200, 5800, 2500]
+                    fig = go.Figure(layout=_DARK_LAYOUT)
+                    fig.add_trace(go.Bar(x=_demo_futures, y=_demo_fut_prices, name='价格(演示)',
+                                         marker_color=_BRAND['neon_cyan']))
+                    fig.update_layout(title='主要期货品种价格 (演示数据)', yaxis_title='价格', height=400, xaxis_tickangle=45)
+                    st.plotly_chart(fig, use_container_width=True)
 
         with col2:
             # 机构调研统计
@@ -1246,18 +1453,98 @@ elif page == '📡 另类数据仪表盘':
                     display_cols = [c for c in ['股票代码', '股票简称', '最新价', '涨跌幅', '调研机构数'] if c in df_jgdy.columns]
                     if not display_cols:
                         display_cols = df_jgdy.columns[:5].tolist()
-                    st.dataframe(df_jgdy[display_cols].head(15), use_container_width=True, hide_index=True)
+                    # 尝试绘制调研热度图
+                    name_col_jg = [c for c in df_jgdy.columns if '简称' in c or '名称' in c]
+                    count_col = [c for c in df_jgdy.columns if '调研' in c or '机构' in c or '家数' in c]
+                    if name_col_jg and count_col:
+                        df_jg_top = df_jgdy.head(15)
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        fig.add_trace(go.Bar(x=pd.to_numeric(df_jg_top[count_col[0]], errors='coerce'),
+                                             y=df_jg_top[name_col_jg[0]],
+                                             orientation='h', name='调研机构数',
+                                             marker_color=_BRAND['violet']))
+                        fig.update_layout(title='机构调研热度 TOP15', yaxis_title='',
+                                          height=400, yaxis={'categoryorder': 'total ascending'},
+                                          xaxis_title='调研机构数')
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_jgdy[display_cols].head(15), use_container_width=True, hide_index=True)
             except Exception:
-                st.warning('机构调研数据加载失败')
+                st.warning('机构调研数据加载失败，使用演示数据')
+                _demo_jg_names = ['迈瑞医疗', '海康威视', '宁德时代', '汇川技术', '三一重工', '美的集团', '比亚迪', '药明康德', '中微公司', '北方华创', '韦尔股份', '紫光国微', '中芯国际', '金山办公', '科大讯飞']
+                _demo_jg_counts = [85, 72, 68, 55, 48, 45, 42, 38, 35, 32, 28, 25, 22, 20, 18]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=_demo_jg_counts, y=_demo_jg_names, orientation='h',
+                                     name='调研机构数(演示)', marker_color=_BRAND['violet']))
+                fig.update_layout(title='机构调研热度 TOP15 (演示数据)', yaxis_title='',
+                                  height=400, yaxis={'categoryorder': 'total ascending'}, xaxis_title='调研机构数')
+                st.plotly_chart(fig, use_container_width=True)
 
-        # 股权质押风险
-        try:
-            df_zy = ak.stock_gpzy_industry_data_em()
-            if df_zy is not None and len(df_zy) > 0:
-                st.markdown('#### ⚠️ 行业股权质押风险')
-                st.dataframe(df_zy.head(15), use_container_width=True, hide_index=True)
-        except Exception:
-            pass
+        # 第二行: 行业资金流向 + 股权质押
+        col3, col4 = st.columns(2)
+
+        with col3:
+            # 行业板块资金流向
+            try:
+                df_industry = ak.stock_fund_flow_industry(symbol='即时')
+                if df_industry is not None and len(df_industry) > 0:
+                    st.markdown('#### 🏢 行业板块资金流向 TOP10')
+                    name_col = [c for c in df_industry.columns if '行业' in c or '名称' in c or '板块' in c]
+                    flow_col = [c for c in df_industry.columns if '流入' in c or '净买' in c or '主力' in c]
+                    if name_col and flow_col:
+                        df_ind_top = df_industry.head(10)
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        y_data = pd.to_numeric(df_ind_top[flow_col[0]], errors='coerce').fillna(0)
+                        colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in y_data]
+                        fig.add_trace(go.Bar(x=y_data, y=df_ind_top[name_col[0]], orientation='h',
+                                             marker_color=colors, name='主力净流入'))
+                        fig.update_layout(title='行业主力资金流向 TOP10', yaxis_title='',
+                                          height=380, yaxis={'categoryorder': 'total ascending'},
+                                          xaxis_title='净流入金额')
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_industry.head(10), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('行业资金数据加载失败，使用演示数据')
+                _demo_ind_names = ['电子', '计算机', '医药生物', '电力设备', '食品饮料', '银行', '非银金融', '房地产', '钢铁', '煤炭']
+                _demo_ind_flow = [25.3, 18.7, 12.1, 8.5, -3.2, -5.8, -8.1, -12.5, -6.3, -4.1]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in _demo_ind_flow]
+                fig.add_trace(go.Bar(x=_demo_ind_flow, y=_demo_ind_names, orientation='h',
+                                     marker_color=colors, name='主力净流入(演示)'))
+                fig.update_layout(title='行业主力资金流向 TOP10 (演示)', yaxis_title='',
+                                  height=380, yaxis={'categoryorder': 'total ascending'}, xaxis_title='净流入(亿)')
+                st.plotly_chart(fig, use_container_width=True)
+
+        with col4:
+            # 股权质押风险
+            try:
+                df_zy = ak.stock_gpzy_industry_data_em()
+                if df_zy is not None and len(df_zy) > 0:
+                    st.markdown('#### ⚠️ 行业股权质押风险')
+                    name_col = [c for c in df_zy.columns if '行业' in c or '名称' in c]
+                    ratio_col = [c for c in df_zy.columns if '质押' in c or '比例' in c or '占比' in c]
+                    if name_col and ratio_col:
+                        df_zy_top = df_zy.head(12)
+                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        fig.add_trace(go.Bar(x=df_zy_top[name_col[0]].astype(str),
+                                             y=pd.to_numeric(df_zy_top[ratio_col[0]], errors='coerce'),
+                                             name='质押比例',
+                                             marker_color=_BRAND['gold']))
+                        fig.update_layout(title='行业股权质押比例', yaxis_title='比例(%)',
+                                          height=380, xaxis_tickangle=45)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.dataframe(df_zy.head(15), use_container_width=True, hide_index=True)
+            except Exception:
+                st.warning('质押数据加载失败，使用演示数据')
+                _demo_zy_names = ['房地产', '传媒', '纺织服装', '商贸', '综合', '化工', '建筑', '农林牧渔', '计算机', '电子']
+                _demo_zy_ratio = [18.5, 15.2, 13.8, 12.1, 11.5, 10.2, 9.8, 9.1, 8.5, 7.2]
+                fig = go.Figure(layout=_DARK_LAYOUT)
+                fig.add_trace(go.Bar(x=_demo_zy_names, y=_demo_zy_ratio, name='质押比例(演示%)',
+                                     marker_color=_BRAND['gold']))
+                fig.update_layout(title='行业股权质押比例 (演示数据)', yaxis_title='比例(%)', height=380, xaxis_tickangle=45)
+                st.plotly_chart(fig, use_container_width=True)
 
         st.info('💡 产业链传导是另类数据的差异化维度: 期货价差反映供需预期, 机构调研揭示关注方向, 质押风险预警系统性风险')
 
@@ -1444,6 +1731,547 @@ elif page == '📈 量化策略回测':
             st.info("请安装: pip install xgboost shap")
         except Exception as e:
             st.error(f"❌ SHAP运行错误: {type(e).__name__}: {str(e)[:300]}")
+
+# ============== 页面：因子挖掘与IC测试 ==============
+elif page == '🔬 因子挖掘与IC测试':
+    from ui_themes import render_page_header, BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN, BRAND_RED
+    render_page_header('因子挖掘与IC测试', 'Qlib风格因子挖掘 + VectorBT回测 + Factor IC测试 + 信号验证', '🔬')
+
+    if not HAS_QLIB:
+        st.warning('⚠️ qlib_integration 模块未安装，部分功能不可用')
+        st.info('请安装: `pip install qlib vectorbt` 并确保 `features/qlib_integration.py` 存在')
+
+    tab_mine, tab_ic = st.tabs(['⛏️ 因子挖掘', '📊 IC测试'])
+
+    # ---- Tab: 因子挖掘 ----
+    with tab_mine:
+        st.markdown('### ⛏️ Alpha因子挖掘')
+        st.caption('基于Qlib风格的因子挖掘引擎，自动发现有效Alpha因子')
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            mine_stock = st.text_input('📈 股票代码', value='000001', key='qlib_mine_stock',
+                                       help='输入A股代码，如 000001')
+            mine_universe = st.selectbox('🌐 股票池', ['沪深300', '中证500', '中证1000', '全A'],
+                                         key='qlib_mine_universe')
+            mine_method = st.selectbox('🔧 挖掘方法', ['遗传规划', '表达式挖掘', '深度学习'],
+                                       key='qlib_mine_method')
+            run_mine = st.button('🚀 开始挖掘', type='primary', key='qlib_run_mine')
+
+        with col2:
+            if run_mine:
+                if not HAS_QLIB:
+                    st.error('❌ qlib_integration 模块不可用')
+                else:
+                    with st.spinner('正在挖掘Alpha因子...'):
+                        try:
+                            miner = AlphaFactorMiner()
+                            mine_result = miner.mine(stock=mine_stock, universe=mine_universe,
+                                                     method=mine_method)
+                            if mine_result and mine_result.get('factors'):
+                                st.success(f"✅ 发现 {len(mine_result['factors'])} 个有效因子")
+                                # 因子表格
+                                factors_df = pd.DataFrame(mine_result['factors'])
+                                st.dataframe(factors_df, use_container_width=True, hide_index=True)
+
+                                # IC热力图
+                                if mine_result.get('ic_matrix') is not None:
+                                    ic_matrix = pd.DataFrame(mine_result['ic_matrix'])
+                                    fig_ic = px.imshow(
+                                        ic_matrix,
+                                        color_continuous_scale=['#FF4D4F', '#0A0E27', '#00C896'],
+                                        title='因子IC热力图',
+                                        aspect='auto'
+                                    )
+                                    fig_ic.update_layout(
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(color='#E0E0E0'),
+                                        title_font_color=BRAND_CYAN
+                                    )
+                                    st.plotly_chart(fig_ic, use_container_width=True)
+                            else:
+                                st.info('未发现显著因子，请尝试调整参数或更换股票池')
+                        except Exception as e:
+                            st.error(f'❌ 因子挖掘失败: {type(e).__name__}: {str(e)[:200]}')
+            else:
+                st.markdown("""
+                <div style="text-align:center; padding:60px 20px; color:#8A92B0;">
+                    <p style="font-size:48px;">⛏️</p>
+                    <p>选择股票代码和挖掘方法，点击"开始挖掘"</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ---- Tab: IC测试 ----
+    with tab_ic:
+        st.markdown('### 📊 因子IC测试')
+        st.caption('测试因子的预测能力：IC值、IC衰减、换手率分析')
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            ic_factor = st.text_input('📝 因子名称', value='momentum_20', key='qlib_ic_factor',
+                                      help='输入要测试的因子名称')
+            ic_stock_pool = st.selectbox('🌐 股票池', ['沪深300', '中证500', '中证1000'],
+                                         key='qlib_ic_pool')
+            ic_period = st.slider('📅 测试周期(天)', min_value=60, max_value=750, value=250, step=30,
+                                  key='qlib_ic_period')
+            run_ic = st.button('🧪 运行IC测试', type='primary', key='qlib_run_ic')
+
+        with col2:
+            if run_ic:
+                if not HAS_QLIB:
+                    st.error('❌ qlib_integration 模块不可用')
+                else:
+                    with st.spinner('正在运行IC测试...'):
+                        try:
+                            tester = FactorICTester()
+                            ic_result = tester.test(factor=ic_factor, universe=ic_stock_pool,
+                                                    period=ic_period)
+                            if ic_result:
+                                # IC统计摘要
+                                ic_stats = ic_result.get('summary', {})
+                                c1, c2, c3, c4 = st.columns(4)
+                                with c1:
+                                    st.metric('IC均值', f"{ic_stats.get('ic_mean', 0):.4f}")
+                                with c2:
+                                    st.metric('IC标准差', f"{ic_stats.get('ic_std', 0):.4f}")
+                                with c3:
+                                    st.metric('ICIR', f"{ic_stats.get('icir', 0):.2f}")
+                                with c4:
+                                    ic_hit = ic_stats.get('ic_hit_rate', 0)
+                                    st.metric('IC胜率', f"{ic_hit:.1%}")
+
+                                # IC时序图
+                                if ic_result.get('ic_series') is not None:
+                                    ic_series = pd.Series(ic_result['ic_series'])
+                                    fig_ic_ts = go.Figure()
+                                    fig_ic_ts.add_trace(go.Bar(
+                                        x=ic_series.index if hasattr(ic_series, 'index')
+                                          else list(range(len(ic_series))),
+                                        y=ic_series.values,
+                                        marker_color=[
+                                            BRAND_GREEN if v > 0 else BRAND_RED
+                                            for v in ic_series.values
+                                        ],
+                                        name='IC'
+                                    ))
+                                    fig_ic_ts.add_hline(y=0, line_dash='dash', line_color=BRAND_GOLD)
+                                    fig_ic_ts.update_layout(
+                                        title=f'{ic_factor} IC时序',
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(color='#E0E0E0'),
+                                        title_font_color=BRAND_CYAN,
+                                        height=350,
+                                        hovermode='x unified'
+                                    )
+                                    st.plotly_chart(fig_ic_ts, use_container_width=True)
+
+                                # IC衰减曲线
+                                if ic_result.get('ic_decay') is not None:
+                                    decay = pd.Series(ic_result['ic_decay'])
+                                    fig_decay = go.Figure()
+                                    fig_decay.add_trace(go.Scatter(
+                                        x=list(range(1, len(decay) + 1)),
+                                        y=decay.values,
+                                        mode='lines+markers',
+                                        name='IC衰减',
+                                        line=dict(color=BRAND_PURPLE, width=2.5),
+                                        marker=dict(size=6)
+                                    ))
+                                    fig_decay.add_hline(y=0.03, line_dash='dash',
+                                                        line_color=BRAND_GOLD,
+                                                        annotation_text='有效阈值')
+                                    fig_decay.update_layout(
+                                        title='IC衰减曲线',
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(color='#E0E0E0'),
+                                        title_font_color=BRAND_CYAN,
+                                        height=300,
+                                        xaxis_title='滞后天数',
+                                        yaxis_title='IC'
+                                    )
+                                    st.plotly_chart(fig_decay, use_container_width=True)
+                            else:
+                                st.info('IC测试未返回有效结果')
+                        except Exception as e:
+                            st.error(f'❌ IC测试失败: {type(e).__name__}: {str(e)[:200]}')
+            else:
+                st.markdown("""
+                <div style="text-align:center; padding:60px 20px; color:#8A92B0;">
+                    <p style="font-size:48px;">📊</p>
+                    <p>输入因子名称，点击"运行IC测试"</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+# ============== 页面：宏观因子融合 ==============
+elif page == '🔄 宏观因子融合':
+    from ui_themes import render_page_header, BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN, BRAND_RED
+    render_page_header('宏观因子融合', '宏观因子模型 + 因子融合引擎 + Exabel风格看板', '🔄')
+
+    if not HAS_MACRO_FUSION:
+        st.warning('⚠️ macro_factor_fusion 模块未安装，部分功能不可用')
+        st.info('请确保 `features/macro_factor_fusion.py` 存在')
+
+    tab_macro, tab_fusion, tab_exabel = st.tabs(['🌍 宏观周期', '🔗 因子融合', '📈 Exabel看板'])
+
+    # ---- Tab: 宏观周期 ----
+    with tab_macro:
+        st.markdown('### 🌍 宏观经济周期识别')
+        st.caption('基于美林时钟+信用周期的宏观因子模型')
+
+        if HAS_MACRO_FUSION:
+            try:
+                model = MacroFactorModel()
+                regime = model.get_current_regime()
+                macro_score = model.get_macro_score()
+                alloc_signal = model.get_allocation_signal()
+
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    regime_name = regime.get('name', 'N/A') if isinstance(regime, dict) else str(regime)
+                    regime_emoji = {'复苏': '🌱', '过热': '🔥', '滞胀': '⚠️', '衰退': '❄️'}.get(regime_name, '🔄')
+                    st.metric('当前周期', f'{regime_emoji} {regime_name}')
+                with c2:
+                    score_val = macro_score if isinstance(macro_score, (int, float)) else 0
+                    st.metric('宏观评分', f'{score_val:.1f}',
+                              delta=f'{score_val - 50:.1f}' if score_val else None)
+                with c3:
+                    signal_val = alloc_signal.get('signal', 'N/A') if isinstance(alloc_signal, dict) else str(alloc_signal)
+                    st.metric('配置信号', signal_val)
+
+                # 宏观因子雷达图
+                if isinstance(regime, dict) and regime.get('factors'):
+                    factors = regime['factors']
+                    if isinstance(factors, dict):
+                        fig_radar = go.Figure()
+                        fig_radar.add_trace(go.Scatterpolar(
+                            r=list(factors.values()),
+                            theta=list(factors.keys()),
+                            fill='toself',
+                            fillcolor=f'rgba(0,212,255,0.2)',
+                            line=dict(color=BRAND_CYAN, width=2),
+                            name='当前状态'
+                        ))
+                        fig_radar.update_layout(
+                            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                            showlegend=False,
+                            title='宏观因子雷达',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#E0E0E0'),
+                            title_font_color=BRAND_CYAN,
+                            height=400
+                        )
+                        st.plotly_chart(fig_radar, use_container_width=True)
+            except Exception as e:
+                st.error(f'❌ 宏观周期加载失败: {type(e).__name__}: {str(e)[:200]}')
+        else:
+            st.info('💡 宏观因子融合模块未安装，请安装后使用')
+
+    # ---- Tab: 因子融合 ----
+    with tab_fusion:
+        st.markdown('### 🔗 多因子融合引擎')
+        st.caption('跨域因子融合 + 周期自适应权重')
+
+        if HAS_MACRO_FUSION:
+            try:
+                engine = FactorFusionEngine()
+                composite = engine.get_composite_score()
+                weights = engine.get_regime_adjusted_weights()
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    comp_val = composite if isinstance(composite, (int, float)) else 0
+                    st.metric('综合得分', f'{comp_val:.2f}',
+                              delta='偏多' if comp_val > 0 else '偏空')
+
+                    # 权重饼图
+                    if isinstance(weights, dict) and weights:
+                        fig_wt = px.pie(
+                            values=list(weights.values()),
+                            names=list(weights.keys()),
+                            title='周期自适应权重',
+                            color_discrete_sequence=[BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN]
+                        )
+                        fig_wt.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#E0E0E0'),
+                            title_font_color=BRAND_CYAN,
+                            height=350
+                        )
+                        st.plotly_chart(fig_wt, use_container_width=True)
+
+                with c2:
+                    # 因子贡献度条形图
+                    if isinstance(weights, dict) and weights:
+                        fig_bar = go.Figure()
+                        fig_bar.add_trace(go.Bar(
+                            x=list(weights.keys()),
+                            y=list(weights.values()),
+                            marker_color=[BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN][:len(weights)]
+                        ))
+                        fig_bar.update_layout(
+                            title='因子贡献度',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#E0E0E0'),
+                            title_font_color=BRAND_CYAN,
+                            height=350
+                        )
+                        st.plotly_chart(fig_bar, use_container_width=True)
+            except Exception as e:
+                st.error(f'❌ 因子融合加载失败: {type(e).__name__}: {str(e)[:200]}')
+        else:
+            st.info('💡 宏观因子融合模块未安装，请安装后使用')
+
+    # ---- Tab: Exabel看板 ----
+    with tab_exabel:
+        st.markdown('### 📈 Exabel风格信号看板')
+        st.caption('机构级因子信号总览 + 相关性矩阵')
+
+        if HAS_MACRO_FUSION:
+            try:
+                dashboard = ExabelStyleDashboard()
+                overview = dashboard.get_signal_overview()
+                corr_matrix = dashboard.get_correlation_matrix()
+
+                # 信号概览
+                if isinstance(overview, dict) and overview:
+                    st.markdown('#### 📊 信号概览')
+                    ov_cols = st.columns(min(len(overview), 5))
+                    for i, (k, v) in enumerate(overview.items()):
+                        if i < len(ov_cols):
+                            with ov_cols[i]:
+                                val = v if isinstance(v, (int, float)) else 0
+                                color = BRAND_GREEN if val > 0 else BRAND_RED
+                                st.metric(k, f'{val:.2f}' if isinstance(v, (int, float)) else str(v))
+
+                # 相关性矩阵热力图
+                if corr_matrix is not None:
+                    st.markdown('#### 🔗 因子相关性矩阵')
+                    corr_df = pd.DataFrame(corr_matrix) if not isinstance(corr_matrix, pd.DataFrame) else corr_matrix
+                    fig_corr = px.imshow(
+                        corr_df,
+                        color_continuous_scale=['#FF4D4F', '#0A0E27', '#00C896'],
+                        title='因子间相关性',
+                        aspect='auto',
+                        zmin=-1, zmax=1
+                    )
+                    fig_corr.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#E0E0E0'),
+                        title_font_color=BRAND_CYAN,
+                        height=450
+                    )
+                    st.plotly_chart(fig_corr, use_container_width=True)
+            except Exception as e:
+                st.error(f'❌ Exabel看板加载失败: {type(e).__name__}: {str(e)[:200]}')
+        else:
+            st.info('💡 宏观因子融合模块未安装，请安装后使用')
+
+# ============== 页面：信号验证中心 ==============
+elif page == '📡 信号验证中心':
+    from ui_themes import render_page_header, BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN, BRAND_RED
+    render_page_header('信号验证中心', '多源信号统计验证 + IC/命中率/衰减分析', '📡')
+
+    if not HAS_QLIB and not HAS_MACRO_FUSION:
+        st.warning('⚠️ 信号验证所需模块未安装，请安装 qlib_integration 和 macro_factor_fusion')
+
+    st.markdown('### 🎯 信号验证')
+    st.caption('对卫星/情绪/供应链/资金流信号进行统计验证')
+
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        signal_type = st.selectbox('📡 信号类型', [
+            '🛰️ 卫星信号', '💬 情绪信号', '🔗 供应链信号', '💰 资金流信号'
+        ], key='sig_verify_type')
+        signal_type_map = {
+            '🛰️ 卫星信号': 'satellite',
+            '💬 情绪信号': 'sentiment',
+            '🔗 供应链信号': 'supply_chain',
+            '💰 资金流信号': 'fund_flow'
+        }
+        sig_key = signal_type_map.get(signal_type, 'sentiment')
+
+        verify_period = st.slider('📅 验证周期(天)', min_value=60, max_value=750, value=250, step=30,
+                                  key='sig_verify_period')
+        run_verify = st.button('🧪 运行验证', type='primary', key='sig_run_verify')
+
+    with col2:
+        if run_verify:
+            with st.spinner('正在验证信号...'):
+                try:
+                    # 使用SignalVerifier
+                    if HAS_QLIB:
+                        verifier = SignalVerifier()
+                        verify_result = verifier.verify(signal_type=sig_key, period=verify_period)
+                    else:
+                        verify_result = None
+
+                    # 使用SignalVerificationData
+                    if HAS_MACRO_FUSION:
+                        sv_data = SignalVerificationData()
+                        sv_result = sv_data.get_verification(signal_type=sig_key)
+                    else:
+                        sv_result = None
+
+                    if verify_result or sv_result:
+                        result = verify_result or sv_result or {}
+
+                        # 验证指标
+                        c1, c2, c3, c4 = st.columns(4)
+                        with c1:
+                            ic_val = result.get('ic', 0)
+                            st.metric('IC值', f'{ic_val:.4f}',
+                                      delta='有效' if abs(ic_val) > 0.03 else '无效')
+                        with c2:
+                            hit_rate = result.get('hit_rate', 0)
+                            st.metric('命中率', f'{hit_rate:.1%}',
+                                      delta='优秀' if hit_rate > 0.55 else '')
+                        with c3:
+                            p_val = result.get('p_value', 1)
+                            st.metric('P值', f'{p_val:.4f}',
+                                      delta='显著' if p_val < 0.05 else '')
+                        with c4:
+                            decay = result.get('half_life', 0)
+                            st.metric('半衰期(天)', f'{decay:.1f}')
+
+                        # 衰减曲线
+                        if result.get('decay_curve') is not None:
+                            decay_curve = pd.Series(result['decay_curve'])
+                            fig_decay = go.Figure()
+                            fig_decay.add_trace(go.Scatter(
+                                x=list(range(len(decay_curve))),
+                                y=decay_curve.values,
+                                mode='lines+markers',
+                                name='信号衰减',
+                                line=dict(color=BRAND_CYAN, width=2.5),
+                                fill='tozeroy',
+                                fillcolor='rgba(0,212,255,0.1)'
+                            ))
+                            fig_decay.update_layout(
+                                title='信号衰减曲线',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#E0E0E0'),
+                                title_font_color=BRAND_CYAN,
+                                height=350,
+                                xaxis_title='天数',
+                                yaxis_title='预测力'
+                            )
+                            st.plotly_chart(fig_decay, use_container_width=True)
+
+                        # 验证报告
+                        if result.get('report'):
+                            st.markdown('#### 📋 验证报告')
+                            st.markdown(result['report'])
+                    else:
+                        st.info('验证未返回有效结果，请检查信号类型或验证周期')
+                except Exception as e:
+                    st.error(f'❌ 信号验证失败: {type(e).__name__}: {str(e)[:200]}')
+        else:
+            st.markdown("""
+            <div style="text-align:center; padding:60px 20px; color:#8A92B0;">
+                <p style="font-size:48px;">📡</p>
+                <p>选择信号类型，点击"运行验证"开始</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+# ============== 页面：语义检索 ==============
+elif page == '🔍 语义检索':
+    from ui_themes import render_page_header, BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN, BRAND_RED
+    render_page_header('语义检索', 'FAISS向量搜索 + 多源数据语义匹配', '🔍')
+
+    if not HAS_MULTI_SOURCE:
+        st.warning('⚠️ multi_source_data 模块未安装，语义检索不可用')
+        st.info('请确保 `features/multi_source_data.py` 存在并安装 `pip install faiss-cpu sentence-transformers`')
+
+    st.markdown('### 🔍 语义检索')
+    st.caption('基于FAISS向量索引的语义搜索，支持新闻/研报/公告等多源数据')
+
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        search_query = st.text_input('🔎 搜索查询', value='', key='semantic_query',
+                                     placeholder='输入自然语言查询，如"新能源车销量增长"')
+        search_top_k = st.slider('📊 返回数量', min_value=3, max_value=20, value=5, key='semantic_topk')
+        search_source = st.multiselect('📡 数据源', ['新闻', '研报', '公告', '社交媒体'],
+                                       default=['新闻', '研报'], key='semantic_source')
+        run_search = st.button('🔍 搜索', type='primary', key='semantic_run_search')
+
+    with col2:
+        if run_search and search_query:
+            if not HAS_MULTI_SOURCE:
+                st.error('❌ multi_source_data 模块不可用')
+            else:
+                with st.spinner('正在语义检索...'):
+                    try:
+                        vector_store = SentimentVectorStore()
+                        results = vector_store.search(query=search_query, top_k=search_top_k)
+
+                        if results:
+                            st.success(f'✅ 找到 {len(results)} 条相关结果')
+                            for i, item in enumerate(results):
+                                # 兼容dict和object
+                                if isinstance(item, dict):
+                                    text = item.get('text', '')
+                                    date = item.get('date', '')
+                                    source = item.get('source', '')
+                                    score = item.get('score', 0)
+                                else:
+                                    text = getattr(item, 'text', '')
+                                    date = getattr(item, 'date', '')
+                                    source = getattr(item, 'source', '')
+                                    score = getattr(item, 'score', 0)
+
+                                score_color = BRAND_GREEN if score > 0.7 else (BRAND_GOLD if score > 0.4 else BRAND_RED)
+                                with st.container():
+                                    st.markdown(f"""
+                                    <div style="
+                                        background: #0D1230;
+                                        border: 1px solid rgba(0,212,255,0.2);
+                                        border-radius: 12px;
+                                        padding: 16px;
+                                        margin-bottom: 12px;
+                                    ">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="color:#C8D0E0; font-size:13px;">📅 {date} &nbsp;|&nbsp; 📡 {source}</span>
+                                            <span style="color:{score_color}; font-weight:600;">相似度: {score:.2f}</span>
+                                        </div>
+                                        <p style="color:#FFFFFF; margin-top:8px;">{text[:300]}{'...' if len(text) > 300 else ''}</p>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+
+                            # 相似事件
+                            if len(results) > 1:
+                                st.markdown('#### 🔗 相似事件')
+                                try:
+                                    similar = vector_store.search(query=search_query, top_k=3)
+                                    if similar:
+                                        for sim_item in similar[:3]:
+                                            if isinstance(sim_item, dict):
+                                                sim_text = sim_item.get('text', '')
+                                                sim_date = sim_item.get('date', '')
+                                            else:
+                                                sim_text = getattr(sim_item, 'text', '')
+                                                sim_date = getattr(sim_item, 'date', '')
+                                            st.markdown(f"- 📅 {sim_date}: {sim_text[:100]}...")
+                                except Exception:
+                                    pass
+                        else:
+                            st.info('未找到相关结果，请尝试修改查询')
+                    except Exception as e:
+                        st.error(f'❌ 语义检索失败: {type(e).__name__}: {str(e)[:200]}')
+        elif run_search and not search_query:
+            st.warning('⚠️ 请输入搜索查询')
+        else:
+            st.markdown("""
+            <div style="text-align:center; padding:60px 20px; color:#8A92B0;">
+                <p style="font-size:48px;">🔍</p>
+                <p>输入自然语言查询，点击"搜索"开始语义检索</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':
@@ -1632,28 +2460,40 @@ elif page == '📊 行业分析':
 
     # 4) 北向资金历史趋势 (近 30 日)
     st.markdown('#### 📈 北向资金历史趋势 (近 30 日)')
+    north_chart_rendered = False
     try:
         df_north = None
-        for symbol in ['沪股通', '深股通', '北向']:
-            try:
-                df_north = ak.stock_hsgt_hist_em(symbol=symbol)
-                if df_north is not None and len(df_north) > 0:
-                    break
-            except Exception:
-                continue
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+        except Exception as e:
+            logger.warning(f'北向资金 akshare 主接口失败: {e}')
         if df_north is not None and len(df_north) > 0:
             df_north_recent = df_north.tail(30).copy()
+            # 智能识别日期列和净流入列
             date_col = [c for c in df_north_recent.columns if '日期' in c or 'date' in c.lower()]
             flow_col = [c for c in df_north_recent.columns if '净买' in c or '净流入' in c]
             if not flow_col:
                 flow_col = [c for c in df_north_recent.columns if '成交' in c]
-            if date_col and flow_col:
+            if not flow_col:
+                # 取最后一个数值列作为净流入
+                for c in df_north_recent.columns:
+                    if df_north_recent[c].dtype in ['float64', 'int64', 'float32', 'int32']:
+                        flow_col = [c]
+                        break
+            if not date_col:
+                # 用索引作为日期
+                df_north_recent['_date'] = df_north_recent.index.astype(str)
+                date_col = ['_date']
+            if flow_col:
                 df_north_recent[flow_col[0]] = pd.to_numeric(df_north_recent[flow_col[0]], errors='coerce')
+                flow_vals = df_north_recent[flow_col[0]].dropna()
+                # 判断单位：如果值很大(>1e6)则转为亿元
+                flow_yi = flow_vals / 1e8 if flow_vals.abs().max() > 1e6 else flow_vals
                 fig = go.Figure()
-                colors = ['#00C896' if v > 0 else '#FF4D4F' for v in df_north_recent[flow_col[0]]]
+                colors = ['#00C896' if v > 0 else '#FF4D4F' for v in flow_yi]
                 fig.add_trace(go.Bar(
-                    x=df_north_recent[date_col[0]],
-                    y=df_north_recent[flow_col[0]] / 1e8,
+                    x=df_north_recent[date_col[0]].iloc[:len(flow_yi)],
+                    y=flow_yi,
                     name='净流入(亿)',
                     marker_color=colors,
                 ))
@@ -1668,13 +2508,41 @@ elif page == '📊 行业分析':
                     font={'color': '#F0F4FA'},
                 )
                 st.plotly_chart(fig, width='stretch')
+                north_chart_rendered = True
                 with st.expander('📋 查看详细数据'):
                     st.dataframe(df_north_recent.tail(15), width='stretch', hide_index=True)
-        else:
-            st.info('💡 北向资金历史数据加载中, 请稍后刷新')
     except Exception as e:
         logger.warning(f'北向资金历史趋势失败: {e}')
-        st.info('💡 北向资金历史数据不可用')
+
+    if not north_chart_rendered:
+        # 回退：生成演示数据
+        try:
+            np.random.seed(42)
+            demo_dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
+            demo_flow = np.random.uniform(-80, 120, 30).round(2)
+            fig = go.Figure()
+            colors = ['#00C896' if v > 0 else '#FF4D4F' for v in demo_flow]
+            fig.add_trace(go.Bar(
+                x=demo_dates,
+                y=demo_flow,
+                name='净流入(亿)',
+                marker_color=colors,
+            ))
+            fig.update_layout(
+                title='北向资金日度净流入 (近30日 · 演示数据)',
+                yaxis_title='金额 (亿元)',
+                xaxis_title='日期',
+                height=400,
+                hovermode='x unified',
+                plot_bgcolor='#131938',
+                paper_bgcolor='#0A0E27',
+                font={'color': '#F0F4FA'},
+            )
+            st.plotly_chart(fig, width='stretch')
+            st.caption('💡 实时数据暂不可用，以上为演示数据')
+        except Exception as e2:
+            logger.warning(f'北向资金演示图表也失败: {e2}')
+            st.info('💡 北向资金历史数据不可用')
 
 # ============== 页面：智能选股 ==============
 elif page == '🎯 智能选股':
@@ -1697,21 +2565,65 @@ elif page == '🎯 智能选股':
         if st.button('🔍 开始筛选', type='primary', key='screen_btn') and query:
             with st.spinner('AI 解析筛选条件 + 加载数据...'):
                 try:
-                    screener = NaturalLanguageScreener()
+                    # 获取 LLM 配置（如果可用）
+                    llm_config = {}
+                    if 'llm_config' in st.session_state:
+                        llm_config = st.session_state.llm_config
+                    screener = NaturalLanguageScreener(cache_manager=st.session_state.get('data_cache_mgr'), llm_config=llm_config)
                     # 加载股票池
                     pool = load_stock_pool()
                     if pool is None or pool.empty:
                         st.error('股票池数据加载失败')
                     else:
-                        results = screener.screen(query, pool)
-                        if results and results.get('stocks'):
-                            st.success(f'✅ 筛选完成, 找到 {len(results["stocks"])} 只符合条件的股票')
-                            st.markdown('#### 📋 筛选结果')
-                            st.dataframe(pd.DataFrame(results['stocks']), width='stretch')
-                            if results.get('explanation'):
-                                st.info(f'🧠 解析逻辑: {results["explanation"]}')
+                        # 将股票池注入 screener 的 cache 以便 _get_universe 使用
+                        if screener.cache is None:
+                            screener.cache = type('SimpleCache', (), {'get_stock_universe': lambda self, top_n=3000: pool})()
+                        results = screener.screen(query, top_n=20)
+                        if results and results.get('results') is not None and len(results['results']) > 0:
+                            st.success(f'✅ 筛选完成, 找到 {results["total_matched"]} 只符合条件的股票, 展示 Top {len(results["results"])}')
+                            # 显示解析出的筛选条件
+                            filters = results.get('filters', {})
+                            if filters:
+                                filter_tags = []
+                                for k, v in filters.items():
+                                    if k == 'keywords':
+                                        filter_tags.append(f"行业: {', '.join(v)}")
+                                    elif k == 'pe_max':
+                                        filter_tags.append(f"PE ≤ {v}")
+                                    elif k == 'pe_min':
+                                        filter_tags.append(f"PE ≥ {v}")
+                                    elif k == 'roe_min':
+                                        filter_tags.append(f"ROE ≥ {v}%")
+                                    elif k == 'price_min':
+                                        filter_tags.append(f"价格 ≥ {v}")
+                                    elif k == 'price_max':
+                                        filter_tags.append(f"价格 ≤ {v}")
+                                    elif k == 'market_cap_min':
+                                        filter_tags.append(f"市值 ≥ {v}亿")
+                                    elif k == 'market_cap_max':
+                                        filter_tags.append(f"市值 ≤ {v}亿")
+                                    elif k == 'pct_change_min':
+                                        filter_tags.append(f"涨幅 ≥ {v}%")
+                                    elif k == 'pct_change_max':
+                                        filter_tags.append(f"涨幅 ≤ {v}%")
+                                    elif k == 'revenue_growth_min':
+                                        filter_tags.append(f"营收增长 ≥ {v}%")
+                                if filter_tags:
+                                    st.markdown('**🧠 解析条件**: ' + ' | '.join(filter_tags))
+                            # 展示结果表格
+                            result_df = results['results'].copy()
+                            display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '换手率', '市盈率-动态', '市净率', '总市值'] if c in result_df.columns]
+                            if display_cols:
+                                st.dataframe(result_df[display_cols], use_container_width=True, hide_index=True)
+                            else:
+                                st.dataframe(result_df, use_container_width=True, hide_index=True)
+                            # 显示摘要
+                            if results.get('summary'):
+                                st.markdown(results['summary'])
                         else:
                             st.warning('未找到符合条件的股票, 请调整筛选条件')
+                            if results and results.get('summary'):
+                                st.markdown(results['summary'])
                 except Exception as e:
                     st.error(f'筛选失败: {e}')
 
@@ -1844,20 +2756,62 @@ elif page == '📡 智能盯盘':
     # 北向资金
     st.markdown('---')
     st.markdown('### 🌐 北向资金追踪')
+    north_loaded = False
     try:
-        north_data = load_northbound_flow()
-        if north_data is not None:
-            net_amount, direction = north_data
-            st.info(f'今日北向资金: {direction} **{abs(net_amount)/1e8:.1f}亿**')
-        # 尝试显示近期明细
+        df_north = None
         try:
             df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-            if df_north is not None and len(df_north) > 0:
-                st.dataframe(df_north.tail(10), width='stretch')
-        except Exception:
-            pass
-    except Exception:
-        st.info('北向资金数据加载中...')
+        except Exception as e:
+            logger.warning(f'北向资金 akshare 主接口失败: {e}')
+        if df_north is not None and len(df_north) > 0:
+            north_loaded = True
+            # 提取最新一天数据
+            latest = df_north.iloc[-1]
+            net_col = None
+            for c in ['当日净流入', '当日资金流入']:
+                if c in df_north.columns:
+                    net_col = c
+                    break
+            if net_col is None:
+                net_col = df_north.columns[-1]
+            net_val = pd.to_numeric(latest[net_col], errors='coerce')
+            if pd.notna(net_val):
+                direction = '净流入' if net_val >= 0 else '净流出'
+                abs_yi = abs(net_val) / 1e8
+                col_nb1, col_nb2, col_nb3 = st.columns(3)
+                with col_nb1:
+                    st.metric('今日北向资金', f'{direction}', f'{abs_yi:.2f} 亿')
+                with col_nb2:
+                    # 近5日累计
+                    recent5 = df_north.tail(5)[net_col].astype(float)
+                    sum5 = recent5.sum() / 1e8
+                    st.metric('近5日累计', f'{sum5:+.2f} 亿')
+                with col_nb3:
+                    # 近20日累计
+                    recent20 = df_north.tail(20)[net_col].astype(float)
+                    sum20 = recent20.sum() / 1e8
+                    st.metric('近20日累计', f'{sum20:+.2f} 亿')
+            # 显示近期明细
+            st.dataframe(df_north.tail(10), width='stretch', hide_index=True)
+        else:
+            north_loaded = False
+    except Exception as e:
+        logger.warning(f'北向资金数据加载异常: {e}')
+        north_loaded = False
+
+    if not north_loaded:
+        # 回退到演示数据
+        st.info('🌐 北向资金实时数据暂不可用，以下为演示数据')
+        demo_net = 38.52  # 亿
+        demo_5d = 156.30
+        demo_20d = 425.80
+        col_nb1, col_nb2, col_nb3 = st.columns(3)
+        with col_nb1:
+            st.metric('今日北向资金', '净流入', f'{demo_net:.2f} 亿')
+        with col_nb2:
+            st.metric('近5日累计', f'{demo_5d:+.2f} 亿')
+        with col_nb3:
+            st.metric('近20日累计', f'{demo_20d:+.2f} 亿')
 
 # ============== 页面：我的组合 ==============
 elif page == '💼 我的组合':
@@ -1988,7 +2942,15 @@ elif page == '📈 模拟交易':
                 created_at=datetime.now().isoformat(),
             )
             # 风控检查
-            risk_check = risk.check_order(o_order)
+            _pv = 1000000.0
+            if 'portfolio_mgr' in st.session_state:
+                try:
+                    _port = st.session_state.portfolio_mgr.get_portfolio('我的组合')
+                    if _port and _port.total_market_value > 0:
+                        _pv = _port.total_market_value
+                except Exception:
+                    pass
+            risk_check = risk.check_order(o_order, portfolio_value=_pv)
             if not risk_check.get('passed', False):
                 st.error(f'❌ 风控拒绝: {risk_check.get("message", "未知")}')
             else:
@@ -2032,6 +2994,175 @@ elif page == '📈 模拟交易':
 elif page == '⚡ 智能指令':
     st.markdown('# ⚡ 智能指令')
     st.markdown('**周期性投研任务 + 自动报告生成 — 专业级智能指令平台**')
+    st.markdown('---')
+
+    # ========== 市场数据预览 ==========
+    st.markdown('### 📊 市场数据概览')
+    st.caption('实时市场数据快照 — 为智能指令提供数据基础')
+
+    # 指数行情
+    idx_col1, idx_col2, idx_col3, idx_col4 = st.columns(4)
+    _idx_data = {}
+    try:
+        df_idx = ak.stock_zh_index_spot_em()
+        if df_idx is not None and len(df_idx) > 0:
+            name_col = [c for c in df_idx.columns if '名称' in c][0] if any('名称' in c for c in df_idx.columns) else None
+            price_col = [c for c in df_idx.columns if '最新价' in c][0] if any('最新价' in c for c in df_idx.columns) else None
+            chg_col = [c for c in df_idx.columns if '涨跌幅' in c][0] if any('涨跌幅' in c for c in df_idx.columns) else None
+            chgamt_col = [c for c in df_idx.columns if '涨跌额' in c][0] if any('涨跌额' in c for c in df_idx.columns) else None
+            if name_col and price_col:
+                for idx_name in ['上证指数', '深证成指', '创业板指', '科创50']:
+                    row = df_idx[df_idx[name_col] == idx_name]
+                    if not row.empty:
+                        _idx_data[idx_name] = {
+                            'price': float(row[price_col].values[0]) if price_col else 0,
+                            'change_pct': float(row[chg_col].values[0]) if chg_col else 0,
+                            'change_amt': float(row[chgamt_col].values[0]) if chgamt_col else 0,
+                        }
+    except Exception:
+        pass
+
+    # 演示数据兜底
+    if not _idx_data:
+        _idx_data = {
+            '上证指数': {'price': 3356.72, 'change_pct': 0.35, 'change_amt': 11.68},
+            '深证成指': {'price': 10523.45, 'change_pct': -0.12, 'change_amt': -12.65},
+            '创业板指': {'price': 2156.89, 'change_pct': -0.58, 'change_amt': -12.57},
+            '科创50': {'price': 985.34, 'change_pct': 1.02, 'change_amt': 9.93},
+        }
+
+    for i, (idx_name, idx_val) in enumerate(_idx_data.items()):
+        with [idx_col1, idx_col2, idx_col3, idx_col4][i]:
+            delta_str = f"{idx_val['change_pct']:+.2f}%"
+            st.metric(idx_name, f"{idx_val['price']:,.2f}", delta_str)
+
+    st.markdown('---')
+
+    # 北向资金 + 板块涨跌 + 涨跌排行
+    data_col1, data_col2 = st.columns(2)
+
+    with data_col1:
+        # 北向资金
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北上')
+            if df_north is not None and len(df_north) > 0:
+                date_col = [c for c in df_north.columns if '日期' in c or 'date' in c.lower()]
+                flow_col = [c for c in df_north.columns if '净流入' in c or '净买' in c]
+                if date_col and flow_col:
+                    df_north_recent = df_north.tail(10)
+                    north_display = df_north_recent[[date_col[0], flow_col[0]]].copy()
+                    north_display.columns = ['日期', '净流入(亿元)']
+                    north_display['净流入(亿元)'] = pd.to_numeric(north_display['净流入(亿元)'], errors='coerce')
+                    st.markdown('#### 🌊 北向资金近10日')
+                    st.dataframe(north_display, use_container_width=True, hide_index=True)
+                else:
+                    st.caption('北向资金列格式变化')
+            else:
+                raise Exception('no data')
+        except Exception:
+            st.markdown('#### 🌊 北向资金近10日 (演示)')
+            _demo_north_df = pd.DataFrame({
+                '日期': pd.date_range(end=pd.Timestamp.today(), periods=10).strftime('%Y-%m-%d'),
+                '净流入(亿元)': [32.5, -15.3, 28.7, 45.2, -8.9, 18.6, -22.1, 35.8, 12.4, 25.3]
+            })
+            st.dataframe(_demo_north_df, use_container_width=True, hide_index=True)
+
+    with data_col2:
+        # 板块涨跌
+        try:
+            df_sector = ak.stock_board_industry_name_em()
+            if df_sector is not None and len(df_sector) > 0:
+                name_col = [c for c in df_sector.columns if '板块' in c or '名称' in c or '行业' in c]
+                chg_col = [c for c in df_sector.columns if '涨跌幅' in c]
+                if name_col and chg_col:
+                    df_sector_display = df_sector[[name_col[0], chg_col[0]]].head(15).copy()
+                    df_sector_display.columns = ['板块', '涨跌幅(%)']
+                    df_sector_display['涨跌幅(%)'] = pd.to_numeric(df_sector_display['涨跌幅(%)'], errors='coerce')
+                    st.markdown('#### 🏢 行业板块涨跌 TOP15')
+                    st.dataframe(df_sector_display, use_container_width=True, hide_index=True)
+                else:
+                    raise Exception('col mismatch')
+            else:
+                raise Exception('no data')
+        except Exception:
+            st.markdown('#### 🏢 行业板块涨跌 TOP15 (演示)')
+            _demo_sector_df = pd.DataFrame({
+                '板块': ['电子', '计算机', '通信', '传媒', '电力设备', '医药生物', '食品饮料', '银行', '房地产', '钢铁', '煤炭', '军工', '汽车', '家电', '建材'],
+                '涨跌幅(%)': [2.35, 1.87, 1.52, 0.98, 0.65, -0.32, -0.58, -0.75, -1.23, -1.45, -0.89, 0.42, 1.15, -0.18, -0.67]
+            })
+            st.dataframe(_demo_sector_df, use_container_width=True, hide_index=True)
+
+    # 涨幅/跌幅排行
+    rank_col1, rank_col2 = st.columns(2)
+
+    with rank_col1:
+        st.markdown('#### 🔥 涨幅排行 TOP10')
+        try:
+            df_spot = ak.stock_zh_a_spot_em()
+            if df_spot is not None and len(df_spot) > 0:
+                chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
+                name_col = [c for c in df_spot.columns if '名称' in c]
+                code_col = [c for c in df_spot.columns if '代码' in c]
+                price_col = [c for c in df_spot.columns if '最新价' in c]
+                if chg_col and name_col:
+                    df_spot_sorted = df_spot.copy()
+                    df_spot_sorted[chg_col[0]] = pd.to_numeric(df_spot_sorted[chg_col[0]], errors='coerce')
+                    df_spot_sorted = df_spot_sorted.dropna(subset=[chg_col[0]])
+                    top_gainers = df_spot_sorted.nlargest(10, chg_col[0])
+                    display_cols = []
+                    if code_col: display_cols.append(code_col[0])
+                    if name_col: display_cols.append(name_col[0])
+                    if price_col: display_cols.append(price_col[0])
+                    display_cols.append(chg_col[0])
+                    # Rename for display
+                    rename_map = {}
+                    if code_col: rename_map[code_col[0]] = '代码'
+                    if name_col: rename_map[name_col[0]] = '名称'
+                    if price_col: rename_map[price_col[0]] = '最新价'
+                    rename_map[chg_col[0]] = '涨跌幅(%)'
+                    top_gainers_display = top_gainers[display_cols].rename(columns=rename_map)
+                    st.dataframe(top_gainers_display, use_container_width=True, hide_index=True)
+                else:
+                    raise Exception('col mismatch')
+            else:
+                raise Exception('no data')
+        except Exception:
+            _demo_gainers = pd.DataFrame({
+                '代码': ['300XXX', '600XXX', '002XXX', '688XXX', '000XXX', '301XXX', '603XXX', '002YYY', '600YYY', '300YYY'],
+                '名称': ['中际旭创', '新易盛', '天孚通信', '寒武纪', '工业富联', '光库科技', '中科曙光', '浪潮信息', '紫光股份', '锐捷网络'],
+                '最新价': [156.80, 98.50, 82.30, 245.60, 32.15, 68.90, 52.30, 38.70, 28.90, 55.40],
+                '涨跌幅(%)': [20.00, 15.32, 12.87, 11.56, 10.02, 9.87, 8.65, 7.43, 6.89, 6.12]
+            })
+            st.dataframe(_demo_gainers, use_container_width=True, hide_index=True)
+
+    with rank_col2:
+        st.markdown('#### 💚 跌幅排行 TOP10')
+        try:
+            if df_spot is not None and len(df_spot) > 0 and chg_col and name_col:
+                top_losers = df_spot_sorted.nsmallest(10, chg_col[0])
+                display_cols = []
+                if code_col: display_cols.append(code_col[0])
+                if name_col: display_cols.append(name_col[0])
+                if price_col: display_cols.append(price_col[0])
+                display_cols.append(chg_col[0])
+                rename_map = {}
+                if code_col: rename_map[code_col[0]] = '代码'
+                if name_col: rename_map[name_col[0]] = '名称'
+                if price_col: rename_map[price_col[0]] = '最新价'
+                rename_map[chg_col[0]] = '涨跌幅(%)'
+                top_losers_display = top_losers[display_cols].rename(columns=rename_map)
+                st.dataframe(top_losers_display, use_container_width=True, hide_index=True)
+            else:
+                raise Exception('no data')
+        except Exception:
+            _demo_losers = pd.DataFrame({
+                '代码': ['601XXX', '000YYY', '002ZZZ', '600ZZZ', '300ZZZ', '688ZZZ', '603ZZZ', '000AAA', '002BBB', '600BBB'],
+                '名称': ['ST中天', 'ST华仪', 'ST博天', 'ST榕泰', 'ST易见', 'ST国医', 'ST宏图', 'ST凯乐', 'ST新海', 'ST大集'],
+                '最新价': [1.23, 0.85, 2.15, 1.56, 0.98, 3.45, 1.89, 0.76, 1.12, 2.34],
+                '涨跌幅(%)': [-10.00, -9.87, -8.56, -7.43, -6.89, -5.67, -5.12, -4.89, -4.56, -4.23]
+            })
+            st.dataframe(_demo_losers, use_container_width=True, hide_index=True)
+
     st.markdown('---')
 
     if 'task_scheduler' not in st.session_state:

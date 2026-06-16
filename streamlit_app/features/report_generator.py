@@ -408,23 +408,61 @@ def create_word_report(data: Dict, report_type: str = 'morning') -> bytes:
         return b''
 
     doc = Document()
-    FONT_CN = '微软雅黑'
+
+    # 跨平台中文字体选择：优先使用常见中文字体，兼容 Windows/Linux/macOS
+    import platform
+    _sys = platform.system()
+    if _sys == 'Linux':
+        FONT_CN = 'WenQuanYi Micro Hei'  # Linux 常见中文字体
+    elif _sys == 'Darwin':
+        FONT_CN = 'PingFang SC'  # macOS
+    else:
+        FONT_CN = 'SimSun'  # Windows: 宋体 (最通用，避免乱码)
     FONT_EN = 'Calibri'
 
-    def set_font(run, size=10.5, bold=False, color=None):
-        run.font.name = FONT_EN
-        run.font.size = Pt(size)
-        run.font.bold = bold
-        if color:
-            run.font.color.rgb = color
-        rPr = run._element.get_or_add_rPr()
+    # 设置文档默认样式字体，防止未显式 set_font 的文本乱码
+    try:
+        style = doc.styles['Normal']
+        style.font.name = FONT_EN
+        style.font.size = Pt(10.5)
+        rPr = style.element.get_or_add_rPr()
         rFonts = rPr.find(qn('w:rFonts'))
         if rFonts is None:
             rFonts = OxmlElement('w:rFonts')
-            rPr.append(rFonts)
+            rPr.insert(0, rFonts)
         rFonts.set(qn('w:eastAsia'), FONT_CN)
         rFonts.set(qn('w:ascii'), FONT_EN)
         rFonts.set(qn('w:hAnsi'), FONT_EN)
+        rFonts.set(qn('w:cs'), FONT_CN)
+    except Exception as e:
+        logger.warning(f'设置文档默认样式字体失败: {e}')
+
+    def set_font(run, size=10.5, bold=False, color=None):
+        """设置 run 的字体，兼容中英文，防止乱码"""
+        try:
+            run.font.name = FONT_EN
+            run.font.size = Pt(size)
+            run.font.bold = bold
+            if color:
+                run.font.color.rgb = color
+            # 使用 OXML 方式设置东亚字体，确保中文不乱码
+            rPr = run._element.get_or_add_rPr()
+            rFonts = rPr.find(qn('w:rFonts'))
+            if rFonts is None:
+                rFonts = OxmlElement('w:rFonts')
+                rPr.insert(0, rFonts)  # rFonts 必须在 rPr 最前面
+            rFonts.set(qn('w:eastAsia'), FONT_CN)
+            rFonts.set(qn('w:ascii'), FONT_EN)
+            rFonts.set(qn('w:hAnsi'), FONT_EN)
+            # 设置 hint 属性帮助 Word 正确选择字体
+            rFonts.set(qn('w:cs'), FONT_CN)
+        except Exception:
+            # OXML 失败时的降级方案
+            try:
+                run.font.name = FONT_CN
+                run._element.rPr.rFonts.set(qn('w:eastAsia'), FONT_CN)
+            except Exception:
+                pass
 
     def add_para(text, size=10.5, bold=False, color=None, align=None, indent=True):
         p = doc.add_paragraph()
@@ -796,6 +834,225 @@ def _render_portfolio_report(doc, data, add_h1, add_h2, add_h3, add_para,
     add_bullet('减仓: 涨幅 > 30% 的高位股 (获利了结)')
     add_bullet('加仓: ROE > 20% + PE < 30 的高质量标的')
     add_bullet('换仓: 行业 beta > 1.5 的高波动股 → 低 beta 防御股')
+
+
+# ============== 3.5 实时数据拉取 (供 dashboard_v2 使用) ==============
+
+def fetch_macro_data() -> Dict:
+    """拉取宏观市场数据：主要指数、北向资金、涨跌停、市场宽度。
+
+    Returns:
+        dict: {
+            'source': 'akshare' | 'demo',
+            'indices': [{name, price, change, change_pct}, ...],
+            'north_flow': float,
+            'limit_up': int,
+            'limit_down': int,
+            'breadth': {'advance': int, 'decline': int, 'equal': int}
+        }
+    """
+    try:
+        import akshare as ak
+
+        # ---- 主要指数 ----
+        index_map = {
+            '上证指数': '000001',
+            '深证成指': '399001',
+            '创业板指': '399006',
+        }
+        indices = []
+        try:
+            df_idx = ak.stock_zh_index_spot_em()
+            for name, code in index_map.items():
+                row = df_idx[df_idx['代码'] == code]
+                if not row.empty:
+                    r = row.iloc[0]
+                    indices.append({
+                        'name': name,
+                        'price': float(r.get('最新价', 0)),
+                        'change': float(r.get('涨跌额', 0)),
+                        'change_pct': float(r.get('涨跌幅', 0)),
+                    })
+        except Exception as e:
+            logger.warning(f"akshare 指数数据获取失败: {e}")
+
+        # 如果指数没拿到，直接跳到 demo
+        if not indices:
+            raise RuntimeError("akshare 指数数据为空，回退 demo")
+
+        # ---- 北向资金 ----
+        north_flow = 0.0
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol="北向")
+            if not df_north.empty:
+                north_flow = float(df_north.iloc[-1]['当日净流入'])
+        except Exception as e:
+            logger.warning(f"akshare 北向资金获取失败: {e}")
+
+        # ---- 涨跌停 ----
+        limit_up, limit_down = 0, 0
+        try:
+            df_zt = ak.stock_zt_pool_em(date=datetime.now().strftime('%Y%m%d'))
+            limit_up = len(df_zt) if not df_zt.empty else 0
+        except Exception as e:
+            logger.warning(f"akshare 涨停数据获取失败: {e}")
+        try:
+            df_dt = ak.stock_zt_pool_dtgc_em(date=datetime.now().strftime('%Y%m%d'))
+            limit_down = len(df_dt) if not df_dt.empty else 0
+        except Exception as e:
+            logger.warning(f"akshare 跌停数据获取失败: {e}")
+
+        # ---- 市场宽度 (涨/跌/平家数) ----
+        breadth = {'advance': 0, 'decline': 0, 'equal': 0}
+        try:
+            df_spot = ak.stock_zh_a_spot_em()
+            if not df_spot.empty:
+                chg_col = '涨跌幅'
+                breadth['advance'] = int((df_spot[chg_col] > 0).sum())
+                breadth['decline'] = int((df_spot[chg_col] < 0).sum())
+                breadth['equal'] = int((df_spot[chg_col] == 0).sum())
+        except Exception as e:
+            logger.warning(f"akshare 市场宽度获取失败: {e}")
+
+        return {
+            'source': 'akshare',
+            'indices': indices,
+            'north_flow': north_flow,
+            'limit_up': limit_up,
+            'limit_down': limit_down,
+            'breadth': breadth,
+        }
+
+    except Exception as e:
+        logger.warning(f"fetch_macro_data 回退 demo 数据: {e}")
+        return {
+            'source': 'demo',
+            'indices': [
+                {'name': '上证指数', 'price': 3358.47, 'change': 18.32, 'change_pct': 0.55},
+                {'name': '深证成指', 'price': 10246.83, 'change': -42.15, 'change_pct': -0.41},
+                {'name': '创业板指', 'price': 2067.39, 'change': -12.68, 'change_pct': -0.61},
+            ],
+            'north_flow': 38.52,
+            'limit_up': 42,
+            'limit_down': 8,
+            'breadth': {'advance': 2865, 'decline': 2156, 'equal': 198},
+        }
+
+
+def fetch_industry_data(top_n: int = 10) -> List[Dict]:
+    """拉取行业板块涨跌及资金流向数据。
+
+    Args:
+        top_n: 返回前 N 个行业 (按涨跌幅排序)
+
+    Returns:
+        list[dict]: [{name, change_pct, net_flow, lead_stock}, ...]
+    """
+    try:
+        import akshare as ak
+
+        # ---- 行业板块行情 ----
+        df_board = ak.stock_board_industry_name_em()
+        if df_board.empty:
+            raise RuntimeError("akshare 行业板块数据为空，回退 demo")
+
+        # 排序取 top_n (涨跌幅绝对值最大的)
+        df_board = df_board.sort_values('涨跌幅', ascending=False).head(top_n)
+
+        results = []
+        for _, row in df_board.iterrows():
+            board_name = str(row.get('板块名称', ''))
+            change_pct = float(row.get('涨跌幅', 0))
+            net_flow = 0.0
+            lead_stock = ''
+
+            # 尝试获取板块成分股以找领涨股
+            try:
+                df_cons = ak.stock_board_industry_cons_em(symbol=board_name)
+                if not df_cons.empty:
+                    df_cons_sorted = df_cons.sort_values('涨跌幅', ascending=False)
+                    lead_stock = str(df_cons_sorted.iloc[0].get('名称', ''))
+                    # 尝试获取净流入
+                    nf_col = '主力净流入-净额' if '主力净流入-净额' in df_cons.columns else None
+                    if nf_col:
+                        net_flow = float(df_cons[nf_col].sum())
+            except Exception as e:
+                logger.debug(f"获取行业 {board_name} 成分股失败: {e}")
+
+            results.append({
+                'name': board_name,
+                'change_pct': round(change_pct, 2),
+                'net_flow': round(net_flow, 2),
+                'lead_stock': lead_stock or '—',
+            })
+
+        return results
+
+    except Exception as e:
+        logger.warning(f"fetch_industry_data 回退 demo 数据: {e}")
+        demo_data = [
+            {'name': '半导体', 'change_pct': 3.82, 'net_flow': 2865000000.0, 'lead_stock': '中芯国际'},
+            {'name': '光伏设备', 'change_pct': 2.97, 'net_flow': 1920000000.0, 'lead_stock': '隆基绿能'},
+            {'name': '电池', 'change_pct': 2.45, 'net_flow': 1540000000.0, 'lead_stock': '宁德时代'},
+            {'name': '消费电子', 'change_pct': 1.88, 'net_flow': 980000000.0, 'lead_stock': '立讯精密'},
+            {'name': '汽车整车', 'change_pct': 1.53, 'net_flow': 720000000.0, 'lead_stock': '比亚迪'},
+            {'name': '军工', 'change_pct': 1.26, 'net_flow': 510000000.0, 'lead_stock': '中航沈飞'},
+            {'name': '白酒', 'change_pct': 0.87, 'net_flow': 340000000.0, 'lead_stock': '贵州茅台'},
+            {'name': '医药商业', 'change_pct': 0.62, 'net_flow': -120000000.0, 'lead_stock': '益丰药房'},
+            {'name': '房地产', 'change_pct': -0.95, 'net_flow': -860000000.0, 'lead_stock': '万科A'},
+            {'name': '银行', 'change_pct': -1.12, 'net_flow': -1150000000.0, 'lead_stock': '招商银行'},
+        ]
+        return demo_data[:top_n]
+
+
+def fetch_money_flow() -> Dict:
+    """拉取资金流向数据：北向资金、主力资金、散户资金。
+
+    Returns:
+        dict: {'north_flow': float, 'main_flow': float, 'retail_flow': float}
+    """
+    try:
+        import akshare as ak
+
+        north_flow = 0.0
+        main_flow = 0.0
+        retail_flow = 0.0
+
+        # ---- 北向资金 ----
+        try:
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol="北向")
+            if not df_north.empty:
+                north_flow = float(df_north.iloc[-1]['当日净流入'])
+        except Exception as e:
+            logger.warning(f"akshare 北向资金获取失败: {e}")
+
+        # ---- 主力 / 散户资金 ----
+        try:
+            df_flow = ak.stock_market_fund_flow()
+            if not df_flow.empty:
+                last = df_flow.iloc[-1]
+                main_flow = float(last.get('主力净流入-净额', 0))
+                retail_flow = float(last.get('散户净流入-净额', 0))
+        except Exception as e:
+            logger.warning(f"akshare 主力/散户资金获取失败: {e}")
+
+        # 如果全部为 0 则视为失败
+        if north_flow == 0.0 and main_flow == 0.0 and retail_flow == 0.0:
+            raise RuntimeError("akshare 资金流向数据全为 0，回退 demo")
+
+        return {
+            'north_flow': north_flow,
+            'main_flow': main_flow,
+            'retail_flow': retail_flow,
+        }
+
+    except Exception as e:
+        logger.warning(f"fetch_money_flow 回退 demo 数据: {e}")
+        return {
+            'north_flow': 38.52,
+            'main_flow': -126.73,
+            'retail_flow': 88.21,
+        }
 
 
 # ============== 4. Streamlit 交互式 UI ==============
