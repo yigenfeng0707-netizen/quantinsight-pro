@@ -500,16 +500,41 @@ def load_stock_pool():
     """加载 A 股股票池（部分代表性股票）"""
     try:
         df = ak.stock_zh_a_spot_em()
-        return df.head(200)  # 取前 200 只做演示
+        if df is not None and len(df) > 0:
+            return df.head(200)  # 取前 200 只做演示
     except Exception:
-        # Fallback: 静态列表
-        return pd.DataFrame({
-            '代码': ['600519', '000858', '601318', '600036', '000333',
-                    '601012', '002594', '300750', '600276', '601888'],
-            '名称': ['贵州茅台', '五粮液', '中国平安', '招商银行', '美的集团',
-                    '隆基绿能', '比亚迪', '宁德时代', '恒瑞医药', '中国中免'],
-            '最新价': [1680, 145, 48, 35, 68, 22, 240, 220, 45, 95],
-        })
+        pass
+    # Fallback: 静态列表（包含完整列以支持筛选）
+    return pd.DataFrame({
+        '代码': ['600519', '000858', '601318', '600036', '000333',
+                '601012', '002594', '300750', '600276', '601888',
+                '601398', '600030', '000001', '002230', '688981',
+                '600048', '000002', '601919', '600754', '002129'],
+        '名称': ['贵州茅台', '五粮液', '中国平安', '招商银行', '美的集团',
+                '隆基绿能', '比亚迪', '宁德时代', '恒瑞医药', '中国中免',
+                '工商银行', '中信证券', '平安银行', '科大讯飞', '中芯国际',
+                '保利发展', '万科A', '中远海控', '锦江酒店', '中环股份'],
+        '最新价': [1680, 145, 48, 35, 68, 22, 240, 220, 45, 95,
+                 5.2, 22.5, 11.8, 52, 48, 12.5, 8.2, 14.6, 32, 18],
+        '涨跌幅': [1.25, 0.86, -0.52, 0.38, 1.56, -1.23, 2.85, 3.12, -0.67, 0.95,
+                 0.19, 1.82, 0.34, 4.25, 2.16, -0.48, -1.35, 1.67, 0.78, -0.92],
+        '换手率': [0.35, 0.82, 0.28, 0.45, 1.23, 2.15, 1.56, 1.88, 0.67, 1.12,
+                 0.12, 1.45, 0.56, 3.25, 2.88, 0.78, 1.35, 0.92, 1.15, 2.45],
+        '市盈率-动态': [28.5, 22.3, 9.8, 6.2, 14.5, 18.2, 35.6, 42.8, 38.5, 25.6,
+                     5.8, 18.5, 5.2, 120.5, 85.2, 8.5, -12.3, 6.8, 32.5, 28.6],
+        '市净率': [9.5, 6.2, 1.2, 0.95, 3.8, 2.1, 5.6, 7.2, 6.8, 4.5,
+                 0.68, 1.65, 0.55, 8.5, 3.2, 0.85, 0.72, 1.35, 3.2, 2.8],
+        '总市值': [2110000000000, 562000000000, 875000000000, 882000000000, 473000000000,
+                 167000000000, 696000000000, 968000000000, 288000000000, 196000000000,
+                 1850000000000, 334000000000, 229000000000, 128000000000, 380000000000,
+                 225000000000, 98000000000, 185000000000, 312000000000, 62000000000],
+        '成交额': [5880000000, 4600000000, 2450000000, 3960000000, 5820000000,
+                 3590000000, 10860000000, 18200000000, 1930000000, 2190000000,
+                 2220000000, 4850000000, 1280000000, 4160000000, 10930000000,
+                 1760000000, 1320000000, 1700000000, 3590000000, 1520000000],
+        '60日涨跌幅': [8.5, 5.2, -3.8, 2.1, 12.3, -8.5, 18.6, 22.5, -5.2, 6.8,
+                    1.2, 9.5, 0.8, 25.6, 15.2, -2.5, -8.8, 12.5, 4.2, -6.5],
+    })
 
 # ============== AI 问答模块（模拟）==============
 def ai_qa_mock(question):
@@ -1777,30 +1802,46 @@ elif page == '🔬 因子挖掘与IC测试':
                     with st.spinner('正在挖掘Alpha因子...'):
                         try:
                             miner = AlphaFactorMiner()
-                            mine_result = miner.mine(stock=mine_stock, universe=mine_universe,
-                                                     method=mine_method)
-                            if mine_result and mine_result.get('factors'):
-                                st.success(f"✅ 发现 {len(mine_result['factors'])} 个有效因子")
-                                # 因子表格
-                                factors_df = pd.DataFrame(mine_result['factors'])
-                                st.dataframe(factors_df, use_container_width=True, hide_index=True)
+                            from features.qlib_integration import generate_demo_data
+                            demo_df = generate_demo_data(n_stocks=50, n_days=500)
+                            result_df = miner.mine_all_factors(demo_df)
+                            if result_df is not None and len(result_df) > 0:
+                                st.success(f"✅ 发现 {len(result_df.columns)} 个因子维度")
+                                st.dataframe(result_df.head(20), use_container_width=True)
 
-                                # IC热力图
-                                if mine_result.get('ic_matrix') is not None:
-                                    ic_matrix = pd.DataFrame(mine_result['ic_matrix'])
-                                    fig_ic = px.imshow(
-                                        ic_matrix,
-                                        color_continuous_scale=['#FF4D4F', '#0A0E27', '#00C896'],
-                                        title='因子IC热力图',
-                                        aspect='auto'
-                                    )
-                                    fig_ic.update_layout(
-                                        paper_bgcolor='rgba(0,0,0,0)',
-                                        plot_bgcolor='rgba(0,0,0,0)',
-                                        font=dict(color='#E0E0E0'),
-                                        title_font_color=BRAND_CYAN
-                                    )
-                                    st.plotly_chart(fig_ic, use_container_width=True)
+                                # IC heatmap using FactorICTester
+                                tester = FactorICTester()
+                                # 计算部分因子的IC
+                                factor_cols = [c for c in result_df.columns if c not in ['date', 'stock', 'open', 'high', 'low', 'close', 'volume']][:10]
+                                if factor_cols and 'close' in result_df.columns:
+                                    try:
+                                        ic_data = {}
+                                        for fc in factor_cols:
+                                            if result_df[fc].notna().sum() > 10:
+                                                fwd_ret = result_df['close'].pct_change(5).shift(-5)
+                                                valid = pd.DataFrame({'factor': result_df[fc], 'return': fwd_ret}).dropna()
+                                                if len(valid) > 20:
+                                                    ic_data[fc] = tester.compute_ic(valid['factor'], valid['return'])
+                                        if ic_data:
+                                            ic_series = pd.Series(ic_data, name='IC')
+                                            ic_summary = tester.ic_summary(ic_series)
+                                            st.markdown(f"**IC均值**: {ic_summary['mean_ic']:.4f} | **IC_IR**: {ic_summary['ic_ir']:.4f} | **IC>0占比**: {ic_summary['ic_positive_ratio']:.1%}")
+                                            fig_ic = px.bar(
+                                                x=list(ic_data.keys()), y=list(ic_data.values()),
+                                                color=list(ic_data.values()),
+                                                color_continuous_scale=['#FF4D4F', '#0A0E27', '#00C896'],
+                                                title='因子IC值',
+                                                labels={'x': '因子', 'y': 'IC'}
+                                            )
+                                            fig_ic.update_layout(
+                                                paper_bgcolor='rgba(0,0,0,0)',
+                                                plot_bgcolor='rgba(0,0,0,0)',
+                                                font=dict(color='#E0E0E0'),
+                                                title_font_color=BRAND_CYAN
+                                            )
+                                            st.plotly_chart(fig_ic, use_container_width=True)
+                                    except Exception as ic_err:
+                                        st.warning(f'IC计算部分失败: {ic_err}')
                             else:
                                 st.info('未发现显著因子，请尝试调整参数或更换股票池')
                         except Exception as e:
@@ -2260,6 +2301,23 @@ elif page == '🔍 语义检索':
                 with st.spinner('正在语义检索...'):
                     try:
                         vector_store = SentimentVectorStore()
+                        # Add demo documents if store is empty
+                        if len(getattr(vector_store, 'documents', [])) == 0:
+                            demo_docs = [
+                                {'text': '贵州茅台2026年一季报：营收同比增长15.3%，净利润增长18.7%，超市场预期', 'date': '2026-04-28', 'source': '研报', 'stock_codes': ['600519']},
+                                {'text': '白酒行业景气度持续回升，北向资金近5日净流入23.6亿元', 'date': '2026-06-10', 'source': '新闻', 'stock_codes': ['600519', '000858']},
+                                {'text': '茅台推出新品系列，瞄准年轻消费市场，券商普遍给予买入评级', 'date': '2026-06-08', 'source': '研报', 'stock_codes': ['600519']},
+                                {'text': '新能源汽车6月销量预计突破120万辆，产业链景气度高涨', 'date': '2026-06-12', 'source': '新闻', 'stock_codes': ['002594', '300750']},
+                                {'text': '半导体国产替代加速，中芯国际产能利用率回升至90%', 'date': '2026-06-09', 'source': '研报', 'stock_codes': ['688981']},
+                                {'text': '央行下调LPR利率10个基点，市场流动性宽松预期增强', 'date': '2026-06-15', 'source': '公告', 'stock_codes': []},
+                                {'text': '宁德时代发布新一代麒麟电池，能量密度提升20%', 'date': '2026-06-11', 'source': '新闻', 'stock_codes': ['300750']},
+                                {'text': '招商银行零售业务数字化转型成效显著，ROE保持行业领先', 'date': '2026-05-20', 'source': '研报', 'stock_codes': ['600036']},
+                                {'text': '光伏产业链价格企稳，隆基绿能海外订单大幅增长', 'date': '2026-06-07', 'source': '新闻', 'stock_codes': ['601012']},
+                                {'text': '恒瑞医药创新药管线进入收获期，3个新药获批上市', 'date': '2026-06-06', 'source': '研报', 'stock_codes': ['600276']},
+                                {'text': '比亚迪海外销量突破5万辆，全球化战略加速推进', 'date': '2026-06-13', 'source': '新闻', 'stock_codes': ['002594']},
+                                {'text': '美的集团智能家居生态布局完善，海外收入占比超40%', 'date': '2026-05-15', 'source': '研报', 'stock_codes': ['000333']},
+                            ]
+                            vector_store.add_documents(demo_docs)
                         results = vector_store.search(query=search_query, top_k=search_top_k)
 
                         if results:
@@ -2718,11 +2776,45 @@ elif page == '🎯 智能选股':
 
         stocks = [s for s in [s1, s2, s3, s4, s5] if s.strip()]
         if st.button('⚖️ 开始对比', key='compare_btn') and stocks:
-            comparator = StockComparator()
+            # Use DataCacheManager to provide stock data
+            try:
+                cache_mgr = st.session_state.get('data_cache_mgr')
+                if cache_mgr is None:
+                    try:
+                        cache_mgr = DataCacheManager(EastMoneyChoiceSource())
+                        st.session_state.data_cache_mgr = cache_mgr
+                    except Exception:
+                        cache_mgr = None
+                comparator = StockComparator(cache_manager=cache_mgr)
+            except Exception:
+                comparator = StockComparator()
             try:
                 result = comparator.compare(stocks)
-                if result:
-                    st.dataframe(pd.DataFrame(result.get('comparison', [])), use_container_width=True)
+                if result and result.get('comparison_df') is not None and len(result['comparison_df']) > 0:
+                    st.dataframe(result['comparison_df'], use_container_width=True, hide_index=True)
+                    # 雷达图
+                    radar_data = result.get('radar_data', {})
+                    if radar_data and radar_data.get('dimensions') and radar_data.get('values'):
+                        fig_radar = go.Figure()
+                        for code, vals in radar_data['values'].items():
+                            fig_radar.add_trace(go.Scatterpolar(
+                                r=vals + [vals[0]] if vals else [],
+                                theta=radar_data['dimensions'] + [radar_data['dimensions'][0]] if radar_data['dimensions'] else [],
+                                fill='toself',
+                                name=str(code),
+                                opacity=0.6,
+                            ))
+                        fig_radar.update_layout(
+                            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                            showlegend=True,
+                            title='多维度雷达图',
+                            height=400,
+                        )
+                        st.plotly_chart(fig_radar, use_container_width=True)
+                    if result.get('summary'):
+                        st.markdown(result['summary'])
+                else:
+                    st.warning('⚠️ 未找到相关股票数据，请检查输入的代码或名称')
             except Exception as e:
                 st.error(f'对比失败: {e}')
 
@@ -2733,9 +2825,10 @@ elif page == '🔍 个股分析':
     st.markdown('---')
 
     # 股票代码/名称输入
+    default_stock = st.session_state.pop('_hot_stock_code', '')
     stock_input = st.text_input(
         '🔎 输入股票代码或名称',
-        value='',
+        value=default_stock,
         placeholder='例如: 600519 或 贵州茅台',
         key='individual_stock_input'
     )
@@ -3054,7 +3147,8 @@ elif page == '🔍 个股分析':
         for i, (code, name) in enumerate(hot_stocks):
             with cols[i % 3]:
                 if st.button(f'📌 {name} ({code})', key=f'hot_stock_{code}', width='stretch'):
-                    st.session_state.individual_stock_input = code
+                    # Can't modify widget key after instantiation, use callback key
+                    st.session_state['_hot_stock_code'] = code
                     st.rerun()
 
 # ============== 页面：智能盯盘 ==============

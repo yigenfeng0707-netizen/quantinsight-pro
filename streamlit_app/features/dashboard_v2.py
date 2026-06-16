@@ -222,40 +222,7 @@ def render_limit_monitor(macro: Dict):
         ('上涨家数', up_count, COLORS['green'], '📈'),
         ('下跌家数', down_count, COLORS['red'], '📉'),
     ]
-    for col, (label, value, color, icon) in zip(col1, [metrics[0]]):
-        with col:
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, {color}33 0%, {color}11 100%);
-                        padding: 16px; border-radius: 10px; text-align: center;
-                        border: 1px solid {color};">
-                <div style="color: {color}; font-size: 0.8rem; font-weight: 600;">{icon} {label}</div>
-                <div style="color: {color}; font-size: 1.6rem; font-weight: 800; margin-top: 4px;">{value}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    for col, (label, value, color, icon) in zip(col2, [metrics[1]]):
-        with col:
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, {color}33 0%, {color}11 100%);
-                        padding: 16px; border-radius: 10px; text-align: center;
-                        border: 1px solid {color};">
-                <div style="color: {color}; font-size: 0.8rem; font-weight: 600;">{icon} {label}</div>
-                <div style="color: {color}; font-size: 1.6rem; font-weight: 800; margin-top: 4px;">{value}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    for col, (label, value, color, icon) in zip(col3, [metrics[2]]):
-        with col:
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, {color}33 0%, {color}11 100%);
-                        padding: 16px; border-radius: 10px; text-align: center;
-                        border: 1px solid {color};">
-                <div style="color: {color}; font-size: 0.8rem; font-weight: 600;">{icon} {label}</div>
-                <div style="color: {color}; font-size: 1.6rem; font-weight: 800; margin-top: 4px;">{value}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    for col, (label, value, color, icon) in zip(col4, [metrics[3]]):
+    for col, (label, value, color, icon) in zip([col1, col2, col3, col4], metrics):
         with col:
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, {color}33 0%, {color}11 100%);
