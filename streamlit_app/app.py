@@ -20,6 +20,7 @@ import os
 import requests
 import json
 import math
+import time
 
 import logging
 logging.basicConfig(level=logging.WARNING)
@@ -651,6 +652,7 @@ page_options = [
     '🏠 首页',
     '🤖 AI 投研问答',
     '🎯 智能选股',
+    '🔍 个股分析',
     '📊 实时数据看板',
     '📡 智能盯盘',
     '💼 我的组合',
@@ -1011,9 +1013,18 @@ elif page == '🤖 AI 投研问答':
 
             if use_multi_agent:
                 try:
-                    # 初始化 MainAgent
-                    if 'main_agent' not in st.session_state:
-                        st.session_state.main_agent = MainAgent(llm_config=llm_config)
+                    # 初始化 MainAgent (传入 cache_manager 和 llm_config)
+                    if 'data_cache_mgr' not in st.session_state:
+                        try:
+                            st.session_state.data_cache_mgr = DataCacheManager(EastMoneyChoiceSource())
+                        except Exception:
+                            st.session_state.data_cache_mgr = None
+                    if 'main_agent' not in st.session_state or st.session_state.get('_ma_llm_key') != llm_config.get('api_key'):
+                        st.session_state.main_agent = MainAgent(
+                            cache_manager=st.session_state.data_cache_mgr,
+                            llm_config=llm_config
+                        )
+                        st.session_state['_ma_llm_key'] = llm_config.get('api_key')
                     agent = st.session_state.main_agent
                     # 构建历史格式
                     agent_history = []
@@ -1685,7 +1696,7 @@ elif page == '📈 量化策略回测':
                 hovermode='x unified',
                 height=500,
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
             # 回撤曲线
             cummax = nav_series.cummax()
@@ -1702,7 +1713,7 @@ elif page == '📈 量化策略回测':
                 hovermode='x unified',
                 height=300,
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
             # 详细数据
             st.markdown('### 📋 详细数据 (最近 30 个交易日)')
@@ -1713,7 +1724,7 @@ elif page == '📈 量化策略回测':
                 'nav': nav_series.values,
                 'benchmark': benchmark_nav.values,
             })
-            st.dataframe(detail_df.tail(30), width='stretch')
+            st.dataframe(detail_df.tail(30), use_container_width=True)
 
             st.caption(f'📊 数据源: akshare (新浪财经) | 回测期: {start_date} 至今 | 共 {len(bt_df)} 个交易日')
         except Exception as e:
@@ -1825,20 +1836,41 @@ elif page == '🔬 因子挖掘与IC测试':
                     with st.spinner('正在运行IC测试...'):
                         try:
                             tester = FactorICTester()
-                            ic_result = tester.test(factor=ic_factor, universe=ic_stock_pool,
-                                                    period=ic_period)
+                            # 使用演示数据计算 IC
+                            from features.qlib_integration import generate_demo_data
+                            demo_df = generate_demo_data(n_days=ic_period, n_stocks=10)
+                            # 构造因子值和远期收益
+                            factor_values = demo_df.pivot(index='date', columns='stock', values='close').pct_change(20).stack()
+                            factor_values.name = 'factor'
+                            forward_returns = demo_df.pivot(index='date', columns='stock', values='close').pct_change(5).shift(-5).stack()
+                            forward_returns.name = 'return'
+                            # 计算单期 IC
+                            ic_val = tester.compute_ic(factor_values, forward_returns)
+                            # 计算 IC 序列
+                            ic_series = tester.compute_ic_series(
+                                factor_values.to_frame('factor'),
+                                forward_returns.to_frame('return'),
+                                periods=20
+                            )
+                            # IC 汇总统计
+                            ic_stats = tester.ic_summary(ic_series)
+                            ic_result = {
+                                'summary': ic_stats,
+                                'ic_series': ic_series,
+                                'ic_val': ic_val,
+                            }
                             if ic_result:
                                 # IC统计摘要
                                 ic_stats = ic_result.get('summary', {})
                                 c1, c2, c3, c4 = st.columns(4)
                                 with c1:
-                                    st.metric('IC均值', f"{ic_stats.get('ic_mean', 0):.4f}")
+                                    st.metric('IC均值', f"{ic_stats.get('mean_ic', 0):.4f}")
                                 with c2:
                                     st.metric('IC标准差', f"{ic_stats.get('ic_std', 0):.4f}")
                                 with c3:
-                                    st.metric('ICIR', f"{ic_stats.get('icir', 0):.2f}")
+                                    st.metric('ICIR', f"{ic_stats.get('ic_ir', 0):.2f}")
                                 with c4:
-                                    ic_hit = ic_stats.get('ic_hit_rate', 0)
+                                    ic_hit = ic_stats.get('ic_positive_ratio', 0)
                                     st.metric('IC胜率', f"{ic_hit:.1%}")
 
                                 # IC时序图
@@ -1924,46 +1956,47 @@ elif page == '🔄 宏观因子融合':
         if HAS_MACRO_FUSION:
             try:
                 model = MacroFactorModel()
-                regime = model.get_current_regime()
-                macro_score = model.get_macro_score()
-                alloc_signal = model.get_allocation_signal()
+                demo_factors = model.generate_demo_factors()
+                regime = model.macro_regime_detection(demo_factors)
+                macro_score_result = model.compute_macro_score(demo_factors)
+                alloc_signal = model.generate_macro_signal(regime.get('regime', 'recovery'))
 
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    regime_name = regime.get('name', 'N/A') if isinstance(regime, dict) else str(regime)
-                    regime_emoji = {'复苏': '🌱', '过热': '🔥', '滞胀': '⚠️', '衰退': '❄️'}.get(regime_name, '🔄')
-                    st.metric('当前周期', f'{regime_emoji} {regime_name}')
+                    regime_name = regime.get('regime', 'N/A')
+                    regime_emoji = {'recovery': '🌱', 'expansion': '🔥', 'stagflation': '⚠️', 'recession': '❄️'}.get(regime_name, '🔄')
+                    regime_cn = {'recovery': '复苏', 'expansion': '过热', 'stagflation': '滞胀', 'recession': '衰退'}.get(regime_name, regime_name)
+                    st.metric('当前周期', f'{regime_emoji} {regime_cn}')
                 with c2:
-                    score_val = macro_score if isinstance(macro_score, (int, float)) else 0
-                    st.metric('宏观评分', f'{score_val:.1f}',
-                              delta=f'{score_val - 50:.1f}' if score_val else None)
+                    score_val = macro_score_result.get('composite_score', 0)
+                    st.metric('宏观评分', f'{score_val:.2f}',
+                              delta=f'{score_val:.2f}')
                 with c3:
-                    signal_val = alloc_signal.get('signal', 'N/A') if isinstance(alloc_signal, dict) else str(alloc_signal)
+                    signal_val = alloc_signal.get('risk_level', 'N/A')
                     st.metric('配置信号', signal_val)
 
                 # 宏观因子雷达图
-                if isinstance(regime, dict) and regime.get('factors'):
-                    factors = regime['factors']
-                    if isinstance(factors, dict):
-                        fig_radar = go.Figure()
-                        fig_radar.add_trace(go.Scatterpolar(
-                            r=list(factors.values()),
-                            theta=list(factors.keys()),
-                            fill='toself',
-                            fillcolor=f'rgba(0,212,255,0.2)',
-                            line=dict(color=BRAND_CYAN, width=2),
-                            name='当前状态'
-                        ))
-                        fig_radar.update_layout(
-                            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-                            showlegend=False,
-                            title='宏观因子雷达',
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#E0E0E0'),
-                            title_font_color=BRAND_CYAN,
-                            height=400
-                        )
-                        st.plotly_chart(fig_radar, use_container_width=True)
+                cat_scores = macro_score_result.get('category_scores', {})
+                if cat_scores:
+                    fig_radar = go.Figure()
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=list(cat_scores.values()),
+                        theta=list(cat_scores.keys()),
+                        fill='toself',
+                        fillcolor=f'rgba(0,212,255,0.2)',
+                        line=dict(color=BRAND_CYAN, width=2),
+                        name='当前状态'
+                    ))
+                    fig_radar.update_layout(
+                        polar=dict(radialaxis=dict(visible=True, range=[-1, 1])),
+                        showlegend=False,
+                        title='宏观因子雷达',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#E0E0E0'),
+                        title_font_color=BRAND_CYAN,
+                        height=400
+                    )
+                    st.plotly_chart(fig_radar, use_container_width=True)
             except Exception as e:
                 st.error(f'❌ 宏观周期加载失败: {type(e).__name__}: {str(e)[:200]}')
         else:
@@ -1977,20 +2010,27 @@ elif page == '🔄 宏观因子融合':
         if HAS_MACRO_FUSION:
             try:
                 engine = FactorFusionEngine()
-                composite = engine.get_composite_score()
-                weights = engine.get_regime_adjusted_weights()
+                # 使用演示数据调用 fuse_factors
+                quant_factors = {"PE": -0.3, "PB": -0.2, "ROE": 0.5, "毛利率": 0.3, "营收增速": 0.4, "动量_20日": 0.6, "动量_60日": 0.4}
+                macro_model = MacroFactorModel()
+                macro_factors = macro_model.generate_demo_factors()
+                alt_signals = {"卫星信号": 0.3, "舆情信号": 0.5, "供应链信号": -0.2}
+                fused = engine.fuse_factors(quant_factors, macro_factors, alt_signals)
+                composite_result = engine.compute_composite_score(fused)
+                regime_weights = engine.regime_adjusted_weights(fused.get('regime', 'recovery'))
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    comp_val = composite if isinstance(composite, (int, float)) else 0
+                    comp_val = composite_result.get('adjusted_composite', 0)
                     st.metric('综合得分', f'{comp_val:.2f}',
-                              delta='偏多' if comp_val > 0 else '偏空')
+                              delta=composite_result.get('rating', '中性'))
 
                     # 权重饼图
-                    if isinstance(weights, dict) and weights:
+                    dim_weights = regime_weights.get('dimension_weights', {})
+                    if isinstance(dim_weights, dict) and dim_weights:
                         fig_wt = px.pie(
-                            values=list(weights.values()),
-                            names=list(weights.keys()),
+                            values=list(dim_weights.values()),
+                            names=list(dim_weights.keys()),
                             title='周期自适应权重',
                             color_discrete_sequence=[BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN]
                         )
@@ -2004,12 +2044,12 @@ elif page == '🔄 宏观因子融合':
 
                 with c2:
                     # 因子贡献度条形图
-                    if isinstance(weights, dict) and weights:
+                    if isinstance(dim_weights, dict) and dim_weights:
                         fig_bar = go.Figure()
                         fig_bar.add_trace(go.Bar(
-                            x=list(weights.keys()),
-                            y=list(weights.values()),
-                            marker_color=[BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN][:len(weights)]
+                            x=list(dim_weights.keys()),
+                            y=list(dim_weights.values()),
+                            marker_color=[BRAND_CYAN, BRAND_GOLD, BRAND_PURPLE, BRAND_GREEN][:len(dim_weights)]
                         ))
                         fig_bar.update_layout(
                             title='因子贡献度',
@@ -2033,19 +2073,13 @@ elif page == '🔄 宏观因子融合':
         if HAS_MACRO_FUSION:
             try:
                 dashboard = ExabelStyleDashboard()
-                overview = dashboard.get_signal_overview()
-                corr_matrix = dashboard.get_correlation_matrix()
+                overview_df = dashboard.compute_signal_overview()
+                corr_matrix = dashboard.compute_signal_correlation_matrix()
 
                 # 信号概览
-                if isinstance(overview, dict) and overview:
+                if isinstance(overview_df, pd.DataFrame) and not overview_df.empty:
                     st.markdown('#### 📊 信号概览')
-                    ov_cols = st.columns(min(len(overview), 5))
-                    for i, (k, v) in enumerate(overview.items()):
-                        if i < len(ov_cols):
-                            with ov_cols[i]:
-                                val = v if isinstance(v, (int, float)) else 0
-                                color = BRAND_GREEN if val > 0 else BRAND_RED
-                                st.metric(k, f'{val:.2f}' if isinstance(v, (int, float)) else str(v))
+                    st.dataframe(overview_df, use_container_width=True)
 
                 # 相关性矩阵热力图
                 if corr_matrix is not None:
@@ -2106,14 +2140,32 @@ elif page == '📡 信号验证中心':
                     # 使用SignalVerifier
                     if HAS_QLIB:
                         verifier = SignalVerifier()
-                        verify_result = verifier.verify(signal_type=sig_key, period=verify_period)
+                        # 生成演示信号和价格数据
+                        from features.qlib_integration import generate_demo_data
+                        demo_df = generate_demo_data(n_days=verify_period, n_stocks=5)
+                        # 构造信号数据 (使用动量因子作为信号)
+                        signal_df = demo_df[['date', 'stock', 'close']].copy()
+                        signal_df['signal'] = demo_df.groupby('stock')['close'].pct_change(20).values
+                        price_df = demo_df[['date', 'stock', 'close']].copy()
+                        verify_result = verifier.verify_signal(signal_df, price_df, method='ic')
                     else:
                         verify_result = None
 
                     # 使用SignalVerificationData
                     if HAS_MACRO_FUSION:
                         sv_data = SignalVerificationData()
-                        sv_result = sv_data.get_verification(signal_type=sig_key)
+                        sv_result_obj = sv_data.verify_alt_signal(signal_name=sig_key)
+                        # 转换为 dict 格式
+                        sv_result = {
+                            'ic': sv_result_obj.ic,
+                            'ic_ir': sv_result_obj.ic_ir,
+                            'hit_rate': sv_result_obj.hit_rate,
+                            'p_value': sv_result_obj.p_value,
+                            'half_life': sv_result_obj.decay_half_life,
+                            'turnover': sv_result_obj.turnover,
+                            'is_significant': sv_result_obj.is_significant,
+                            'confidence': sv_result_obj.confidence,
+                        }
                     else:
                         sv_result = None
 
@@ -2360,16 +2412,16 @@ elif page == '📊 行业分析':
                      title=f'{selected_industry} 涨跌幅 TOP 20',
                      hover_data=hover_cols if hover_cols else None)
         fig.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
 
     # 完整数据表
     st.markdown('### 📋 完整成分股数据')
     try:
         display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量', '市盈率-动态'] if c in df_industry.columns]
         if display_cols:
-            st.dataframe(df_industry[display_cols].head(50), width='stretch')
+            st.dataframe(df_industry[display_cols].head(50), use_container_width=True)
         else:
-            st.dataframe(df_industry.head(50), width='stretch')
+            st.dataframe(df_industry.head(50), use_container_width=True)
     except Exception as e:
         logger.warning(f'DataFrame display error: {e}')
         st.info('数据表格加载中，请刷新页面重试')
@@ -2411,8 +2463,13 @@ elif page == '📊 行业分析':
                 top3 = df_sector.head(3)
                 top3_html = ""
                 for _, row in top3.iterrows():
-                    name = row.get('名称', 'N/A')
-                    pct = row.get('今日涨跌幅', 0)
+                    name = row.get('名称', row.get('板块名称', 'N/A'))
+                    pct = row.get('今日涨跌幅', row.get('涨跌幅', 0))
+                    if not isinstance(pct, (int, float)):
+                        try:
+                            pct = float(pct)
+                        except (ValueError, TypeError):
+                            pct = 0
                     color = '#00C896' if pct > 0 else '#FF4D4F'
                     top3_html += f'<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #2A3055;"><span style="color:#F0F4FA; font-size:13px;">{name}</span><span style="color:{color}; font-size:13px; font-weight:700;">{pct:+.2f}%</span></div>'
                 st.markdown(f"""
@@ -2507,10 +2564,10 @@ elif page == '📊 行业分析':
                     paper_bgcolor='#0A0E27',
                     font={'color': '#F0F4FA'},
                 )
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig, use_container_width=True)
                 north_chart_rendered = True
                 with st.expander('📋 查看详细数据'):
-                    st.dataframe(df_north_recent.tail(15), width='stretch', hide_index=True)
+                    st.dataframe(df_north_recent.tail(15), use_container_width=True, hide_index=True)
     except Exception as e:
         logger.warning(f'北向资金历史趋势失败: {e}')
 
@@ -2538,7 +2595,7 @@ elif page == '📊 行业分析':
                 paper_bgcolor='#0A0E27',
                 font={'color': '#F0F4FA'},
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
             st.caption('💡 实时数据暂不可用，以上为演示数据')
         except Exception as e2:
             logger.warning(f'北向资金演示图表也失败: {e2}')
@@ -2639,7 +2696,7 @@ elif page == '🎯 智能选股':
                     try:
                         scored = scorer.score_universe(pool)
                         if scored is not None and not scored.empty:
-                            st.dataframe(scored.head(20), width='stretch')
+                            st.dataframe(scored.head(20), use_container_width=True)
                     except Exception as e:
                         st.error(f'评分失败: {e}')
         else:
@@ -2665,9 +2722,340 @@ elif page == '🎯 智能选股':
             try:
                 result = comparator.compare(stocks)
                 if result:
-                    st.dataframe(pd.DataFrame(result.get('comparison', [])), width='stretch')
+                    st.dataframe(pd.DataFrame(result.get('comparison', [])), use_container_width=True)
             except Exception as e:
                 st.error(f'对比失败: {e}')
+
+# ============== 页面：个股分析 ==============
+elif page == '🔍 个股分析':
+    st.markdown('# 🔍 个股分析')
+    st.markdown('**个股基本面 · SHAP解释 · AI问答 · 报告生成 — 一站式个股深度分析**')
+    st.markdown('---')
+
+    # 股票代码/名称输入
+    stock_input = st.text_input(
+        '🔎 输入股票代码或名称',
+        value='',
+        placeholder='例如: 600519 或 贵州茅台',
+        key='individual_stock_input'
+    )
+
+    # 解析股票代码
+    stock_code = ''
+    stock_name = ''
+    if stock_input.strip():
+        # 尝试从A股实时行情中匹配
+        try:
+            df_spot = ak.stock_zh_a_spot_em()
+            if df_spot is not None and len(df_spot) > 0:
+                code_col = [c for c in df_spot.columns if '代码' in c]
+                name_col = [c for c in df_spot.columns if '名称' in c]
+                if code_col and name_col:
+                    # 先按代码精确匹配
+                    mask = df_spot[code_col[0]].astype(str).str.strip() == stock_input.strip()
+                    if mask.any():
+                        stock_code = df_spot.loc[mask, code_col[0]].iloc[0]
+                        stock_name = df_spot.loc[mask, name_col[0]].iloc[0]
+                    else:
+                        # 按名称模糊匹配
+                        mask = df_spot[name_col[0]].astype(str).str.contains(stock_input.strip(), na=False)
+                        if mask.any():
+                            stock_code = df_spot.loc[mask, code_col[0]].iloc[0]
+                            stock_name = df_spot.loc[mask, name_col[0]].iloc[0]
+        except Exception:
+            pass
+
+        # 如果无法从实时行情获取，直接使用输入值
+        if not stock_code:
+            # 判断输入是代码还是名称
+            if stock_input.strip().isdigit():
+                stock_code = stock_input.strip()
+                stock_name = stock_input.strip()
+            else:
+                stock_code = ''
+                stock_name = stock_input.strip()
+
+    if stock_code:
+        st.markdown(f'### 📊 {stock_name} ({stock_code}) 深度分析')
+
+        tab_fundamental, tab_shap, tab_ai, tab_report = st.tabs([
+            '📋 基本面', '🧠 SHAP解释', '🤖 AI问答', '📄 报告生成'
+        ])
+
+        # ========== Tab 1: 基本面 ==========
+        with tab_fundamental:
+            st.markdown('#### 📋 基本面指标')
+            st.caption('数据源: 东方财富 (akshare)')
+
+            # 获取个股信息
+            info_dict = {}
+            realtime_data = {}
+            hist_data = None
+
+            # 1. 个股基本信息
+            try:
+                df_info = ak.stock_individual_info_em(symbol=stock_code)
+                if df_info is not None and len(df_info) > 0:
+                    # stock_individual_info_em 返回 item/value 两列
+                    item_col = [c for c in df_info.columns if 'item' in c.lower() or '指标' in c]
+                    val_col = [c for c in df_info.columns if 'value' in c.lower() or '值' in c]
+                    if item_col and val_col:
+                        for _, row in df_info.iterrows():
+                            info_dict[str(row[item_col[0]])] = str(row[val_col[0]])
+                    else:
+                        # fallback: 用前两列
+                        for _, row in df_info.iterrows():
+                            info_dict[str(row.iloc[0])] = str(row.iloc[1])
+            except Exception as e:
+                logger.warning(f'个股基本信息加载失败: {e}')
+
+            # 2. 实时行情数据
+            try:
+                df_spot = ak.stock_zh_a_spot_em()
+                if df_spot is not None and len(df_spot) > 0:
+                    code_col = [c for c in df_spot.columns if '代码' in c]
+                    if code_col:
+                        mask = df_spot[code_col[0]].astype(str).str.strip() == str(stock_code).strip()
+                        if mask.any():
+                            row = df_spot[mask].iloc[0]
+                            for col in df_spot.columns:
+                                realtime_data[col] = row[col]
+            except Exception as e:
+                logger.warning(f'实时行情加载失败: {e}')
+
+            # 3. 历史K线数据
+            try:
+                end_date = datetime.now().strftime('%Y%m%d')
+                start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+                hist_data = ak.stock_zh_a_hist(symbol=stock_code, period='daily',
+                                                start_date=start_date_hist, end_date=end_date,
+                                                adjust='qfq')
+                if hist_data is not None and len(hist_data) > 0:
+                    hist_data['日期'] = pd.to_datetime(hist_data['日期'])
+            except Exception as e:
+                logger.warning(f'历史K线加载失败: {e}')
+
+            # 显示基本信息卡片
+            if info_dict:
+                # 提取关键指标
+                key_metrics = {}
+                metric_mapping = {
+                    '总市值': '总市值', '流通市值': '流通市值',
+                    '市盈率-动态': 'PE(动态)', '市净率': 'PB',
+                    '市销率': 'PS', '股息率': '股息率',
+                    '总股本': '总股本', '流通股': '流通股',
+                    '行业': '行业', '上市时间': '上市时间',
+                }
+                for k, v in metric_mapping.items():
+                    if k in info_dict:
+                        key_metrics[v] = info_dict[k]
+
+                if key_metrics:
+                    st.markdown('##### 📊 核心指标')
+                    cols = st.columns(min(len(key_metrics), 5))
+                    for i, (k, v) in enumerate(list(key_metrics.items())[:5]):
+                        with cols[i]:
+                            safe_metric(k, v)
+                    if len(key_metrics) > 5:
+                        cols2 = st.columns(min(len(key_metrics) - 5, 5))
+                        for i, (k, v) in enumerate(list(key_metrics.items())[5:10]):
+                            with cols2[i]:
+                                safe_metric(k, v)
+
+                # 完整信息表
+                with st.expander('📋 查看完整信息'):
+                    st.dataframe(pd.DataFrame(list(info_dict.items()), columns=['指标', '值']),
+                                 use_container_width=True, hide_index=True)
+            else:
+                # 使用实时行情数据作为 fallback
+                if realtime_data:
+                    st.markdown('##### 📊 实时行情')
+                    price_cols = ['最新价', '涨跌幅', '涨跌额', '成交量', '成交额', '换手率',
+                                  '市盈率-动态', '市净率', '总市值', '流通市值']
+                    available = {k: realtime_data.get(k, 'N/A') for k in price_cols if k in realtime_data}
+                    if available:
+                        cols = st.columns(min(len(available), 5))
+                        for i, (k, v) in enumerate(list(available.items())[:5]):
+                            with cols[i]:
+                                safe_metric(k, v)
+                        if len(available) > 5:
+                            cols2 = st.columns(min(len(available) - 5, 5))
+                            for i, (k, v) in enumerate(list(available.items())[5:10]):
+                                with cols2[i]:
+                                    safe_metric(k, v)
+                else:
+                    st.warning('基本面数据加载失败，请检查股票代码是否正确')
+                    # Demo 数据
+                    st.markdown('##### 📊 演示数据 (贵州茅台)')
+                    demo_metrics = {'PE(动态)': '25.3', 'PB': '8.9', '总市值': '21,350亿',
+                                    '行业': '白酒', '股息率': '1.8%'}
+                    cols = st.columns(5)
+                    for i, (k, v) in enumerate(demo_metrics.items()):
+                        with cols[i]:
+                            safe_metric(k, v)
+
+            # K线图
+            if hist_data is not None and len(hist_data) > 0:
+                st.markdown('##### 📈 近1年K线走势')
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=hist_data['日期'], y=hist_data['收盘'],
+                    mode='lines', name='收盘价',
+                    line=dict(color='#00D4FF', width=2)
+                ))
+                # 成交量柱状图 (副图)
+                fig_vol = go.Figure()
+                colors = ['#00C896' if c >= o else '#FF4D4F'
+                          for c, o in zip(hist_data['收盘'], hist_data['开盘'])]
+                fig_vol.add_trace(go.Bar(
+                    x=hist_data['日期'], y=hist_data['成交量'],
+                    name='成交量', marker_color=colors, opacity=0.7
+                ))
+                fig.update_layout(
+                    title=f'{stock_name} 收盘价走势', height=400,
+                    hovermode='x unified', template='plotly_dark',
+                    yaxis_title='价格'
+                )
+                fig_vol.update_layout(
+                    title=f'{stock_name} 成交量', height=250,
+                    hovermode='x unified', template='plotly_dark',
+                    yaxis_title='成交量'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig_vol, use_container_width=True)
+
+            # 财务指标 (尝试获取)
+            st.markdown('##### 💰 财务指标')
+            fin_data = None
+            try:
+                df_fin = ak.stock_financial_abstract_ths(symbol=stock_code)
+                if df_fin is not None and len(df_fin) > 0:
+                    fin_data = df_fin
+            except Exception:
+                pass
+
+            if fin_data is not None and len(fin_data) > 0:
+                display_cols = [c for c in fin_data.columns if c in ['报告期', '营业总收入', '净利润', '毛利率', '净利率', '净资产收益率', '总资产收益率']]
+                if display_cols:
+                    st.dataframe(fin_data[display_cols].head(8), use_container_width=True, hide_index=True)
+                else:
+                    st.dataframe(fin_data.head(8), use_container_width=True, hide_index=True)
+            else:
+                st.info('💡 财务数据暂不可用，以下为演示数据')
+                demo_fin = pd.DataFrame({
+                    '报告期': ['2025Q1', '2024Q4', '2024Q3', '2024Q2'],
+                    '营业总收入': ['485亿', '1,741亿', '1,253亿', '834亿'],
+                    '净利润': ['242亿', '862亿', '608亿', '416亿'],
+                    '毛利率': ['91.8%', '91.5%', '91.3%', '91.2%'],
+                    '净利率': ['49.9%', '49.5%', '48.5%', '49.9%'],
+                    'ROE': ['9.8%', '35.2%', '24.8%', '17.0%'],
+                })
+                st.dataframe(demo_fin, use_container_width=True, hide_index=True)
+
+        # ========== Tab 2: SHAP解释 ==========
+        with tab_shap:
+            st.markdown('#### 🧠 SHAP 可解释性分析')
+            st.caption('AI选股模型对该股的因子贡献度解释')
+
+            try:
+                from features.shap_explainer import render_shap_dashboard
+                render_shap_dashboard()
+            except ImportError as e:
+                st.error(f'❌ SHAP模块加载失败: {e}')
+                st.info('请安装: pip install xgboost shap')
+            except Exception as e:
+                st.error(f'❌ SHAP运行错误: {type(e).__name__}: {str(e)[:300]}')
+
+        # ========== Tab 3: AI问答 ==========
+        with tab_ai:
+            st.markdown('#### 🤖 AI 投研问答')
+            st.caption(f'针对 {stock_name} 的智能分析')
+
+            # 预填问题
+            default_q = f'分析{stock_name}的投资价值' if stock_name else '请先输入股票代码'
+            ai_question = st.text_area(
+                '💬 输入关于该股票的问题',
+                value=default_q,
+                height=80,
+                key='individual_ai_question'
+            )
+
+            if st.button('🚀 AI 分析', type='primary', key='individual_ai_btn') and ai_question:
+                llm_config = get_llm_config()
+                use_real_llm = llm_config['api_key'] is not None
+
+                with st.spinner('🤖 AI 正在分析...'):
+                    if use_real_llm:
+                        try:
+                            result = ai_qa_real(ai_question, llm_config)
+                            st.markdown(f'## 📄 {result["title"]}')
+                            st.markdown('### 📋 分析摘要')
+                            st.markdown(result['summary'])
+                            if result.get('data'):
+                                st.markdown('### 📊 关键数据')
+                                cols = st.columns(len(result['data']))
+                                for (k, v), col in zip(result['data'].items(), cols):
+                                    with col:
+                                        safe_metric(k, v)
+                            st.markdown('### 💡 投资建议')
+                            st.success(result['recommendation'])
+                            if result.get('reasoning'):
+                                with st.expander('🧠 AI 思考过程'):
+                                    st.caption(result['reasoning'])
+                        except Exception as e:
+                            st.warning(f'⚠️ LLM调用失败: {e}, 使用Mock数据')
+                            result = ai_qa_mock(ai_question)
+                            st.markdown(f'## 📄 {result["title"]}')
+                            st.markdown(result['summary'])
+                            st.success(result['recommendation'])
+                    else:
+                        result = ai_qa_mock(ai_question)
+                        st.markdown(f'## 📄 {result["title"]}')
+                        st.markdown(result['summary'])
+                        st.success(result['recommendation'])
+
+            st.caption('⚠️ AI分析仅供参考，不构成投资建议')
+
+        # ========== Tab 4: 报告生成 ==========
+        with tab_report:
+            st.markdown('#### 📄 报告生成')
+            st.caption(f'为 {stock_name} 生成深度投研报告')
+
+            try:
+                from features.report_generator import render_report_ui
+                # 预设股票代码到 session state
+                if 'selected_report_type' not in st.session_state:
+                    st.session_state.selected_report_type = 'stock'
+                render_report_ui()
+            except ImportError as e:
+                st.error(f'❌ 报告模块加载失败: {e}')
+                st.info('请安装: pip install python-docx reportlab')
+            except Exception as e:
+                st.error(f'❌ 报告生成失败: {type(e).__name__}: {str(e)[:300]}')
+
+    else:
+        # 未输入股票代码时显示引导
+        st.markdown("""
+        <div style="text-align:center; padding:60px 20px; color:#8A92B0;">
+            <p style="font-size:64px;">🔍</p>
+            <h3 style="color:#FFFFFF;">输入股票代码或名称开始分析</h3>
+            <p>支持代码 (如 600519) 或名称 (如 贵州茅台)</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 热门股票快捷入口
+        st.markdown('### 🔥 热门股票')
+        hot_stocks = [
+            ('600519', '贵州茅台'), ('000858', '五粮液'), ('601318', '中国平安'),
+            ('600036', '招商银行'), ('000333', '美的集团'), ('002594', '比亚迪'),
+            ('300750', '宁德时代'), ('600276', '恒瑞医药'), ('601888', '中国中免'),
+        ]
+        cols = st.columns(3)
+        for i, (code, name) in enumerate(hot_stocks):
+            with cols[i % 3]:
+                if st.button(f'📌 {name} ({code})', key=f'hot_stock_{code}', width='stretch'):
+                    st.session_state.individual_stock_input = code
+                    st.rerun()
 
 # ============== 页面：智能盯盘 ==============
 elif page == '📡 智能盯盘':
@@ -2792,7 +3180,7 @@ elif page == '📡 智能盯盘':
                     sum20 = recent20.sum() / 1e8
                     st.metric('近20日累计', f'{sum20:+.2f} 亿')
             # 显示近期明细
-            st.dataframe(df_north.tail(10), width='stretch', hide_index=True)
+            st.dataframe(df_north.tail(10), use_container_width=True, hide_index=True)
         else:
             north_loaded = False
     except Exception as e:
@@ -2853,7 +3241,7 @@ elif page == '💼 我的组合':
             holdings_data = [{'股票代码': h.stock_code, '股票名称': h.stock_name,
                               '持股数': h.quantity, '成本价': h.avg_cost,
                               '现价': h.current_price, '盈亏': h.pnl} for h in portfolio.holdings]
-            st.dataframe(pd.DataFrame(holdings_data), width='stretch')
+            st.dataframe(pd.DataFrame(holdings_data), use_container_width=True)
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric('总市值', f"¥{portfolio.total_market_value:,.0f}")
@@ -2974,7 +3362,7 @@ elif page == '📈 模拟交易':
                       '成交价': f"{o.fill_price:.2f}" if o.fill_price > 0 else ('待成交' if o.status == 'pending' else f"{o.price:.2f}"),
                       '状态': o.status,
                       '时间': o.created_at} for o in history]
-        st.dataframe(pd.DataFrame(hist_data), width='stretch')
+        st.dataframe(pd.DataFrame(hist_data), use_container_width=True)
     else:
         st.info('暂无交易记录')
 
@@ -3044,7 +3432,7 @@ elif page == '⚡ 智能指令':
     with data_col1:
         # 北向资金
         try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北上')
+            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
             if df_north is not None and len(df_north) > 0:
                 date_col = [c for c in df_north.columns if '日期' in c or 'date' in c.lower()]
                 flow_col = [c for c in df_north.columns if '净流入' in c or '净买' in c]

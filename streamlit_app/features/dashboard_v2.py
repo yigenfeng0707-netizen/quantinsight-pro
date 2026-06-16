@@ -305,6 +305,20 @@ def render_dashboard():
     industries = fetch_industry_data(top_n=10)
     money_flow = fetch_money_flow()
 
+    # ---- 格式转换：将 macro['indices'] 列表转为 render_index_cards 期望的 dict 格式 ----
+    index_key_map = {'上证指数': 'sh_index', '深证成指': 'sz_index', '创业板指': 'cyb_index'}
+    index_dict = {}
+    for item in macro.get('indices', []):
+        key = index_key_map.get(item.get('name', ''))
+        if key:
+            index_dict[key] = {'value': item.get('price', 0), 'change_pct': item.get('change_pct', 0)}
+    macro.update(index_dict)
+
+    # ---- 格式转换：将 macro['breadth'] 展开为 render_limit_monitor 期望的字段 ----
+    breadth = macro.get('breadth', {})
+    macro['up_count'] = breadth.get('advance', 0)
+    macro['down_count'] = breadth.get('decline', 0)
+
     # 数据源标识
     source = macro.get('source', 'unknown')
     badge = '🟢 真实akshare数据' if source == 'akshare' else '🟡 演示数据(高质量模拟)'
@@ -315,8 +329,9 @@ def render_dashboard():
 
     st.markdown("<br/>", unsafe_allow_html=True)
 
-    # 2. 北向资金热力图
-    render_northbound_heatmap(macro.get('north_flow', 0))
+    # 2. 北向资金热力图（优先使用 money_flow 中的 north_flow，更完整）
+    north_flow = money_flow.get('north_flow', macro.get('north_flow', 0))
+    render_northbound_heatmap(north_flow)
 
     st.markdown("<br/>", unsafe_allow_html=True)
 
