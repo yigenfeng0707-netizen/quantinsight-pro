@@ -1073,7 +1073,7 @@ class SentimentVectorStore:
             payload["enable_thinking"] = False
 
         try:
-            resp = _requests.post(base_url, headers=headers, json=payload, timeout=30)
+            resp = _requests.post(base_url, headers=headers, json=payload, timeout=90)  # V3.14: 30→90
             resp.raise_for_status()
             result = resp.json()
             keywords_text = result["choices"][0]["message"]["content"].strip()

@@ -49,7 +49,7 @@ plt.rcParams.update({
     'xtick.color': _DARK_FG,
     'ytick.color': _DARK_FG,
     'text.color': _DARK_FG,
-    'grid.color': 'rgba(255,255,255,0.1)',
+    'grid.color': '#2A3441',  # V3.14: rgba格式新版matplotlib不接受, 改用hex
     'savefig.facecolor': _DARK_BG,
     'savefig.edgecolor': _DARK_BG,
 })
@@ -523,7 +523,7 @@ def generate_ai_interpretation(shap_summary: pd.DataFrame, top_stock: Dict, conf
         model_name_lower = config.get('model', '').lower()
         if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
             payload['enable_thinking'] = False
-        resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=30)
+        resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=90)  # V3.14: 30→90
         resp.raise_for_status()
         result = resp.json()
         msg = result['choices'][0]['message']

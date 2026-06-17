@@ -46,13 +46,14 @@ class NaturalLanguageScreener:
         self.cache = cache_manager
         self.llm_config = llm_config or {}
 
-    def screen(self, query: str, top_n: int = 20) -> dict:
+    def screen(self, query: str, top_n: int = 20, universe: pd.DataFrame = None) -> dict:
         """
         执行自然语言选股
 
         Args:
             query: 自然语言查询
             top_n: 返回前N只
+            universe: 直接传入股票池 (V3.14: 优先使用, 避免cache注入失败)
 
         Returns:
             dict: {
@@ -66,9 +67,12 @@ class NaturalLanguageScreener:
         # 1. 解析条件
         filters = self._parse_query(query)
 
-        # 2. 获取股票池
-        universe = self._get_universe()
-        if universe is None or len(universe) == 0:
+        # 2. 获取股票池 (V3.14: 优先使用直接传入的 universe)
+        if universe is not None and len(universe) > 0:
+            df_universe = universe
+        else:
+            df_universe = self._get_universe()
+        if df_universe is None or len(df_universe) == 0:
             return {
                 "query": query,
                 "filters": filters,
@@ -78,7 +82,7 @@ class NaturalLanguageScreener:
             }
 
         # 3. 执行筛选
-        filtered = self._apply_filters(universe, filters)
+        filtered = self._apply_filters(df_universe, filters)
 
         # 4. 评分排序
         scored = self._score_and_sort(filtered)
@@ -87,7 +91,7 @@ class NaturalLanguageScreener:
         top_results = scored.head(top_n)
 
         # 6. 生成摘要
-        summary = self._generate_summary(query, filters, universe, filtered, top_results)
+        summary = self._generate_summary(query, filters, df_universe, filtered, top_results)
 
         return {
             "query": query,
@@ -142,7 +146,7 @@ class NaturalLanguageScreener:
         if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
             payload['enable_thinking'] = False
 
-        resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=30)
+        resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=90)  # V3.14: 30→90
         resp.raise_for_status()
         msg = resp.json()["choices"][0]["message"]
         content = msg.get("content", "") or ""
@@ -309,7 +313,7 @@ class NaturalLanguageScreener:
         return None
 
     def _apply_filters(self, universe: pd.DataFrame, filters: dict) -> pd.DataFrame:
-        """应用过滤条件"""
+        """应用过滤条件 (V3.14: 列全NULL时跳过该过滤条件)"""
         df = universe.copy()
 
         # 数值列标准化
@@ -324,25 +328,31 @@ class NaturalLanguageScreener:
             if cn_col in df.columns:
                 df[cn_col] = pd.to_numeric(df[cn_col], errors="coerce")
 
-        # PE 过滤
+        # V3.14 辅助函数: 检查列是否有有效数据
+        def _has_valid_data(col_name):
+            if col_name not in df.columns:
+                return False
+            return df[col_name].notna().sum() > 0
+
+        # PE 过滤 (V3.14: 列全NULL时跳过)
         pe_col = "市盈率-动态" if "市盈率-动态" in df.columns else None
-        if pe_col:
+        if pe_col and _has_valid_data(pe_col):
             if "pe_max" in filters:
                 df = df[(df[pe_col] <= filters["pe_max"]) & (df[pe_col] > 0)]
             if "pe_min" in filters:
                 df = df[df[pe_col] >= filters["pe_min"]]
 
-        # PB 过滤
+        # PB 过滤 (V3.14: 列全NULL时跳过)
         pb_col = "市净率" if "市净率" in df.columns else None
-        if pb_col:
+        if pb_col and _has_valid_data(pb_col):
             if "pb_max" in filters:
                 df = df[(df[pb_col] <= filters["pb_max"]) & (df[pb_col] > 0)]
             if "pb_min" in filters:
                 df = df[df[pb_col] >= filters["pb_min"]]
 
-        # 市值过滤 (东方财富返回的是元, 需转换为亿)
+        # 市值过滤 (东方财富返回的是元, 需转换为亿) (V3.14: 列全NULL时跳过)
         cap_col = "总市值" if "总市值" in df.columns else None
-        if cap_col:
+        if cap_col and _has_valid_data(cap_col):
             if "market_cap_min" in filters:
                 df = df[df[cap_col] >= filters["market_cap_min"] * 1e8]
             if "market_cap_max" in filters:
@@ -350,33 +360,51 @@ class NaturalLanguageScreener:
 
         # 涨跌幅过滤
         chg_col = "涨跌幅" if "涨跌幅" in df.columns else None
-        if chg_col:
+        if chg_col and _has_valid_data(chg_col):
             if "pct_change_min" in filters:
                 df = df[df[chg_col] >= filters["pct_change_min"]]
             if "pct_change_max" in filters:
                 df = df[df[chg_col] <= filters["pct_change_max"]]
 
-        # 换手率过滤
+        # 换手率过滤 (V3.14: 列全NULL时跳过)
         turn_col = "换手率" if "换手率" in df.columns else None
-        if turn_col:
+        if turn_col and _has_valid_data(turn_col):
             if "turnover_min" in filters:
                 df = df[df[turn_col] >= filters["turnover_min"]]
 
         # 价格过滤
         price_col = "最新价" if "最新价" in df.columns else None
-        if price_col:
+        if price_col and _has_valid_data(price_col):
             if "price_min" in filters:
                 df = df[df[price_col] >= filters["price_min"]]
             if "price_max" in filters:
                 df = df[df[price_col] <= filters["price_max"]]
 
-        # 关键词过滤
+        # 关键词过滤 (V3.14: 扩展行业关键词映射)
         name_col = "名称" if "名称" in df.columns else None
         if name_col and "keywords" in filters:
+            # 行业关键词扩展映射
+            industry_expand = {
+                "消费": ["消费", "食品", "饮料", "乳", "酒", "茅", "五粮", "泸州", "美的", "海尔", "格力", "伊利", "蒙牛", "海天", "安井", "永辉", "苏宁", "王府井"],
+                "白酒": ["茅", "五粮", "泸州", "老窖", "汾酒", "洋河", "古井", "今世缘", "水井坊", "舍得", "酒鬼", "迎驾", "口子"],
+                "新能源": ["新能源", "宁德", "比亚迪", "隆基", "阳光电源", "通威", "特变", "晶澳", "天合", "亿纬", "赣锋", "天齐", "华友"],
+                "半导体": ["半导体", "芯片", "集成电路", "中芯", "华虹", "韦尔", "兆易", "北方华创", "中微", "紫光", "长电", "通富", "华天", "晶晨", "圣邦", "澜起", "汇顶"],
+                "银行": ["银行", "工商银行", "建设银行", "农业银行", "中国银行", "招商银行", "兴业银行", "交通银行", "邮储", "平安银行", "中信银行", "浦发", "民生", "光大"],
+                "医药": ["医药", "恒瑞", "药明", "迈瑞", "片仔癀", "云南白药", "复星", "华润", "智飞", "长春高新", "百济神州", "信达"],
+                "证券": ["证券", "券商", "中信证券", "海通", "国泰", "华泰", "招商证券", "广发", "东方财富", "中金"],
+                "保险": ["保险", "中国平安", "人寿", "太保", "新华保险", "人保"],
+                "房地产": ["房地产", "地产", "万科", "保利", "招商蛇口", "绿地", "华夏幸福", "碧桂园"],
+                "AI": ["AI", "人工智能", "算力", "大模型", "科大讯飞", "寒武纪", "商汤", "旷视", "海光", "景嘉微"],
+                "汽车": ["汽车", "新能源车", "比亚迪", "长城", "长安", "上汽", "广汽", "一汽", "吉利", "蔚来", "理想", "小鹏"],
+            }
             mask = pd.Series([False] * len(df), index=df.index)
             for kw in filters["keywords"]:
-                # 搜索行业名称或相关关键词
+                # 先直接搜索关键词
                 mask |= df[name_col].str.contains(kw, na=False)
+                # 再搜索扩展的行业关键词
+                expanded = industry_expand.get(kw, [])
+                for ex_kw in expanded:
+                    mask |= df[name_col].str.contains(ex_kw, na=False)
             if mask.any():
                 df = df[mask]
 

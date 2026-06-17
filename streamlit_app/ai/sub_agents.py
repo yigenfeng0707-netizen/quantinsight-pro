@@ -75,7 +75,7 @@ def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str
         payload['enable_thinking'] = False
 
     try:
-        resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=60)
+        resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=90)  # V3.14: 60→90
         # V3.11: 检测余额不足/限流
         if resp.status_code in (402, 429):
             raise RuntimeError(f"LLM {llm_config.get('provider')} 返回 {resp.status_code} (余额不足/限流)")

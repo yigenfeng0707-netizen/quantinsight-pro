@@ -587,7 +587,7 @@ def _fetch_market_context() -> str:
     return "\n".join(context_parts) if context_parts else ""
 
 
-def ai_qa_real(question, config, timeout=30, history=None):
+def ai_qa_real(question, config, timeout=90, history=None):  # V3.14: 30→90秒, qwen3.6-plus需要更长响应时间
     """真实 LLM 调用 (SenseNova / DeepSeek / Qwen)
 
     Args:
@@ -960,6 +960,9 @@ def load_stock_pool():
         try:
             df = _qi_db.get_stock_spot()
             if df is not None and len(df) > 0:
+                # V3.14: 按成交额排序, 避免total_mv全NULL时返回冷门股
+                if 'amount' in df.columns:
+                    df = df.sort_values('amount', ascending=False)
                 # Map column names
                 col_map = {
                     'code': '代码', 'name': '名称', 'latest_price': '最新价',
@@ -3337,9 +3340,8 @@ elif page == '🎯 智能选股':
                     if pool is None or pool.empty:
                         st.error('股票池数据加载失败')
                     else:
-                        # V3.13: 强制注入 pool, 避免 screener 走 akshare 挂死
-                        screener.cache = type('SimpleCache', (), {'get_stock_universe': lambda self, top_n=3000: pool})()
-                        results = screener.screen(query, top_n=20)
+                        # V3.14: 直接传 universe 参数, 避免cache注入失败
+                        results = screener.screen(query, top_n=20, universe=pool)
                         if results and results.get('results') is not None and len(results['results']) > 0:
                             st.success(f'✅ 筛选完成, 找到 {results["total_matched"]} 只符合条件的股票, 展示 Top {len(results["results"])}')
                             # 显示解析出的筛选条件
