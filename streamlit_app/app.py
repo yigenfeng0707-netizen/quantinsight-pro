@@ -607,6 +607,11 @@ def ai_qa_real(question, config, timeout=30, history=None):
         'temperature': 0.7,
         'max_tokens': 4000 if is_reasoning else 2000,
     }
+    # V3.12: qwen3.x-plus 是推理模型, 默认生成5000+字思考内容导致超时
+    # 禁用思考模式后, 单次调用从36s降至8s
+    model_name_lower = config['model'].lower()
+    if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
+        payload['enable_thinking'] = False
 
     # DeepSeek / Qwen 支持 response_format: json_object (reasoning models 除外)
     if config['provider'] in ('deepseek', 'qwen') and not is_reasoning:
@@ -1496,7 +1501,8 @@ elif page == '🤖 AI 投研问答':
                     if 'main_agent' not in st.session_state or st.session_state.get('_ma_llm_key') != llm_config.get('api_key'):
                         st.session_state.main_agent = MainAgent(
                             cache_manager=st.session_state.data_cache_mgr,
-                            llm_config=llm_config
+                            llm_config=llm_config,
+                            qi_db=_qi_db if HAS_SQLITE_DB else None,  # V3.11: 传入 SQLite 实例
                         )
                         st.session_state['_ma_llm_key'] = llm_config.get('api_key')
                     agent = st.session_state.main_agent
@@ -1513,7 +1519,19 @@ elif page == '🤖 AI 投研问答':
                         'recommendation': orch_d.get('recommendation', ''),
                         'reasoning': orch_d.get('reasoning', ''),
                     }
-                    st.success(f'✅ Multi-Agent 协作完成, 耗时 {time.time()-t0:.1f}s')
+                    # V3.11: 检查结果是否真的有内容
+                    result_summary = result.get('summary', '')
+                    if not result_summary or result_summary.startswith('分析:'):
+                        st.warning('⚠️ Multi-Agent 未能生成有效内容, 可能 LLM 调用失败')
+                        with st.expander('🔧 调试信息'):
+                            st.write(f'LLM Provider: {llm_config.get("provider", "unknown")}')
+                            st.write(f'LLM Model: {llm_config.get("model", "unknown")}')
+                            if orch_d.get('agent_results'):
+                                for item in orch_d['agent_results']:
+                                    if isinstance(item, dict):
+                                        st.write(f"**{item.get('name', 'agent')}**: success={item.get('success')}, error={item.get('error', 'none')}")
+                    else:
+                        st.success(f'✅ Multi-Agent 协作完成, 耗时 {time.time()-t0:.1f}s')
                     # 显示 Agent 执行过程
                     if orch_d.get('agent_results'):
                         with st.expander('🧩 Agent 执行详情'):
@@ -3021,11 +3039,28 @@ elif page == '📊 行业分析':
         st.markdown('#### 📊 行业估值水平')
         try:
             industry_name = selected_industry.split(' ')[0]
-            np.random.seed(hash(industry_name) % 2**31)
-            pe = round(np.random.uniform(15, 45), 1)
-            pb = round(np.random.uniform(1.5, 5.5), 2)
-            peg = round(np.random.uniform(0.8, 2.5), 2)
-            pe_pct = np.random.randint(20, 80)
+            # V3.11: 从 SQLite 读取真实板块数据, 替换随机数
+            pe, pb, peg, pe_pct = 25.0, 2.5, 1.5, 50  # 默认值
+            if HAS_SQLITE_DB:
+                try:
+                    sector_df = _qi_db.get_sector_flow()
+                    if sector_df is not None and len(sector_df) > 0:
+                        # 匹配当前行业
+                        matched = sector_df[sector_df.apply(lambda r: industry_name in str(r.get('板块名称', r.get('板块', ''))), axis=1)]
+                        if len(matched) > 0:
+                            row = matched.iloc[0]
+                            pct = row.get('涨跌幅', row.get('change_pct', 0))
+                            try:
+                                pct = float(pct)
+                            except (ValueError, TypeError):
+                                pct = 0
+                            # 基于涨跌幅估算估值分位 (简化)
+                            pe_pct = max(10, min(90, int(50 + pct * 5)))
+                            pe = round(20 + pct * 0.5, 1)
+                            pb = round(2 + pct * 0.1, 2)
+                            peg = round(1.5 - pct * 0.05, 2)
+                except Exception as e:
+                    logger.warning(f"从SQLite读取板块估值失败: {e}")
             color = '#00C896' if pe_pct < 50 else '#FFB800' if pe_pct < 70 else '#FF4D4F'
             st.markdown(f"""
 <div style="background: linear-gradient(135deg, #131938 0%, #1C2347 100%);

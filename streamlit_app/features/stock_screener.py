@@ -137,8 +137,12 @@ class NaturalLanguageScreener:
             headers['X-DashScope-WorkSpace'] = self.llm_config['workspace_id']
         is_reasoning = 'v4' in self.llm_config.get('model', '') or 'r1' in self.llm_config.get('model', '')
         payload = {"model": self.llm_config["model"], "messages": messages, "temperature": 0.3, "max_tokens": 1000 if is_reasoning else 500}
+        # V3.12: qwen3.x 推理模型禁用思考, 避免超时
+        model_name_lower = self.llm_config.get('model', '').lower()
+        if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
+            payload['enable_thinking'] = False
 
-        resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=15)
+        resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         msg = resp.json()["choices"][0]["message"]
         content = msg.get("content", "") or ""

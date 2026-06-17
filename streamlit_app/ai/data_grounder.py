@@ -56,12 +56,14 @@ class DataGrounder:
         "汽车": ["BK0481", "比亚迪", "长城汽车", "新能源车销量"],
     }
 
-    def __init__(self, cache_manager=None):
+    def __init__(self, cache_manager=None, qi_db=None):
         """
         Args:
             cache_manager: DataCacheManager 实例 (可选)
+            qi_db: QIDataDB 实例 (可选, V3.11 新增)
         """
         self.cache = cache_manager
+        self.qi_db = qi_db  # V3.11: 新增 SQLite 数据库实例
         self._grounded_data = {}
 
     def ground(self, question: str) -> dict:
@@ -87,7 +89,7 @@ class DataGrounder:
             "context_text": "",
         }
 
-        if self.cache is None:
+        if self.cache is None and self.qi_db is None:
             result["context_text"] = "⚠️ 数据源未配置, AI 基于预训练知识回答"
             return result
 
@@ -100,7 +102,21 @@ class DataGrounder:
 
         # 2. 拉取相关股票行情
         try:
-            universe = self.cache.get_stock_universe(top_n=500)
+            universe = None
+            # V3.11: 优先从 SQLite 读取
+            if self.qi_db is not None:
+                try:
+                    sqlite_df = self.qi_db.get_stock_spot()
+                    if sqlite_df is not None and len(sqlite_df) > 0:
+                        universe = sqlite_df
+                        logger.info("股票行情数据来源: SQLite (stock_spot)")
+                except Exception:
+                    pass
+            # SQLite 没有数据时, 回退到 cache
+            if universe is None and self.cache is not None:
+                universe = self.cache.get_stock_universe(top_n=500)
+                if universe is not None and len(universe) > 0:
+                    logger.info("股票行情数据来源: cache (get_stock_universe)")
             if universe is not None and len(universe) > 0:
                 # 过滤相关行业的股票
                 relevant = self._filter_relevant_stocks(universe, question, matched_industries)
@@ -111,36 +127,86 @@ class DataGrounder:
         except Exception as e:
             logger.warning(f"接地股票数据失败: {e}")
 
+        # V3.11: 拉取板块资金流 (从 SQLite)
+        if self.qi_db is not None:
+            try:
+                sector_df = self.qi_db.get_sector_flow()
+                if sector_df is not None and len(sector_df) > 0:
+                    logger.info("板块资金流数据来源: SQLite (sector_flow)")
+                    sector_summary = self._summarize_sector_flow(sector_df)
+                    if sector_summary:
+                        context_parts.append(f"🏦 **板块资金流**:\n{sector_summary}")
+            except Exception as e:
+                logger.warning(f"接地板块资金流失败: {e}")
+
+        # V3.11: 拉取北向资金 (从 SQLite)
+        if self.qi_db is not None:
+            try:
+                nb_df = self.qi_db.get_northbound_flow(days=5)
+                if nb_df is not None and len(nb_df) > 0:
+                    logger.info("北向资金数据来源: SQLite (northbound_flow)")
+                    nb_summary = self._summarize_northbound(nb_df)
+                    if nb_summary:
+                        context_parts.append(f"🌐 **北向资金(近5日)**:\n{nb_summary}")
+            except Exception as e:
+                logger.warning(f"接地北向资金失败: {e}")
+
+        # V3.11: 拉取宏观指标 (从 SQLite macro_indices 表)
+        if self.qi_db is not None:
+            try:
+                conn = self.qi_db._get_conn()
+                import pandas as _pd
+                macro_df = _pd.read_sql(
+                    "SELECT indicator_name, value FROM macro_indices ORDER BY date DESC",
+                    conn,
+                )
+                if macro_df is not None and len(macro_df) > 0:
+                    logger.info("宏观指标数据来源: SQLite (macro_indices)")
+                    # 取每个指标最新值
+                    latest_macro = macro_df.drop_duplicates(subset=["indicator_name"], keep="first")
+                    macro_text = ", ".join(
+                        f"{row['indicator_name']}: {row['value']}"
+                        for _, row in latest_macro.iterrows()
+                        if _pd.notna(row.get("value"))
+                    )
+                    if macro_text:
+                        context_parts.append(f"🌍 **宏观指标**: {macro_text}")
+            except Exception as e:
+                logger.warning(f"接地宏观指标失败: {e}")
+
         # 3. 拉取资金流向
-        try:
-            fund_flow = self.cache.get_fund_flow_rank("今日")
-            if fund_flow is not None and len(fund_flow) > 0:
-                result["fund_flow"] = fund_flow.head(20)
-                top_inflow = self._summarize_fund_flow(fund_flow)
-                context_parts.append(f"💰 **今日资金流向**:\n{top_inflow}")
-        except Exception as e:
-            logger.warning(f"接地资金流向失败: {e}")
+        if self.cache is not None:
+            try:
+                fund_flow = self.cache.get_fund_flow_rank("今日")
+                if fund_flow is not None and len(fund_flow) > 0:
+                    result["fund_flow"] = fund_flow.head(20)
+                    top_inflow = self._summarize_fund_flow(fund_flow)
+                    context_parts.append(f"💰 **今日资金流向**:\n{top_inflow}")
+            except Exception as e:
+                logger.warning(f"接地资金流向失败: {e}")
 
         # 4. 拉取最新新闻
-        try:
-            news = self.cache.get_news("财经", 20)
-            if news is not None and len(news) > 0:
-                result["news"] = news
-                news_summary = self._summarize_news(news)
-                context_parts.append(f"📰 **最新财经新闻**:\n{news_summary}")
-        except Exception as e:
-            logger.warning(f"接地新闻数据失败: {e}")
+        if self.cache is not None:
+            try:
+                news = self.cache.get_news("财经", 20)
+                if news is not None and len(news) > 0:
+                    result["news"] = news
+                    news_summary = self._summarize_news(news)
+                    context_parts.append(f"📰 **最新财经新闻**:\n{news_summary}")
+            except Exception as e:
+                logger.warning(f"接地新闻数据失败: {e}")
 
         # 5. 宏观数据
-        try:
-            macro = self.cache.get_macro_summary()
-            if macro:
-                result["macro"] = macro
-                macro_text = ", ".join(f"{k}: {v}" for k, v in macro.items() if v != "N/A")
-                if macro_text:
-                    context_parts.append(f"🌍 **宏观数据**: {macro_text}")
-        except Exception as e:
-            logger.warning(f"接地宏观数据失败: {e}")
+        if self.cache is not None:
+            try:
+                macro = self.cache.get_macro_summary()
+                if macro:
+                    result["macro"] = macro
+                    macro_text = ", ".join(f"{k}: {v}" for k, v in macro.items() if v != "N/A")
+                    if macro_text:
+                        context_parts.append(f"🌍 **宏观数据**: {macro_text}")
+            except Exception as e:
+                logger.warning(f"接地宏观数据失败: {e}")
 
         # 6. 组装上下文
         if context_parts:
@@ -245,6 +311,80 @@ class DataGrounder:
                     lines.append(f"  • {title}")
 
         return "\n".join(lines) if lines else "最新新闻暂无"
+
+    def _summarize_sector_flow(self, df: pd.DataFrame) -> str:
+        """V3.11: 摘要化板块资金流"""
+        lines = []
+        # 兼容中英文列名
+        name_col = None
+        for col in ["板块名称", "sector_name", "板块"]:
+            if col in df.columns:
+                name_col = col
+                break
+        pct_col = None
+        for col in ["涨跌幅", "change_pct"]:
+            if col in df.columns:
+                pct_col = col
+                break
+        flow_col = None
+        for col in ["净流入", "net_flow", "主力净流入"]:
+            if col in df.columns:
+                flow_col = col
+                break
+
+        if name_col is None:
+            return ""
+
+        # 取涨幅前5
+        if pct_col is not None:
+            try:
+                df_sorted = df.copy()
+                df_sorted[pct_col] = pd.to_numeric(df_sorted[pct_col], errors="coerce")
+                top = df_sorted.sort_values(pct_col, ascending=False).head(5)
+                for _, row in top.iterrows():
+                    name = row.get(name_col, "")
+                    pct = row.get(pct_col, 0)
+                    if pd.notna(pct):
+                        lines.append(f"  {name}: {pct:+.2f}%")
+            except Exception:
+                pass
+
+        return "\n".join(lines) if lines else "板块资金流数据暂无"
+
+    def _summarize_northbound(self, df: pd.DataFrame) -> str:
+        """V3.11: 摘要化北向资金"""
+        lines = []
+        flow_col = None
+        for col in ["net_flow", "当日净流入", "north_flow"]:
+            if col in df.columns:
+                flow_col = col
+                break
+        date_col = None
+        for col in ["date", "日期"]:
+            if col in df.columns:
+                date_col = col
+                break
+
+        if flow_col is None or date_col is None:
+            return ""
+
+        try:
+            for _, row in df.iterrows():
+                date = row.get(date_col, "")
+                flow = row.get(flow_col, 0)
+                if pd.notna(flow):
+                    try:
+                        flow_val = float(flow)
+                        if abs(flow_val) > 1e8:
+                            lines.append(f"  {date}: 净流入 {flow_val/1e8:.2f}亿")
+                        else:
+                            lines.append(f"  {date}: 净流入 {flow_val:.2f}")
+                    except (ValueError, TypeError):
+                        pass
+        except Exception:
+            pass
+
+        return "\n".join(lines) if lines else "北向资金数据暂无"
 
     def get_grounded_context(self) -> str:
         """获取上次接地的上下文文本"""

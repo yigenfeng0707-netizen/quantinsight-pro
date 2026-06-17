@@ -290,11 +290,8 @@ class QIDataDB:
         Returns:
             DataFrame 或 None
         """
-        freshness = self.get_freshness("stock_history")
-        if freshness["age_minutes"] is not None and freshness["age_minutes"] > _STALE_MINUTES["stock_history"]:
-            logger.info("stock_history 数据已过期 (%.0f 分钟), 返回 None", freshness["age_minutes"])
-            return None
-
+        # V3.11: 移除表级新鲜度检查, 改为按 code 检查数据是否存在
+        # 如果表中有该股票的数据就直接返回, 不再因整表过期而返回 None
         start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
         conn = self._get_conn()
         try:

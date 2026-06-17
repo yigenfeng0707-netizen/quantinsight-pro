@@ -73,6 +73,15 @@ class MainAgent:
         "分析": ["analysis", "risk"],
         "研究": ["analysis"],
         "评估": ["analysis", "risk"],
+        "估值": ["analysis"],  # V3.11 新增
+        "投资逻辑": ["analysis"],  # V3.11 新增
+        "投资机会": ["analysis"],  # V3.11 新增
+        "行业": ["analysis"],  # V3.11 新增
+        "半导体": ["analysis"],  # V3.11 新增
+        "新能源": ["analysis"],  # V3.11 新增
+        "医药": ["analysis"],  # V3.11 新增
+        "消费": ["analysis"],  # V3.11 新增
+        "银行": ["analysis"],  # V3.11 新增
         "风险": ["risk"],
         "预警": ["market_monitor"],
         "监控": ["market_monitor"],
@@ -85,16 +94,18 @@ class MainAgent:
 
     MAX_REFLECTION_CYCLES = 2  # 最大反思次数
 
-    def __init__(self, cache_manager=None, llm_config: dict = None, rag_engine=None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, rag_engine=None, qi_db=None):
         """
         Args:
             cache_manager: DataCacheManager 实例
             llm_config: LLM 配置 dict
             rag_engine: FinancialRAG 实例 (可选)
+            qi_db: QIDataDB 实例 (可选, V3.11 新增)
         """
         self.cache = cache_manager
         self.llm_config = llm_config or {}
         self.rag = rag_engine
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def process_query(self, question: str, history: list = None) -> OrchestratorResult:
         """
@@ -194,7 +205,7 @@ class MainAgent:
             task_desc = sub_task["task"]
 
             try:
-                agent = get_agent(agent_name, self.cache, self.llm_config)
+                agent = get_agent(agent_name, self.cache, self.llm_config, self.qi_db)
                 result = agent.execute(task_desc)
                 results[agent_name] = result
                 logger.info(f"Execute: {agent_name} -> success={result.success}")
@@ -256,7 +267,7 @@ class MainAgent:
 
             try:
                 # 简化任务重试
-                agent = get_agent(agent_name, self.cache, self.llm_config)
+                agent = get_agent(agent_name, self.cache, self.llm_config, self.qi_db)
                 result = agent.execute(question)
                 adjusted[agent_name] = result
             except Exception as e:
@@ -320,12 +331,40 @@ class MainAgent:
         if len(success_results) > 1 and self.llm_config and self.llm_config.get('api_key'):
             # 多 Agent 结果用 LLM 合成统一摘要
             agent_summaries = "\n\n---\n\n".join(summary_parts)
+
+            # V3.11: 从 SQLite 注入数据上下文
+            sqlite_context = ""
+            if self.qi_db:
+                try:
+                    # 行业板块数据
+                    sector_df = self.qi_db.get_sector_flow()
+                    if sector_df is not None and len(sector_df) > 0:
+                        top_sectors = sector_df.head(5)
+                        sqlite_context += "\n📊 板块资金流(TOP5):\n"
+                        for _, row in top_sectors.iterrows():
+                            name = row.get('板块名称', row.get('板块', 'N/A'))
+                            pct = row.get('涨跌幅', row.get('change_pct', 0))
+                            sqlite_context += f"  {name}: {pct}%\n"
+                except Exception as e:
+                    logger.warning(f"合成时读取 sector_flow 失败: {e}")
+                try:
+                    # 北向资金
+                    nb_df = self.qi_db.get_northbound_flow(days=3)
+                    if nb_df is not None and len(nb_df) > 0:
+                        latest = nb_df.iloc[-1]
+                        sqlite_context += f"\n🌐 北向资金(最近): {latest.to_dict()}\n"
+                except Exception as e:
+                    logger.warning(f"合成时读取 northbound_flow 失败: {e}")
+
             synthesize_prompt = f"""你是 QuantInsight Pro 的投研合成助手. 请将以下多个专业Agent的分析结果合成为一份连贯、结构化的投研报告摘要.
 
 用户问题: {question}
 
 各Agent分析结果:
 {agent_summaries}
+
+实时数据上下文:
+{sqlite_context}
 
 请输出合成后的摘要 (Markdown格式), 要求:
 1. 保留各Agent的核心观点和数据

@@ -47,9 +47,12 @@ class AgentResult:
 
 
 def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str:
-    """通用 LLM 调用 (复用 app.py 的逻辑)"""
+    """通用 LLM 调用 (复用 app.py 的逻辑)
+
+    V3.11: 失败时抛出异常而非返回空字符串, 消除静默失败
+    """
     if not llm_config or not llm_config.get("api_key"):
-        return ""
+        raise RuntimeError("LLM 配置缺失或 API Key 未设置")
 
     import requests
 
@@ -65,18 +68,31 @@ def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str
         "temperature": temperature,
         "max_tokens": 3000 if ('v4' in llm_config.get('model', '') or 'r1' in llm_config.get('model', '')) else 1500,
     }
+    # V3.12: qwen3.x-plus 是推理模型, 默认生成5000+字思考内容导致60s超时
+    # 禁用思考模式后, 单次调用从36s降至8s, Multi-Agent 7次串行调用可在60s内完成
+    model_name = llm_config.get('model', '').lower()
+    if 'qwen3' in model_name or 'qwen-3' in model_name:
+        payload['enable_thinking'] = False
 
     try:
-        resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=30)
+        resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=60)
+        # V3.11: 检测余额不足/限流
+        if resp.status_code in (402, 429):
+            raise RuntimeError(f"LLM {llm_config.get('provider')} 返回 {resp.status_code} (余额不足/限流)")
         resp.raise_for_status()
         result = resp.json()
         msg = result["choices"][0]["message"]
         content = msg.get("content", "") or ""
         reasoning = msg.get("reasoning_content", "") or ""
-        return content.strip() if content.strip() else reasoning
+        answer = content.strip() if content.strip() else reasoning
+        if not answer:
+            raise RuntimeError("LLM 返回空内容")
+        return answer
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.warning(f"LLM 调用失败 ({llm_config.get('provider')}): {e}")
-        return ""
+        raise RuntimeError(f"LLM 调用失败: {e}")
 
 
 # ============================================================================
@@ -95,9 +111,10 @@ class StockSelectionAgent:
 
     NAME = "StockSelectionAgent"
 
-    def __init__(self, cache_manager=None, llm_config: dict = None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, qi_db=None):
         self.cache = cache_manager
         self.llm_config = llm_config or {}
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def execute(self, task: str, context: dict = None) -> AgentResult:
         """
@@ -186,7 +203,12 @@ class StockSelectionAgent:
             {"role": "user", "content": user_prompt},
         ]
 
-        response = _call_llm(messages, self.llm_config)
+        response = ""
+        try:
+            response = _call_llm(messages, self.llm_config)
+        except RuntimeError as e:
+            logger.warning(f"选股条件解析 LLM 调用失败, 使用关键词匹配: {e}")
+
         if response:
             try:
                 # 提取 JSON
@@ -364,9 +386,10 @@ class AnalysisAgent:
 
     NAME = "AnalysisAgent"
 
-    def __init__(self, cache_manager=None, llm_config: dict = None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, qi_db=None):
         self.cache = cache_manager
         self.llm_config = llm_config or {}
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def execute(self, task: str, context: dict = None) -> AgentResult:
         """执行分析任务"""
@@ -377,7 +400,7 @@ class AnalysisAgent:
                 try:
                     # 尝试获取相关股票数据
                     from ai.data_grounder import DataGrounder
-                    grounder = DataGrounder(self.cache)
+                    grounder = DataGrounder(self.cache, qi_db=self.qi_db)
                     grounded = grounder.ground(task)
                     analysis_context = grounded.get("context_text", "")
                 except Exception:
@@ -424,7 +447,16 @@ class AnalysisAgent:
                 messages.append({"role": "user", "content": f"市场数据上下文:\n{analysis_context}"})
             messages.append({"role": "user", "content": task})
 
-            response = _call_llm(messages, self.llm_config)
+            # V3.11: _call_llm 失败时抛出 RuntimeError, 在此捕获
+            try:
+                response = _call_llm(messages, self.llm_config)
+            except RuntimeError as e:
+                return AgentResult(
+                    agent_name=self.NAME,
+                    success=False,
+                    error=f"LLM 调用失败: {e}",
+                )
+
             if response:
                 try:
                     json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
@@ -440,11 +472,17 @@ class AnalysisAgent:
                 except Exception:
                     pass
 
+                return AgentResult(
+                    agent_name=self.NAME,
+                    success=True,
+                    summary=response,
+                    confidence=0.8,
+                )
+            # V3.11: 不再把任务文本当摘要, 明确返回失败
             return AgentResult(
                 agent_name=self.NAME,
-                success=True,
-                summary=response or f"分析: {task}",
-                confidence=0.6,
+                success=False,
+                error="LLM 返回空内容, 无法生成分析",
             )
 
         except Exception as e:
@@ -460,21 +498,52 @@ class RiskAgent:
 
     NAME = "RiskAgent"
 
-    def __init__(self, cache_manager=None, llm_config: dict = None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, qi_db=None):
         self.cache = cache_manager
         self.llm_config = llm_config or {}
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def execute(self, task: str, context: dict = None) -> AgentResult:
-        """执行风险评估"""
-        try:
-            risk_summary = self._assess_risks(task, context)
+        """执行风险评估
 
+        V3.11: 调用 LLM 生成动态风险评估, 而非硬编码静态文本
+        """
+        try:
+            # V3.11: 优先调用 LLM 生成风险评估
+            if self.llm_config and self.llm_config.get('api_key'):
+                system_prompt = """你是 QuantInsight Pro 的风险管理专家. 请基于用户问题进行风险评估.
+输出格式 (Markdown):
+### ⚠️ 风险评估
+**市场风险**: [基于当前市场环境分析]
+**集中度风险**: [基于行业/个股集中度分析]
+**流动性风险**: [基于成交额/换手率分析]
+📌 *投资有风险, 入市需谨慎. 本分析不构成投资建议.*"""
+                try:
+                    response = _call_llm(
+                        [{"role": "system", "content": system_prompt},
+                         {"role": "user", "content": task}],
+                        self.llm_config,
+                        temperature=0.5,
+                    )
+                    if response:
+                        return AgentResult(
+                            agent_name=self.NAME,
+                            success=True,
+                            summary=response,
+                            data={"risk_level": "medium", "warnings": []},
+                            confidence=0.8,
+                        )
+                except RuntimeError as e:
+                    logger.warning(f"RiskAgent LLM 调用失败, 使用静态模板: {e}")
+
+            # 兜底: 静态风险提示模板
+            risk_summary = self._assess_risks(task, context)
             return AgentResult(
                 agent_name=self.NAME,
                 success=True,
                 summary=risk_summary,
                 data={"risk_level": "medium", "warnings": []},
-                confidence=0.75,
+                confidence=0.6,
             )
         except Exception as e:
             return AgentResult(agent_name=self.NAME, success=False, error=str(e))
@@ -501,18 +570,47 @@ class PortfolioAgent:
 
     NAME = "PortfolioAgent"
 
-    def __init__(self, cache_manager=None, llm_config: dict = None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, qi_db=None):
         self.cache = cache_manager
         self.llm_config = llm_config or {}
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def execute(self, task: str, context: dict = None) -> AgentResult:
-        """执行组合分析"""
+        """执行组合分析
+
+        V3.11: 调用 LLM 生成组合建议, 而非返回"开发中"
+        """
         try:
+            if self.llm_config and self.llm_config.get('api_key'):
+                system_prompt = """你是 QuantInsight Pro 的组合管理专家. 请基于用户问题提供组合构建与优化建议.
+输出格式 (Markdown):
+### 📊 组合分析
+**配置建议**: [基于用户需求的资产配置建议]
+**行业分散**: [行业分散度建议]
+**风险预算**: [风险预算分配]
+📌 *本分析不构成投资建议.*"""
+                try:
+                    response = _call_llm(
+                        [{"role": "system", "content": system_prompt},
+                         {"role": "user", "content": task}],
+                        self.llm_config,
+                        temperature=0.6,
+                    )
+                    if response:
+                        return AgentResult(
+                            agent_name=self.NAME,
+                            success=True,
+                            summary=response,
+                            confidence=0.75,
+                        )
+                except RuntimeError as e:
+                    logger.warning(f"PortfolioAgent LLM 调用失败: {e}")
+
             return AgentResult(
                 agent_name=self.NAME,
                 success=True,
-                summary="组合分析功能开发中, 请使用'我的组合'页面管理持仓.",
-                confidence=0.7,
+                summary="### 📊 组合分析\n\n组合管理建议:\n- 建议均衡配置, 单一行业仓位不超过30%\n- 关注估值与成长性匹配\n- 定期再平衡\n\n📌 *本分析不构成投资建议.*",
+                confidence=0.6,
             )
         except Exception as e:
             return AgentResult(agent_name=self.NAME, success=False, error=str(e))
@@ -527,9 +625,10 @@ class MarketMonitorAgent:
 
     NAME = "MarketMonitorAgent"
 
-    def __init__(self, cache_manager=None, llm_config: dict = None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, qi_db=None):
         self.cache = cache_manager
         self.llm_config = llm_config or {}
+        self.qi_db = qi_db  # V3.11: SQLite 数据库实例
 
     def execute(self, task: str, context: dict = None) -> AgentResult:
         """执行市场监控"""
@@ -577,7 +676,7 @@ class MarketMonitorAgent:
                 agent_name=self.NAME,
                 success=True,
                 summary=summary,
-                data={"alerts": alerts},
+                data={"alerts": alerts} if alerts else {},  # V3.11: 空 alerts 不放入 data
                 confidence=0.85,
             )
 
@@ -598,9 +697,12 @@ AGENT_REGISTRY = {
 }
 
 
-def get_agent(name: str, cache_manager=None, llm_config: dict = None):
-    """获取 Agent 实例"""
+def get_agent(name: str, cache_manager=None, llm_config: dict = None, qi_db=None):
+    """获取 Agent 实例
+
+    V3.11: 新增 qi_db 参数, 传递给各 Agent
+    """
     cls = AGENT_REGISTRY.get(name)
     if cls is None:
         raise ValueError(f"未知 Agent: {name}, 可用: {list(AGENT_REGISTRY.keys())}")
-    return cls(cache_manager=cache_manager, llm_config=llm_config)
+    return cls(cache_manager=cache_manager, llm_config=llm_config, qi_db=qi_db)

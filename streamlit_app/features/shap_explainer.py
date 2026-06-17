@@ -519,6 +519,10 @@ def generate_ai_interpretation(shap_summary: pd.DataFrame, top_stock: Dict, conf
             'temperature': 0.7,
             'max_tokens': 1500,
         }
+        # V3.12: qwen3.x 推理模型禁用思考, 避免超时
+        model_name_lower = config.get('model', '').lower()
+        if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
+            payload['enable_thinking'] = False
         resp = requests.post(config['base_url'], headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         result = resp.json()
