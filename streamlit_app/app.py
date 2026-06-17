@@ -1388,24 +1388,24 @@ if page == '🏠 首页':
             <h3 style="color: #0A1628; margin: 0 0 16px 0; font-size: 1.15rem;">
                 🏆 合作客户 & 战略伙伴
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                <div style="background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
-                            color: white; padding: 16px; border-radius: 8px; text-align: center;
-                            border: 1px solid #D4AF37;">
-                    <div style="font-size: 1.3rem; font-weight: 700;">永字资产</div>
-                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">首年LOI已签</div>
+            <div style="display: flex; flex-wrap: nowrap; gap: 12px; justify-content: space-between;">
+                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
+                            color: white; padding: 16px 8px; border-radius: 8px; text-align: center;
+                            border: 1px solid #D4AF37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="font-size: 1.1rem; font-weight: 700;">永字资产</div>
+                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">首年LOI已签</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
-                            color: #00D4FF; padding: 16px; border-radius: 8px; text-align: center;
-                            border: 1px solid #00D4FF;">
-                    <div style="font-size: 1.3rem; font-weight: 700;">慧点资本</div>
-                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">联合出品方</div>
+                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
+                            color: #00D4FF; padding: 16px 8px; border-radius: 8px; text-align: center;
+                            border: 1px solid #00D4FF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="font-size: 1.1rem; font-weight: 700;">慧点资本</div>
+                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">联合出品方</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);
-                            color: #0A1628; padding: 16px; border-radius: 8px; text-align: center;
-                            border: 1px solid #0A1628;">
-                    <div style="font-size: 1.3rem; font-weight: 700;">创·在上海</div>
-                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">官方参赛项目</div>
+                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);
+                            color: #0A1628; padding: 16px 8px; border-radius: 8px; text-align: center;
+                            border: 1px solid #0A1628; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="font-size: 1.1rem; font-weight: 700;">创·在上海</div>
+                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">官方参赛项目</div>
                 </div>
             </div>
         </div>
@@ -1460,11 +1460,11 @@ elif page == '🤖 AI 投研问答':
         st.session_state.question_input = ''
 
     # 顶部工具栏: 消息数 + 清空按钮
-    col_info, col_clear = st.columns([5, 1])
+    col_info, col_clear = st.columns([8, 1])
     with col_info:
         st.caption(f'💬 对话轮数: {len(st.session_state.chat_history) // 2} / 5 (最近 5 轮保留为上下文)')
     with col_clear:
-        if st.button('🗑️ 清空对话', width='stretch'):
+        if st.button('🗑️ 清空', width='stretch'):
             st.session_state.chat_history = []
             st.session_state.question_input = ''
             st.rerun()
@@ -1495,12 +1495,12 @@ elif page == '🤖 AI 投研问答':
         st.markdown('---')
 
     # 快捷问题
-    st.markdown('### 💡 试试这些问题 (单轮模式, 清空对话后使用)')
+    st.markdown('### 💡 试试这些问题')
     col1, col2, col3 = st.columns(3)
     quick_questions = [
-        '分析近期新能源行业投资机会',
-        '半导体行业当前估值与投资逻辑',
-        '消费板块是否到了底部布局时机',
+        '新能源行业投资机会',
+        '半导体估值与投资逻辑',
+        '消费板块底部布局时机',
     ]
     cols = [col1, col2, col3]
 
@@ -1522,7 +1522,7 @@ elif page == '🤖 AI 投研问答':
 
     col1, col2 = st.columns([1, 5])
     with col1:
-        analyze_btn = st.button('🚀 智能分析', type='primary', width='stretch')
+        analyze_btn = st.button('🚀 分析', type='primary', width='stretch')
 
     if analyze_btn and question:
         # 检测 LLM 配置 (B7)
@@ -3330,10 +3330,8 @@ elif page == '🎯 智能选股':
         if st.button('🔍 开始筛选', type='primary', key='screen_btn') and query:
             with st.spinner('AI 解析筛选条件 + 加载数据...'):
                 try:
-                    # 获取 LLM 配置（如果可用）
-                    llm_config = {}
-                    if 'llm_config' in st.session_state:
-                        llm_config = st.session_state.llm_config
+                    # V3.15: 使用 get_llm_config() 获取配置 (之前从 session_state 取可能为空)
+                    llm_config = get_llm_config()
                     screener = NaturalLanguageScreener(cache_manager=st.session_state.get('data_cache_mgr'), llm_config=llm_config)
                     # 加载股票池
                     pool = load_stock_pool()

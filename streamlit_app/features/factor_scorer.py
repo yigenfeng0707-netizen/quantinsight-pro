@@ -102,17 +102,21 @@ class MultiFactorScorer:
         return df.sort_values("total_score", ascending=False).reset_index(drop=True)
 
     def _calc_value_factor(self, df: pd.DataFrame) -> pd.Series:
-        """价值因子: PE低好, PB低好"""
+        """价值因子: PE低好, PB低好 (V3.15: 列全NULL时跳过)"""
         score = pd.Series(0.5, index=df.index)
 
+        # V3.15 辅助函数: 列是否有有效数据
+        def _has_valid(s):
+            return s is not None and s.notna().sum() > 0
+
         pe = df.get("市盈率-动态")
-        if pe is not None:
+        if _has_valid(pe):
             pe_valid = pe.clip(1, 200).fillna(200)
             pe_score = 1.0 - (pe_valid - 1) / 199  # PE=1 -> 1.0, PE=200 -> 0.0
             score = score * 0.5 + pe_score * 0.5
 
         pb = df.get("市净率")
-        if pb is not None:
+        if _has_valid(pb):
             pb_valid = pb.clip(0.1, 20).fillna(20)
             pb_score = 1.0 - (pb_valid - 0.1) / 19.9
             score = score * 0.7 + pb_score * 0.3
@@ -120,11 +124,14 @@ class MultiFactorScorer:
         return score.clip(0, 1)
 
     def _calc_growth_factor(self, df: pd.DataFrame) -> pd.Series:
-        """成长因子: 适度涨幅 + 量比活跃"""
+        """成长因子: 适度涨幅 + 量比活跃 (V3.15: 列全NULL时跳过)"""
         score = pd.Series(0.5, index=df.index)
 
+        def _has_valid(s):
+            return s is not None and s.notna().sum() > 0
+
         chg = df.get("涨跌幅")
-        if chg is not None:
+        if _has_valid(chg):
             # 最优涨幅: 1-5%
             chg_fill = chg.fillna(0)
             chg_score = np.where(
@@ -134,7 +141,7 @@ class MultiFactorScorer:
             score = score * 0.5 + pd.Series(chg_score, index=df.index).clip(0, 1) * 0.5
 
         vol_ratio = df.get("量比")
-        if vol_ratio is not None:
+        if _has_valid(vol_ratio):
             vr = vol_ratio.fillna(1).clip(0, 10)
             vr_score = np.where(
                 (vr >= 1) & (vr <= 3), 0.8,
@@ -145,11 +152,14 @@ class MultiFactorScorer:
         return score.clip(0, 1)
 
     def _calc_quality_factor(self, df: pd.DataFrame) -> pd.Series:
-        """质量因子: 换手率适中, 市值中大型"""
+        """质量因子: 换手率适中, 市值中大型 (V3.15: 列全NULL时跳过)"""
         score = pd.Series(0.5, index=df.index)
 
+        def _has_valid(s):
+            return s is not None and s.notna().sum() > 0
+
         turn = df.get("换手率")
-        if turn is not None:
+        if _has_valid(turn):
             t = turn.fillna(0).clip(0, 30)
             # 最优换手: 1-5%
             t_score = np.where(
@@ -160,7 +170,7 @@ class MultiFactorScorer:
             score = score * 0.5 + pd.Series(t_score, index=df.index) * 0.5
 
         cap = df.get("总市值")
-        if cap is not None:
+        if _has_valid(cap):
             cap_yi = cap / 1e8
             cap_score = np.where(
                 (cap_yi >= 100) & (cap_yi <= 2000), 0.9,
@@ -172,11 +182,11 @@ class MultiFactorScorer:
         return score.clip(0, 1)
 
     def _calc_momentum_factor(self, df: pd.DataFrame) -> pd.Series:
-        """动量因子: 60日涨幅适中"""
+        """动量因子: 60日涨幅适中 (V3.15: 列全NULL时跳过)"""
         score = pd.Series(0.5, index=df.index)
 
         pct_60 = df.get("60日涨跌幅")
-        if pct_60 is not None:
+        if pct_60 is not None and pct_60.notna().sum() > 0:  # V3.15
             p = pct_60.fillna(0).clip(-50, 100)
             # 最优: 5-30% (60日)
             p_score = np.where(

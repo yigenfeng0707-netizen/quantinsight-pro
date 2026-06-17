@@ -92,19 +92,98 @@ REPORT_TYPES = {
 # ============== 1. 离线示例数据生成器 ==============
 def generate_offline_data(report_type: str, target: str = '') -> Dict:
     """
-    生成离线示例数据 - 任何时候都不会失败
+    生成报告数据 - V3.15: 优先从SQLite加载真实数据, 失败时用示例数据
+
+    Args:
+        report_type: 报告类型 (morning/stock/industry/portfolio/ipo/convertible_bond)
+        target: 股票代码/名称/行业
+    Returns:
+        dict: 报告数据
     """
     np.random.seed(hash(f"{report_type}:{target}") % (2**31))
     today = datetime.now()
+
+    # V3.15: 尝试从 SQLite 加载真实数据
+    real_data_source = None
+    try:
+        import sys
+        for p in ['/opt/quantinsight/streamlit_app', '/opt/quantinsight']:
+            if p not in sys.path:
+                sys.path.insert(0, p)
+        from features.sqlite_data_layer import QIDataDB
+        _qi_db = QIDataDB()
+        df_spot = _qi_db.get_stock_spot()
+        if df_spot is not None and not df_spot.empty:
+            real_data_source = f'SQLite本地数据库 ({len(df_spot)} 只股票)'
+    except Exception as e:
+        logger.warning(f'SQLite 数据加载失败, 使用示例数据: {e}')
 
     data = {
         'report_type': report_type,
         'target': target,
         'generated_at': today.strftime('%Y-%m-%d %H:%M:%S'),
-        'data_source': '离线示例数据 (供演示)',
+        'data_source': real_data_source or '离线示例数据 (供演示)',
     }
 
-    if report_type == 'morning':
+    # V3.15: 如果有真实数据, 优先填充
+    if real_data_source and df_spot is not None and not df_spot.empty:
+        try:
+            if report_type == 'stock' and target:
+                # 从 stock_spot 查找目标股票
+                code_str = str(target).strip()
+                row = df_spot[df_spot['code'].astype(str).str.strip() == code_str]
+                if row.empty:
+                    # 按名称查找
+                    row = df_spot[df_spot['name'].astype(str).str.contains(code_str, na=False)]
+                if not row.empty:
+                    r = row.iloc[0]
+                    data['company'] = {
+                        'name': f"{r.get('name', '')} ({r.get('code', '')})",
+                        'code': str(r.get('code', '')),
+                        'industry': 'N/A',
+                        'market_cap': f"{r.get('total_mv', 0) / 1e8:.0f} 亿" if r.get('total_mv') and not pd.isna(r.get('total_mv')) else 'N/A',
+                        'pe_ttm': float(r.get('pe_ttm', 0)) if r.get('pe_ttm') and not pd.isna(r.get('pe_ttm')) else 'N/A',
+                        'pb': float(r.get('pb', 0)) if r.get('pb') and not pd.isna(r.get('pb')) else 'N/A',
+                    }
+                    data['_has_real_data'] = True
+            elif report_type == 'morning':
+                # 早报: 用 stock_spot 前10只
+                top10 = df_spot.head(10)
+                data['indices'] = pd.DataFrame({
+                    '名称': top10['name'].tolist(),
+                    '收盘': top10['latest_price'].tolist(),
+                    '涨跌幅': top10['change_pct'].tolist() if 'change_pct' in top10.columns else [0] * len(top10),
+                    '成交量(亿)': top10['amount'].tolist() if 'amount' in top10.columns else [0] * len(top10),
+                })
+                data['_has_real_data'] = True
+            elif report_type == 'industry':
+                # 行业报告: 按关键词过滤
+                industry_name = target or '半导体'
+                industry_keywords = {
+                    '半导体': ['半导体', '芯片', '集成电路', '中芯', '华虹', '韦尔'],
+                    '新能源车': ['新能源', '电池', '锂电', '宁德', '比亚迪'],
+                    '医药': ['医药', '恒瑞', '药明', '迈瑞'],
+                    '白酒': ['茅', '五粮', '泸州', '汾酒', '洋河'],
+                    '银行': ['银行', '工商', '建设', '农业', '招商'],
+                }
+                keywords = industry_keywords.get(industry_name, [industry_name])
+                mask = df_spot['name'].astype(str).str.contains('|'.join(keywords), na=False)
+                df_ind = df_spot[mask].head(10)
+                if not df_ind.empty:
+                    data['top_stocks'] = pd.DataFrame({
+                        '代码': df_ind['code'].astype(str),
+                        '名称': df_ind['name'].astype(str),
+                        '涨跌幅': df_ind.get('change_pct', 0),
+                        'PE': df_ind.get('pe_ttm', 0),
+                        '市值(亿)': df_ind.get('total_mv', 0).apply(lambda x: x / 1e8 if x and not pd.isna(x) else 0),
+                    })
+                    data['industry_name'] = industry_name
+                    data['_has_real_data'] = True
+        except Exception as e:
+            logger.warning(f'填充真实数据失败: {e}')
+
+    # V3.15: 示例数据仅在无真实数据时填充
+    if report_type == 'morning' and 'indices' not in data:
         data.update({
             'indices': pd.DataFrame({
                 '名称': ['上证指数', '深证成指', '创业板指', '科创50', '沪深300'],
@@ -126,7 +205,7 @@ def generate_offline_data(report_type: str, target: str = '') -> Dict:
             ],
         })
 
-    elif report_type == 'stock':
+    elif report_type == 'stock' and 'company' not in data:
         data.update({
             'company': {
                 'name': target or '贵州茅台 (600519)',
@@ -155,7 +234,7 @@ def generate_offline_data(report_type: str, target: str = '') -> Dict:
             'kline': _generate_kline(60),
         })
 
-    elif report_type == 'industry':
+    elif report_type == 'industry' and 'top_stocks' not in data:
         industry_name = target or '半导体'
         np.random.seed(hash(industry_name) % (2**31))
         data.update({
@@ -226,6 +305,8 @@ def _generate_kline(days: int = 60) -> pd.DataFrame:
 def fig_to_bytes(fig: go.Figure, width: int = 800, height: int = 500, timeout: int = 15) -> bytes:
     """Plotly 图表转 PNG 字节流 (用于嵌入 Word)
 
+    V3.15: 增加 matplotlib fallback, kaleido失败时用matplotlib渲染
+
     Args:
         fig: Plotly 图表对象
         width: 图片宽度像素
@@ -234,16 +315,8 @@ def fig_to_bytes(fig: go.Figure, width: int = 800, height: int = 500, timeout: i
     Returns:
         PNG 字节流, 失败时返回 b''
     """
+    # 方式1: 尝试 kaleido
     try:
-        # 设置 kaleido 进程级超时
-        try:
-            import kaleido
-            if hasattr(kaleido, 'kaleido') and hasattr(kaleido.kaleido, 'set_chromium'):
-                pass
-        except Exception:
-            pass
-
-        # 用信号量方式限制渲染时间
         import signal
         if hasattr(signal, 'SIGALRM'):
             # Unix 系统
@@ -253,13 +326,104 @@ def fig_to_bytes(fig: go.Figure, width: int = 800, height: int = 500, timeout: i
             signal.alarm(timeout)
         try:
             result = fig.to_image(format='png', width=width, height=height, engine='kaleido')
-            return result
+            if result and len(result) > 100:
+                return result
         finally:
             if hasattr(signal, 'SIGALRM'):
                 signal.alarm(0)
     except Exception as e:
-        logger.warning(f'Plotly to_image failed: {e}')
-        return b''
+        logger.warning(f'kaleido 渲染失败, 尝试 matplotlib fallback: {e}')
+
+    # 方式2: V3.15 matplotlib fallback (kaleido未安装或失败时)
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Patch
+        import numpy as np
+
+        fig_mpl, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)
+        fig_mpl.patch.set_facecolor('#0A1628')
+        ax.set_facecolor('#0A1628')
+        ax.tick_params(colors='#F0F4FA')
+        for spine in ax.spines.values():
+            spine.set_color('#2A3441')
+
+        title = fig.layout.title.text if fig.layout.title.text else '图表'
+        ax.set_title(title, color='#F0F4FA', fontsize=12, pad=10)
+
+        # 遍历 plotly traces 转换为 matplotlib
+        for trace in fig.data:
+            t_type = getattr(trace, 'type', None)
+            if t_type == 'bar':
+                x = list(trace.x) if trace.x else range(len(trace.y))
+                y = list(trace.y) if trace.y else []
+                color = getattr(trace.marker, 'color', '#00D4FF') or '#00D4FF'
+                ax.bar(x, y, color=color, alpha=0.8)
+                if len(x) > 6:
+                    ax.set_xticks(range(0, len(x), max(1, len(x) // 8)))
+                    ax.set_xticklabels([str(x[i]) for i in range(0, len(x), max(1, len(x) // 8))], rotation=45, ha='right')
+                else:
+                    ax.set_xticks(range(len(x)))
+                    ax.set_xticklabels([str(xi) for xi in x], rotation=45, ha='right')
+            elif t_type == 'waterfall':
+                # 瀑布图: 用柱状图模拟
+                x = list(trace.x) if trace.x else [f'F{i}' for i in range(len(trace.y))]
+                y = list(trace.y) if trace.y else []
+                colors = ['#00C896' if v > 0 else '#FF4D4F' for v in y]
+                ax.bar(x, y, color=colors, alpha=0.8)
+                ax.axhline(y=0, color='#F0F4FA', linewidth=0.5)
+                ax.set_xticks(range(len(x)))
+                ax.set_xticklabels([str(xi) for xi in x], rotation=45, ha='right')
+            elif t_type == 'scatterpolar':
+                # 雷达图
+                theta = list(trace.theta) if trace.theta else []
+                r = list(trace.r) if trace.r else []
+                if theta:
+                    theta_rad = np.linspace(0, 2 * np.pi, len(theta), endpoint=False).tolist()
+                    theta_rad.append(theta_rad[0])
+                    r_plot = r + [r[0]] if r else []
+                    ax_polar = fig_mpl.add_subplot(111, projection='polar')
+                    ax_polar.plot(theta_rad, r_plot, color='#00D4FF', linewidth=2)
+                    ax_polar.fill(theta_rad, r_plot, color='#00D4FF', alpha=0.3)
+                    ax_polar.set_xticks(theta_rad[:-1])
+                    ax_polar.set_xticklabels(theta, color='#F0F4FA')
+                    ax_polar.set_facecolor('#0A1628')
+                    ax_polar.tick_params(colors='#F0F4FA')
+                    ax.remove()
+            elif t_type == 'pie':
+                labels = list(trace.labels) if trace.labels else []
+                values = list(trace.values) if trace.values else []
+                if labels:
+                    ax_pie = fig_mpl.add_subplot(111)
+                    colors_pie = ['#00D4FF', '#00C896', '#FFB800', '#FF4D4F', '#9B6BFF', '#FF6B9D', '#4ECDC4', '#FFA07A']
+                    ax_pie.pie(values, labels=labels, colors=colors_pie[:len(labels)],
+                              autopct='%1.1f%%', textprops={'color': '#F0F4FA', 'fontsize': 9})
+                    ax_pie.set_facecolor('#0A1628')
+                    ax.remove()
+            elif t_type == 'candlestick':
+                # K线图简化为收盘价折线
+                x = list(trace.x) if trace.x else range(len(trace.close))
+                close = list(trace.close) if trace.close else []
+                ax.plot(x, close, color='#00D4FF', linewidth=1.5)
+                if len(x) > 10:
+                    step = max(1, len(x) // 10)
+                    ax.set_xticks(range(0, len(x), step))
+                    ax.set_xticklabels([str(x[i]) for i in range(0, len(x), step)], rotation=45, ha='right', fontsize=8)
+
+        fig_mpl.tight_layout()
+        buf = io.BytesIO()
+        fig_mpl.savefig(buf, format='png', dpi=100, facecolor='#0A1628')
+        plt.close(fig_mpl)
+        buf.seek(0)
+        result = buf.read()
+        if result and len(result) > 100:
+            logger.info(f'matplotlib fallback 渲染成功 ({len(result)} bytes)')
+            return result
+    except Exception as e:
+        logger.warning(f'matplotlib fallback 也失败: {e}')
+
+    return b''
 
 
 def create_kline_chart(df: pd.DataFrame, title: str = '股价走势') -> go.Figure:
@@ -519,6 +683,14 @@ def create_word_report(data: Dict, report_type: str = 'morning') -> bytes:
 
     def add_image_from_bytes(img_bytes, width_cm=14, caption=None):
         if not img_bytes:
+            # V3.15: 图片为空时显示占位文字, 避免报告无图表
+            try:
+                p = doc.add_paragraph()
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                r = p.add_run(f'[图表渲染失败: {caption or "未命名"}]')
+                set_font(r, 10, False, RGBColor(0x88, 0x92, 0xB0))
+            except Exception:
+                pass
             return
         try:
             p = doc.add_paragraph()

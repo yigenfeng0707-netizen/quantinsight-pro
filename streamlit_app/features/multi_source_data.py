@@ -894,7 +894,7 @@ class SentimentVectorStore:
                 "input": batch,
             }
             try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=30)
+                resp = requests.post(url, headers=headers, json=payload, timeout=90)  # V3.15: 30→90
                 resp.raise_for_status()
                 result = resp.json()
                 batch_embeddings = [item["embedding"] for item in result["data"]]

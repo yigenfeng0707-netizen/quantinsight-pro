@@ -591,15 +591,15 @@ def render_shap_dashboard():
 
     st.divider()
 
-    # 7种SHAP图（7个tab）
+    # 7种SHAP图（7个tab）V3.15: 缩短标签避免截断
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "🐝 蜂群图 (Beeswarm)",
-        "📊 条形图 (Bar)",
-        "🌊 瀑布图 (Waterfall)",
-        "⚡ 力图 (Force)",
-        "📈 依赖图 (Dependence)",
-        "🔀 决策图 (Decision)",
-        "🔄 交互作用图 (Interaction)",
+        "🐝 蜂群",
+        "📊 条形",
+        "🌊 瀑布",
+        "⚡ 力图",
+        "📈 依赖",
+        "🔀 决策",
+        "🔄 交互",
     ])
 
     # ---- Tab 1: 蜂群图 ----
