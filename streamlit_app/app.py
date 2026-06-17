@@ -143,6 +143,7 @@ def safe_akshare_call(func, *args, **kwargs):
     return None
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def safe_get_spot_df():
     """安全获取 A 股实时行情: SQLite → 东方财富直连 → akshare → 演示数据
 
@@ -215,6 +216,7 @@ def safe_get_spot_df():
     return _get_demo_spot_df()
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_get_stock_info(stock_code: str) -> dict:
     """安全获取个股基本信息: SQLite → 东方财富直连 → akshare → 空 dict
 
@@ -270,6 +272,39 @@ def safe_get_stock_info(stock_code: str) -> dict:
             return info_dict
     except Exception as e:
         logger.warning(f'个股信息获取失败 ({stock_code}): {e}')
+
+    # V3.13: 从 stock_spot 表构造 profile (ECS 上 akshare/东方财富被封时的兜底)
+    if HAS_SQLITE_DB:
+        try:
+            df_spot = _qi_db.get_stock_spot()
+            if df_spot is not None and not df_spot.empty:
+                code_str = str(stock_code).strip()
+                row = df_spot[df_spot['code'].astype(str).str.strip() == code_str]
+                if not row.empty:
+                    r = row.iloc[0]
+                    def _safe_val(key):
+                        v = r.get(key)
+                        if v is None or (isinstance(v, float) and math.isnan(v)):
+                            return None
+                        return v
+                    profile = {
+                        '股票代码': code_str,
+                        '股票名称': _safe_val('name'),
+                        '总市值': _safe_val('total_mv'),
+                        '流通市值': _safe_val('total_mv'),
+                        '市盈率-动态': _safe_val('pe_ttm'),
+                        '市净率': _safe_val('pb'),
+                        '换手率': _safe_val('turnover_rate'),
+                        '最新价': _safe_val('latest_price'),
+                        '涨跌幅': _safe_val('change_pct'),
+                    }
+                    # 过滤 None 值
+                    profile = {k: v for k, v in profile.items() if v is not None}
+                    if profile:
+                        return profile
+        except Exception as e:
+            logger.warning(f'从 stock_spot 构造 profile 失败 ({stock_code}): {e}')
+
     return {}
 
 
@@ -490,6 +525,7 @@ def _extract_json_from_text(text):
     return None
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def _fetch_market_context() -> str:
     """获取实时市场数据上下文, 用于注入 AI Q&A 的系统提示
 
@@ -880,6 +916,20 @@ def load_northbound_flow():
 @st.cache_data(ttl=60, show_spinner=False)
 def get_current_price(stock_code: str) -> float:
     """获取股票最新价（用于模拟交易市价单）"""
+    # V3.13: 优先直接查 SQLite stock_spot 表 (避免 safe_get_spot_df 的超时链)
+    if HAS_SQLITE_DB:
+        try:
+            df = _qi_db.get_stock_spot()
+            if df is not None and not df.empty:
+                code_str = str(stock_code).strip()
+                row = df[df['code'].astype(str).str.strip() == code_str]
+                if not row.empty:
+                    price = row.iloc[0].get('latest_price')
+                    if price is not None and not (isinstance(price, float) and math.isnan(price)):
+                        return float(price)
+        except Exception as e:
+            logger.warning(f'SQLite 获取 {stock_code} 价格失败: {e}')
+
     try:
         df = safe_get_spot_df()
         if df is not None and len(df) > 0:
@@ -2792,24 +2842,55 @@ elif page == '🔍 语义检索':
                 with st.spinner('正在语义检索...'):
                     try:
                         vector_store = SentimentVectorStore()
-                        # Add demo documents if store is empty
+                        # V3.13: 优先加载真实新闻数据, 回退到 demo 文档
                         if len(getattr(vector_store, 'documents', [])) == 0:
-                            demo_docs = [
-                                {'text': '贵州茅台2026年一季报：营收同比增长15.3%，净利润增长18.7%，超市场预期', 'date': '2026-04-28', 'source': '研报', 'stock_codes': ['600519']},
-                                {'text': '白酒行业景气度持续回升，北向资金近5日净流入23.6亿元', 'date': '2026-06-10', 'source': '新闻', 'stock_codes': ['600519', '000858']},
-                                {'text': '茅台推出新品系列，瞄准年轻消费市场，券商普遍给予买入评级', 'date': '2026-06-08', 'source': '研报', 'stock_codes': ['600519']},
-                                {'text': '新能源汽车6月销量预计突破120万辆，产业链景气度高涨', 'date': '2026-06-12', 'source': '新闻', 'stock_codes': ['002594', '300750']},
-                                {'text': '半导体国产替代加速，中芯国际产能利用率回升至90%', 'date': '2026-06-09', 'source': '研报', 'stock_codes': ['688981']},
-                                {'text': '央行下调LPR利率10个基点，市场流动性宽松预期增强', 'date': '2026-06-15', 'source': '公告', 'stock_codes': []},
-                                {'text': '宁德时代发布新一代麒麟电池，能量密度提升20%', 'date': '2026-06-11', 'source': '新闻', 'stock_codes': ['300750']},
-                                {'text': '招商银行零售业务数字化转型成效显著，ROE保持行业领先', 'date': '2026-05-20', 'source': '研报', 'stock_codes': ['600036']},
-                                {'text': '光伏产业链价格企稳，隆基绿能海外订单大幅增长', 'date': '2026-06-07', 'source': '新闻', 'stock_codes': ['601012']},
-                                {'text': '恒瑞医药创新药管线进入收获期，3个新药获批上市', 'date': '2026-06-06', 'source': '研报', 'stock_codes': ['600276']},
-                                {'text': '比亚迪海外销量突破5万辆，全球化战略加速推进', 'date': '2026-06-13', 'source': '新闻', 'stock_codes': ['002594']},
-                                {'text': '美的集团智能家居生态布局完善，海外收入占比超40%', 'date': '2026-05-15', 'source': '研报', 'stock_codes': ['000333']},
-                            ]
-                            vector_store.add_documents(demo_docs)
-                        results = vector_store.search(query=search_query, top_k=search_top_k)
+                            real_docs = []
+                            # 尝试加载真实新闻
+                            try:
+                                news_df = load_stock_news()
+                                if news_df is not None and len(news_df) > 0:
+                                    for _, row in news_df.head(50).iterrows():
+                                        real_docs.append({
+                                            'text': str(row.get('title', '')) + ' ' + str(row.get('content', ''))[:200],
+                                            'date': str(row.get('date', row.get('datetime', ''))),
+                                            'source': '新闻',
+                                            'stock_codes': [],
+                                        })
+                            except Exception as e:
+                                logger.warning(f'加载新闻数据失败: {e}')
+
+                            # 如果真实数据不足, 补充 demo 文档
+                            if len(real_docs) < 5:
+                                demo_docs = [
+                                    {'text': '贵州茅台2026年一季报：营收同比增长15.3%，净利润增长18.7%，超市场预期', 'date': '2026-04-28', 'source': '研报', 'stock_codes': ['600519']},
+                                    {'text': '白酒行业景气度持续回升，北向资金近5日净流入23.6亿元', 'date': '2026-06-10', 'source': '新闻', 'stock_codes': ['600519', '000858']},
+                                    {'text': '茅台推出新品系列，瞄准年轻消费市场，券商普遍给予买入评级', 'date': '2026-06-08', 'source': '研报', 'stock_codes': ['600519']},
+                                    {'text': '新能源汽车6月销量预计突破120万辆，产业链景气度高涨', 'date': '2026-06-12', 'source': '新闻', 'stock_codes': ['002594', '300750']},
+                                    {'text': '半导体国产替代加速，中芯国际产能利用率回升至90%', 'date': '2026-06-09', 'source': '研报', 'stock_codes': ['688981']},
+                                    {'text': '央行下调LPR利率10个基点，市场流动性宽松预期增强', 'date': '2026-06-15', 'source': '公告', 'stock_codes': []},
+                                    {'text': '宁德时代发布新一代麒麟电池，能量密度提升20%', 'date': '2026-06-11', 'source': '新闻', 'stock_codes': ['300750']},
+                                    {'text': '招商银行零售业务数字化转型成效显著，ROE保持行业领先', 'date': '2026-05-20', 'source': '研报', 'stock_codes': ['600036']},
+                                    {'text': '光伏产业链价格企稳，隆基绿能海外订单大幅增长', 'date': '2026-06-07', 'source': '新闻', 'stock_codes': ['601012']},
+                                    {'text': '恒瑞医药创新药管线进入收获期，3个新药获批上市', 'date': '2026-06-06', 'source': '研报', 'stock_codes': ['600276']},
+                                    {'text': '比亚迪海外销量突破5万辆，全球化战略加速推进', 'date': '2026-06-13', 'source': '新闻', 'stock_codes': ['002594']},
+                                    {'text': '美的集团智能家居生态布局完善，海外收入占比超40%', 'date': '2026-05-15', 'source': '研报', 'stock_codes': ['000333']},
+                                ]
+                                real_docs.extend(demo_docs)
+
+                            vector_store.add_documents(real_docs)
+                            st.caption(f'📚 已索引 {len(real_docs)} 条文档 (DashScope embedding)')
+
+                        # V3.13: 按数据源过滤
+                        results = vector_store.search(query=search_query, top_k=search_top_k * 2 if search_source else search_top_k)
+
+                        # 按数据源过滤
+                        if search_source and results:
+                            filtered_results = []
+                            for item in results:
+                                src = item.get('source', '') if isinstance(item, dict) else getattr(item, 'source', '')
+                                if src in search_source:
+                                    filtered_results.append(item)
+                            results = filtered_results[:search_top_k]
 
                         if results:
                             st.success(f'✅ 找到 {len(results)} 条相关结果')
@@ -2932,7 +3013,45 @@ elif page == '📊 行业分析':
         except Exception:
             pass
 
-    # 尝试方式3: 静态 fallback 数据
+    # 尝试方式3: V3.13 从 SQLite stock_spot 表按行业关键词过滤
+    if (df_industry is None or len(df_industry) == 0) and HAS_SQLITE_DB:
+        try:
+            with st.spinner('从本地数据库加载行业数据...'):
+                industry_name = selected_industry.split(' ')[0]
+                # 行业关键词映射 (股票名称中包含这些词的视为该行业成分股)
+                industry_keywords = {
+                    '半导体': ['半导体', '芯片', '集成电路', '微电子', '中芯', '华虹', '韦尔', '兆易', '北方华创', '中微', '紫光', '长电', '通富', '华天', '晶晨', '卓胜', '圣邦', '澜起', '汇顶', '兆易'],
+                    '新能源车': ['新能源', '电池', '锂电', '宁德', '比亚迪', '蔚来', '理想', '小鹏', '长城', '吉利', '长安', '广汽', '上汽', '一汽', '东风', '长安', '北汽', '江淮', '海马', '众泰'],
+                    '医药': ['医药', '生物', '制药', '医疗', '药业', '恒瑞', '药明', '迈瑞', '爱尔', '通策', '华兰', '智飞', '沃森', '康泰', '复星', '白云山', '云南白药', '同仁堂', '片仔癀'],
+                    '白酒': ['茅台', '五粮液', '洋河', '泸州', '汾酒', '古井', '今世缘', '水井坊', '舍得', '酒鬼', '顺鑫', '老白干', '迎驾', '口子窖', '金种子'],
+                    '银行': ['银行', '工商', '建设', '农业', '中国银行', '交通', '招商', '兴业', '浦发', '民生', '光大', '华夏', '平安', '中信', '邮储', '北京', '上海', '宁波', '南京', '杭州'],
+                    '证券': ['证券', '中信证券', '海通', '国泰', '华泰', '广发', '招商证券', '申万', '东方', '兴业证券', '长江', '国信', '东方财富', '同花顺', '大智慧'],
+                    '房地产': ['地产', '万科', '保利', '恒大', '碧桂园', '融创', '龙湖', '华润', '招商蛇口', '金地', '绿地', '华夏幸福', '世茂', '泰禾', '阳光城'],
+                    '军工': ['军工', '航空', '航天', '兵器', '中航', '中国卫星', '中国船舶', '中国重工', '中兵', '北方', '内蒙一机', '中航沈飞', '中航西飞', '航发'],
+                }
+                keywords = industry_keywords.get(industry_name, [industry_name])
+                df_spot = _qi_db.get_stock_spot()
+                if df_spot is not None and not df_spot.empty:
+                    # 按名称关键词过滤
+                    mask = df_spot['name'].astype(str).str.contains('|'.join(keywords), case=False, na=False)
+                    df_filtered = df_spot[mask].copy()
+                    if len(df_filtered) > 0:
+                        # 重命名列以匹配前端期望
+                        df_industry = pd.DataFrame({
+                            '代码': df_filtered['code'].astype(str),
+                            '名称': df_filtered['name'].astype(str),
+                            '最新价': df_filtered.get('latest_price', 0),
+                            '涨跌幅': df_filtered.get('change_pct', 0),
+                            '换手率': df_filtered.get('turnover_rate', 0),
+                            '市盈率-动态': df_filtered.get('pe_ttm', None),
+                            '市净率': df_filtered.get('pb', None),
+                            '总市值': df_filtered.get('total_mv', None),
+                        })
+                        data_source = f'SQLite 本地缓存 ({len(df_industry)} 只)'
+        except Exception as e:
+            logger.warning(f'SQLite 行业成分股查询失败: {e}')
+
+    # 尝试方式4: 静态 fallback 数据
     if df_industry is None or len(df_industry) == 0:
         st.info(f'💡 实时行业数据暂时不可用, 展示示例数据')
         industry_name = selected_industry.split(' ')[0]
@@ -3218,9 +3337,8 @@ elif page == '🎯 智能选股':
                     if pool is None or pool.empty:
                         st.error('股票池数据加载失败')
                     else:
-                        # 将股票池注入 screener 的 cache 以便 _get_universe 使用
-                        if screener.cache is None:
-                            screener.cache = type('SimpleCache', (), {'get_stock_universe': lambda self, top_n=3000: pool})()
+                        # V3.13: 强制注入 pool, 避免 screener 走 akshare 挂死
+                        screener.cache = type('SimpleCache', (), {'get_stock_universe': lambda self, top_n=3000: pool})()
                         results = screener.screen(query, top_n=20)
                         if results and results.get('results') is not None and len(results['results']) > 0:
                             st.success(f'✅ 筛选完成, 找到 {results["total_matched"]} 只符合条件的股票, 展示 Top {len(results["results"])}')
@@ -4009,19 +4127,13 @@ elif page == '📈 模拟交易':
             exec_price = float(o_price) if o_price > 0 else 0.0
             order_type = 'limit' if exec_price > 0 else 'market'
             if order_type == 'market':
-                # 尝试3次重试
-                exec_price = 0.0
-                for attempt in range(3):
-                    with st.spinner(f'正在获取市价... (尝试{attempt+1}/3)'):
-                        try:
-                            exec_price = get_current_price(o_symbol)
-                            if exec_price > 0:
-                                break
-                        except Exception as e:
-                            if attempt < 2:
-                                time.sleep(1)
-                                continue
-                            raise
+                # V3.13: 单次调用 (get_current_price 内部已有 SQLite 快速路径)
+                with st.spinner('正在获取市价...'):
+                    try:
+                        exec_price = get_current_price(o_symbol)
+                    except Exception as e:
+                        logger.warning(f'获取市价失败: {e}')
+                        exec_price = 0.0
 
                 if exec_price <= 0:
                     # 使用示例价格回退，避免阻塞交易
@@ -4322,7 +4434,57 @@ elif page == '⚡ 智能指令':
         tasks = scheduler.list_tasks()
         if tasks:
             for t in tasks:
-                st.markdown(f"- **{t.name}** ({t.task_type}) - {'✅ 活跃' if t.is_active else '⏸️ 暂停'}")
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+                    with col1:
+                        status_icon = '✅ 活跃' if t.is_active else '⏸️ 暂停'
+                        st.markdown(f"**{t.name}** ({t.task_type}) - {status_icon}")
+                        if hasattr(t, 'last_run') and t.last_run:
+                            st.caption(f"⏱️ 上次执行: {t.last_run}")
+                        if hasattr(t, 'next_run') and t.next_run:
+                            st.caption(f"⏭️ 下次执行: {t.next_run}")
+                        if hasattr(t, 'results') and t.results:
+                            st.caption(f"📊 历史结果: {len(t.results)} 条")
+                    with col2:
+                        if st.button('▶️ 执行', key=f'exec_{t.task_id}'):
+                            with st.spinner(f'正在执行 {t.name}...'):
+                                try:
+                                    # V3.13: 调用 MainAgent 执行任务, 传入 qi_db 和 llm_config
+                                    llm_config = {}
+                                    if 'llm_config' in st.session_state:
+                                        llm_config = st.session_state.llm_config
+                                    qi_db = _qi_db if HAS_SQLITE_DB else None
+                                    result = scheduler.execute_task(t, cache_manager=None, llm_config=llm_config, qi_db=qi_db)
+                                    if result:
+                                        st.success(f'✅ 执行完成')
+                                        if hasattr(result, 'summary') and result.summary:
+                                            st.markdown('**分析摘要:**')
+                                            st.markdown(result.summary[:1000])
+                                        if hasattr(result, 'data') and isinstance(result.data, dict):
+                                            title = result.data.get('title', '')
+                                            if title:
+                                                st.caption(f'标题: {title}')
+                                    else:
+                                        st.warning('执行未返回结果')
+                                except Exception as e:
+                                    st.error(f'执行失败: {e}')
+                    with col3:
+                        if st.button('⏸️ 暂停' if t.is_active else '▶️ 恢复', key=f'toggle_{t.task_id}'):
+                            try:
+                                t.is_active = not t.is_active
+                                scheduler._save_tasks()
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f'操作失败: {e}')
+                    with col4:
+                        if st.button('🗑️ 删除', key=f'del_{t.task_id}'):
+                            try:
+                                scheduler.delete_task(t.task_id)
+                                st.success(f'已删除 {t.name}')
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f'删除失败: {e}')
+                    st.markdown('---')
         else:
             st.info('暂无任务, 请先创建任务')
 

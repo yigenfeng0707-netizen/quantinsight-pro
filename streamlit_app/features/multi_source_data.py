@@ -79,6 +79,64 @@ except ImportError:
     HAS_SKLEARN = False
     logger.debug("scikit-learn 未安装, 将使用哈希嵌入降级方案")
 
+# V3.13: 尝试加载 DashScope embedding 配置 (阿里云 text-embedding-v2)
+# 注意: token-plan API 不支持 embedding, 只有标准 DashScope API key 才能用
+try:
+    import os as _os
+    import tomllib as _tomllib
+    _DASHSCOPE_API_KEY = None
+    _DASHSCOPE_MODEL = "text-embedding-v2"
+    _DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings"
+    # 尝试从 secrets.toml 读取
+    _secrets_paths = [
+        "/opt/quantinsight/.streamlit/secrets.toml",
+        ".streamlit/secrets.toml",
+        "streamlit_app/.streamlit/secrets.toml",
+    ]
+    for _sp in _secrets_paths:
+        try:
+            if _os.path.exists(_sp):
+                with open(_sp, "rb") as _f:
+                    _secrets = _tomllib.load(_f)
+                    # V3.13: 只用专门的 DASHSCOPE_API_KEY (标准 DashScope API)
+                    # QWEN_API_KEY 是 token-plan 类型, 不支持 embedding
+                    _DASHSCOPE_API_KEY = _secrets.get("DASHSCOPE_API_KEY")
+                    _DASHSCOPE_MODEL = _secrets.get("DASHSCOPE_EMBED_MODEL", "text-embedding-v2")
+                    break
+        except Exception:
+            pass
+    if not _DASHSCOPE_API_KEY:
+        _DASHSCOPE_API_KEY = _os.environ.get("DASHSCOPE_API_KEY")
+    HAS_DASHSCOPE_EMBED = bool(_DASHSCOPE_API_KEY)
+except Exception:
+    HAS_DASHSCOPE_EMBED = False
+    _DASHSCOPE_API_KEY = None
+    _DASHSCOPE_MODEL = "text-embedding-v2"
+    _DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings"
+
+# V3.13: LLM 配置 (用于语义关键词提取, 替代 embedding)
+try:
+    _LLM_API_KEY = None
+    _LLM_BASE_URL = None
+    _LLM_MODEL = None
+    for _sp in _secrets_paths:
+        try:
+            if _os.path.exists(_sp):
+                with open(_sp, "rb") as _f:
+                    _secrets = _tomllib.load(_f)
+                    _LLM_API_KEY = _secrets.get("QWEN_API_KEY") or _secrets.get("DEEPSEEK_API_KEY")
+                    _LLM_BASE_URL = _secrets.get("QWEN_BASE_URL") or _secrets.get("DEEPSEEK_BASE_URL")
+                    _LLM_MODEL = _secrets.get("QWEN_MODEL") or _secrets.get("DEEPSEEK_MODEL")
+                    break
+        except Exception:
+            pass
+    HAS_LLM_FOR_KEYWORDS = bool(_LLM_API_KEY and _LLM_BASE_URL and _LLM_MODEL)
+except Exception:
+    HAS_LLM_FOR_KEYWORDS = False
+    _LLM_API_KEY = None
+    _LLM_BASE_URL = None
+    _LLM_MODEL = None
+
 
 # ============================================================================
 # 多源数据中枢
@@ -705,6 +763,9 @@ class SentimentVectorStore:
         Args:
             dimension: 嵌入向量维度 (sentence-transformers 默认 384)
         """
+        # V3.13: DashScope embedding 维度是 1536, 需要调整
+        if HAS_DASHSCOPE_EMBED:
+            dimension = 1536
         self.dimension = dimension
         self.documents: List[Dict] = []  # 原始文档列表
         self.embeddings: Optional[np.ndarray] = None  # 嵌入矩阵 (N, D)
@@ -717,7 +778,17 @@ class SentimentVectorStore:
         self._faiss_index = self._init_faiss()
 
     def _init_encoder(self):
-        """初始化文本编码器 (优先级: sentence-transformers > TF-IDF+SVD > 哈希)"""
+        """初始化文本编码器 (优先级: DashScope > LLM关键词 > sentence-transformers > TF-IDF+SVD > 哈希)"""
+        # V3.13: 优先使用 DashScope embedding (需要标准 DashScope API key)
+        if HAS_DASHSCOPE_EMBED:
+            logger.info("使用 DashScope embedding 编码器 (text-embedding-v2)")
+            return ("dashscope", {"api_key": _DASHSCOPE_API_KEY, "model": _DASHSCOPE_MODEL, "base_url": _DASHSCOPE_BASE_URL})
+
+        # V3.13: 用 LLM 提取关键词做语义匹配 (token-plan API 支持 chat, 不支持 embedding)
+        if HAS_LLM_FOR_KEYWORDS:
+            logger.info("使用 LLM 关键词语义匹配 (qwen3.6-plus)")
+            return ("llm_keywords", {"api_key": _LLM_API_KEY, "base_url": _LLM_BASE_URL, "model": _LLM_MODEL})
+
         if HAS_SENTENCE_TRANSFORMERS:
             try:
                 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
@@ -764,6 +835,10 @@ class SentimentVectorStore:
 
         encoder_type = self._encoder[0]
 
+        # V3.13: DashScope embedding (阿里云 text-embedding-v2)
+        if encoder_type == "dashscope":
+            return self._dashscope_encode(texts)
+
         if encoder_type == "sentence_transformers":
             model = self._encoder[1]
             embeddings = model.encode(texts, show_progress_bar=False)
@@ -794,6 +869,46 @@ class SentimentVectorStore:
 
         # 哈希嵌入 (最终降级)
         return self._hash_encode(texts)
+
+    def _dashscope_encode(self, texts: List[str]) -> np.ndarray:
+        """V3.13: 使用 DashScope text-embedding-v2 编码 (1536维)"""
+        import requests
+
+        config = self._encoder[1]
+        api_key = config["api_key"]
+        model = config["model"]
+        url = config["base_url"]
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        all_embeddings = []
+        # 批量处理 (DashScope 单次最多25条)
+        batch_size = 25
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            payload = {
+                "model": model,
+                "input": batch,
+            }
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=30)
+                resp.raise_for_status()
+                result = resp.json()
+                batch_embeddings = [item["embedding"] for item in result["data"]]
+                all_embeddings.extend(batch_embeddings)
+            except Exception as e:
+                logger.warning(f"DashScope embedding 失败 (batch {i}): {e}, 降级到哈希编码")
+                return self._hash_encode(texts)
+
+        embeddings = np.array(all_embeddings, dtype=np.float32)
+        # L2 归一化
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        embeddings = embeddings / norms
+        return embeddings
 
     def _hash_encode(self, texts: List[str]) -> np.ndarray:
         """基于哈希的嵌入生成 (无需任何外部依赖)"""
@@ -889,7 +1004,14 @@ class SentimentVectorStore:
         Returns:
             匹配结果列表, 每项包含 {text, date, source, score, distance}
         """
-        if not self.documents or self.embeddings is None:
+        if not self.documents:
+            return []
+
+        # V3.13: LLM 关键词匹配模式 (token-plan API 不支持 embedding)
+        if self._encoder[0] == "llm_keywords":
+            return self._llm_keyword_search(query, top_k)
+
+        if self.embeddings is None:
             return []
 
         top_k = min(top_k, len(self.documents))
@@ -922,6 +1044,78 @@ class SentimentVectorStore:
 
         # numpy 余弦相似度降级
         return self._numpy_search(query_emb[0], top_k)
+
+    def _llm_keyword_search(self, query: str, top_k: int) -> List[Dict]:
+        """V3.13: LLM 关键词语义匹配 (token-plan API 不支持 embedding 的替代方案)
+
+        策略: 用 LLM 提取查询关键词, 然后与文档做关键词重叠 + 同义词匹配
+        """
+        import requests as _requests
+
+        config = self._encoder[1]
+        api_key = config["api_key"]
+        base_url = config["base_url"]
+        model = config["model"]
+
+        # 1. 用 LLM 提取查询关键词
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "你是金融文本分析助手。提取用户查询的关键词和同义词, 用逗号分隔, 只输出关键词, 不加解释。"},
+                {"role": "user", "content": f"查询: {query}\n请提取5-10个关键词和同义词:"},
+            ],
+            "temperature": 0.3,
+            "max_tokens": 200,
+        }
+        # V3.13: qwen3.x 推理模型禁用思考
+        if "qwen3" in model.lower() or "qwen-3" in model.lower():
+            payload["enable_thinking"] = False
+
+        try:
+            resp = _requests.post(base_url, headers=headers, json=payload, timeout=30)
+            resp.raise_for_status()
+            result = resp.json()
+            keywords_text = result["choices"][0]["message"]["content"].strip()
+            # 解析关键词 (逗号分隔)
+            query_keywords = [k.strip() for k in keywords_text.replace("，", ",").replace("、", ",").split(",") if k.strip()]
+            logger.info(f"LLM 提取关键词: {query_keywords}")
+        except Exception as e:
+            logger.warning(f"LLM 关键词提取失败: {e}, 降级到简单分词")
+            # 降级: 简单分词
+            query_keywords = [w for w in query.replace("，", " ").replace("、", " ").split() if len(w) > 1]
+
+        # 2. 计算每个文档与查询的关键词匹配分数
+        scored_docs = []
+        for i, doc in enumerate(self.documents):
+            doc_text = doc["text"]
+            # 计算关键词命中数
+            hits = 0
+            for kw in query_keywords:
+                if kw in doc_text:
+                    hits += 1
+            # 计算分数: 命中关键词数 / 总关键词数, 加上查询词直接命中
+            score = hits / max(len(query_keywords), 1)
+            # 额外: 查询中的词直接出现在文档中
+            query_words = [w for w in query.replace("，", " ").replace("、", " ").split() if len(w) > 1]
+            for qw in query_words:
+                if qw in doc_text:
+                    score += 0.1
+            scored_docs.append((i, min(score, 1.0)))
+
+        # 3. 按分数排序, 取 top_k
+        scored_docs.sort(key=lambda x: x[1], reverse=True)
+        results = []
+        for idx, score in scored_docs[:top_k]:
+            doc = self.documents[idx]
+            results.append({
+                "text": doc["text"],
+                "date": doc["date"],
+                "source": doc["source"],
+                "score": float(score),
+                "distance": float(1 - score),
+            })
+        return results
 
     def _numpy_search(self, query_vec: np.ndarray, top_k: int) -> List[Dict]:
         """使用 numpy 计算余弦相似度进行搜索"""

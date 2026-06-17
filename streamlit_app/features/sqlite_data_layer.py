@@ -262,13 +262,10 @@ class QIDataDB:
         """读取全A股实时行情缓存
 
         Returns:
-            DataFrame 或 None (数据为空/过期时返回 None)
-        """
-        freshness = self.get_freshness("stock_spot")
-        if freshness["age_minutes"] is not None and freshness["age_minutes"] > _STALE_MINUTES["stock_spot"]:
-            logger.info("stock_spot 数据已过期 (%.0f 分钟), 返回 None", freshness["age_minutes"])
-            return None
+            DataFrame 或 None (数据为空时返回 None)
 
+        V3.13: 移除表级新鲜度检查, 避免数据过期后所有功能都不可用
+        """
         conn = self._get_conn()
         try:
             df = pd.read_sql("SELECT * FROM stock_spot ORDER BY total_mv DESC", conn)

@@ -156,12 +156,15 @@ class ResearchTaskScheduler:
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         self._save_tasks()
 
-    def execute_task(self, task: ScheduledTask, cache_manager=None, llm_config: dict = None) -> TaskResult:
-        """执行任务 (生成报告)"""
+    def execute_task(self, task: ScheduledTask, cache_manager=None, llm_config: dict = None, qi_db=None) -> TaskResult:
+        """执行任务 (生成报告)
+
+        V3.13: 新增 qi_db 参数, 传给 MainAgent 实现数据接地
+        """
         from ai.agent_orchestrator import MainAgent
         from features.report_generator import AutoReportGenerator
 
-        agent = MainAgent(cache_manager=cache_manager, llm_config=llm_config)
+        agent = MainAgent(cache_manager=cache_manager, llm_config=llm_config, qi_db=qi_db)
         generator = AutoReportGenerator()
 
         # 根据任务类型生成查询
