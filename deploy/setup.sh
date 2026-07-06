@@ -7,21 +7,55 @@ REPO="${REPO:-https://github.com/yigenfeng0707-netizen/quantinsight-pro.git}"
 REPO_DIR="${REPO_DIR:-/opt/quantinsight-repo}"
 APP_DIR="${APP_DIR:-/opt/quantinsight}"
 DOMAIN="${DOMAIN:-quantinsight.cn}"
-CONDA="${CONDA:-/opt/miniconda3}"
+# 默认安装目标；若已存在 conda/miniconda 则自动复用，不会重复安装
+CONDA_INSTALL_PREFIX="${CONDA_INSTALL_PREFIX:-/opt/miniconda3}"
+
+# 查找已有 conda/miniconda，返回安装根目录；未找到则返回空
+resolve_conda_prefix() {
+  local candidate base
+  for candidate in \
+    "${CONDA_INSTALL_PREFIX}" \
+    /opt/miniconda3 /opt/conda /usr/local/miniconda3 \
+    "${HOME}/miniconda3" "${HOME}/anaconda3"; do
+    if [ -n "$candidate" ] && [ -x "$candidate/bin/python" ]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  if command -v conda >/dev/null 2>&1; then
+    base="$(conda info --base 2>/dev/null || true)"
+    if [ -n "$base" ] && [ -x "$base/bin/python" ]; then
+      echo "$base"
+      return 0
+    fi
+  fi
+  return 1
+}
 
 echo "==> [1/9] 系统依赖..."
-yum install -y git nginx wget 2>&1 | tail -3
-
-echo "==> [2/9] Python 3.11 (Miniconda)..."
-if [ ! -x "$CONDA/bin/python" ]; then
-  wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
-  bash /tmp/miniconda.sh -b -p "$CONDA"
+yum install -y git nginx wget gcc gcc-c++ 2>&1 | tail -3
+if ! swapon --show | grep -q swapfile; then
+  echo "    添加 2G swap（低内存服务器防 OOM）..."
+  fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress
+  chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
-"$CONDA/bin/conda" install -y python=3.11 pip 2>&1 | tail -5
+
+echo "==> [2/9] Python 环境（复用已有 conda，不重复安装）..."
+if CONDA="$(resolve_conda_prefix)"; then
+  echo "    Miniconda/Conda 已存在，跳过安装: $CONDA"
+else
+  CONDA="$CONDA_INSTALL_PREFIX"
+  echo "    未检测到 Conda，首次安装 Miniconda3-py39 到 $CONDA ..."
+  wget -q https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh -O /tmp/miniconda.sh
+  bash /tmp/miniconda.sh -b -p "$CONDA"
+  rm -f /tmp/miniconda.sh
+fi
+"$CONDA/bin/python" --version
 
 echo "==> [3/9] 拉取代码..."
 if [ -d "$REPO_DIR/.git" ]; then
-  git -C "$REPO_DIR" pull --ff-only origin main
+  cd "$REPO_DIR" && git pull --ff-only origin main && cd -
 else
   rm -rf "$REPO_DIR"
   git clone "$REPO" "$REPO_DIR"
@@ -34,9 +68,17 @@ rsync -a --delete \
   "$REPO_DIR/streamlit_app/" "$APP_DIR/"
 cp -f "$REPO_DIR/deploy/requirements-prod.txt" "$APP_DIR/requirements-prod.txt"
 
-echo "==> [5/9] 安装 Python 依赖（约 3-5 分钟）..."
-"$CONDA/bin/pip" install -q -U pip
-"$CONDA/bin/pip" install -q -r "$APP_DIR/requirements-prod.txt"
+echo "==> [5/9] 安装 Python 依赖（pip wheel，约 5-8 分钟）..."
+PIP="$CONDA/bin/pip"
+"$PIP" install -q -U pip wheel setuptools
+"$PIP" install -q --only-binary=:all: pyarrow==14.0.2 || "$PIP" install -q pyarrow==14.0.2
+"$PIP" install -q numpy==1.24.4
+"$PIP" install -q pandas==2.0.3 scipy==1.10.1
+"$PIP" install -q matplotlib==3.7.5 scikit-learn==1.3.2
+"$PIP" install -q streamlit==1.28.2 plotly==5.18.0 openpyxl requests bcrypt jieba
+"$PIP" install -q xgboost==2.0.3
+"$PIP" install -q shap==0.44.1
+"$PIP" install -q akshare snownlp
 
 echo "==> [6/9] 初始化管理员..."
 cd "$APP_DIR"

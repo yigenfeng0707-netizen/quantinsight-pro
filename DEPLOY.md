@@ -20,7 +20,9 @@
 |------|------|
 | `/opt/quantinsight/` | 运行目录（streamlit_app 扁平化） |
 | `/opt/quantinsight-repo/` | Git 克隆目录 |
-| `/opt/miniconda3/` | Python 3.11 |
+| `/opt/miniconda3/` | Python 3.9（CentOS 7 兼容；**已存在则跳过安装**） |
+
+> **Conda 复用原则**：`setup.sh` 会先检测 `/opt/miniconda3` 或 PATH 中的 `conda`，**仅在完全未安装时才下载 Miniconda**。重复执行 `bash deploy/setup.sh` 不会重装 Python 环境。
 
 ## 首次部署（SSH）
 
@@ -50,6 +52,17 @@ systemctl status quantinsight
 将 `quantinsight.cn` 和 `www.quantinsight.cn` 的 **A 记录** 指向 `47.76.46.88`。
 
 ## 本地开发
+
+本机已安装 **Miniconda**（`D:\miniconda3`，Python 3.13）时，**请勿重复安装**，直接使用：
+
+```powershell
+cd streamlit_app
+conda activate base   # 或你的专用环境名
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+若无 conda，也可用 venv：
 
 ```powershell
 cd streamlit_app
