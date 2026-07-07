@@ -16,7 +16,7 @@
 | 旁白语言 | 中文普通话 |
 | 配乐 | 轻柔科技风 BGM（-18dB 垫底） |
 | 品牌色 | #0A0E27 背景 / #00D4FF 强调 / #FFB800 数据高亮 |
-| Demo URL | https://quantinsight.cn |
+| Demo URL | https://3blue1brownlab.cn |
 
 ---
 
@@ -91,8 +91,8 @@
 | 要素 | 内容 |
 |------|------|
 | **画面** | Logo + URL + 二维码 |
-| **字幕** | https://quantinsight.cn · 让 AI 可解释，让投资更可信 |
-| **旁白** | 「立即体验 quantinsight.cn。QuantInsight Pro，让 AI 可解释，让投资更可信。感谢观看。」 |
+| **字幕** | https://3blue1brownlab.cn · 让 AI 可解释，让投资更可信 |
+| **旁白** | 「立即体验 3blue1brownlab.cn。QuantInsight Pro，让 AI 可解释，让投资更可信。感谢观看。」 |
 
 ---
 

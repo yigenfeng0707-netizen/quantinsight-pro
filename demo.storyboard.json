@@ -3,8 +3,8 @@
   "version": "3min-standard",
   "durationTargetSeconds": 180,
   "playwrightDir": "streamlit_app",
-  "baseUrl": "http://47.76.46.88",
-  "healthUrl": "http://47.76.46.88/_stcore/health",
+  "baseUrl": "http://3blue1brownlab.cn",
+  "healthUrl": "http://3blue1brownlab.cn/_stcore/health",
   "outputDir": "demo-output",
   "finalMp4": "submission/02_Demo交付/QuantInsight_Pro_Demo_3min.mp4",
   "viewport": { "width": 1920, "height": 1080 },
@@ -27,7 +27,7 @@
       "minDuration": 40,
       "narration": "第一步，智能选股。平台基于估值、成长、质量、动量、流动性、技术六大维度、共 17 个因子，对全市场股票进行综合评分，一键输出 Top10 推荐名单。投研效率提升百分之六十五。",
       "actions": [
-        { "goto": "http://47.76.46.88" },
+        { "goto": "http://3blue1brownlab.cn" },
         { "wait": 18000 },
         { "waitFor": { "text": "用户登录", "timeout": 90000 } },
         { "fill": { "role": "textbox", "name": "用户名", "value": "admin" } },
@@ -48,7 +48,7 @@
       "minDuration": 40,
       "narration": "这是我们的核心差异化——SHAP 可解释性。每一只推荐股票的决策过程都可以追溯到具体因子贡献。Summary Bar 展示全局排序，Force Plot 展示单股归因。满足证监会算法备案的可解释性要求，也让客户沟通成本降低百分之六十五。",
       "actions": [
-        { "goto": "http://47.76.46.88" },
+        { "goto": "http://3blue1brownlab.cn" },
         { "wait": 18000 },
         { "waitFor": { "text": "用户登录", "timeout": 90000 } },
         { "fill": { "role": "textbox", "name": "用户名", "value": "admin" } },
@@ -69,7 +69,7 @@
       "minDuration": 30,
       "narration": "第三步，AI 投研问答。基于 Qwen 大模型和 RAG 数据接地，用自然语言提问即可获得专业投研分析。每一条结论都有数据来源引用，可追溯、可审计。",
       "actions": [
-        { "goto": "http://47.76.46.88" },
+        { "goto": "http://3blue1brownlab.cn" },
         { "wait": 18000 },
         { "waitFor": { "text": "用户登录", "timeout": 90000 } },
         { "fill": { "role": "textbox", "name": "用户名", "value": "admin" } },
@@ -89,7 +89,7 @@
       "minDuration": 30,
       "narration": "第四步，量化回测。基于 akshare 公开数据，沪深三百指数十一年回测。多因子策略年化收益百分之八点五六，夏普零点六三，最大回撤负百分之三十八点三三，显著优于买入持有基准。回测引擎已开源 MIT，七个单元测试全部通过。",
       "actions": [
-        { "goto": "http://47.76.46.88" },
+        { "goto": "http://3blue1brownlab.cn" },
         { "wait": 18000 },
         { "waitFor": { "text": "用户登录", "timeout": 90000 } },
         { "fill": { "role": "textbox", "name": "用户名", "value": "admin" } },
@@ -117,8 +117,8 @@
       "id": "outro",
       "type": "title",
       "title": "QuantInsight Pro",
-      "subtitle": "https://quantinsight.cn · 让 AI 可解释，让投资更可信",
-      "narration": "立即体验 quantinsight.cn。QuantInsight Pro，让 AI 可解释，让投资更可信。感谢观看。",
+      "subtitle": "https://3blue1brownlab.cn · 让 AI 可解释，让投资更可信",
+      "narration": "立即体验 3blue1brownlab.cn。QuantInsight Pro，让 AI 可解释，让投资更可信。感谢观看。",
       "holdSeconds": 5,
       "minDuration": 10
     }

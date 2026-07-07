@@ -2,7 +2,7 @@
 title: QuantInsight Pro 商业计划书
 competition: AFAC2026 金融智能创新大赛 · 初创组
 project_id: 2026FINTECH-FINT-0093
-demo_url: https://quantinsight.cn
+demo_url: https://3blue1brownlab.cn
 version: AFAC Submission V1.0
 date: 2026年7月
 ---
@@ -18,7 +18,7 @@ date: 2026年7月
 | **参赛组别** | AFAC2026 初创组 |
 | **编制单位** | 慧点资本 (InsightQuant) 量化研究部 |
 | **推荐单位** | 杭州永字资产管理有限公司 |
-| **产品 Demo** | https://quantinsight.cn |
+| **产品 Demo** | https://3blue1brownlab.cn |
 | **编制日期** | 2026 年 7 月 |
 
 ---
@@ -131,7 +131,7 @@ date: 2026年7月
 
 面向专业机构投资者的 SaaS 化智能投研平台，核心差异化为 **AI 投研智能体 + SHAP 可解释性 + 5 类另类数据 + 开源回测引擎**。
 
-**在线 Demo**：https://quantinsight.cn（8 大功能模块，真实可运行）
+**在线 Demo**：https://3blue1brownlab.cn（8 大功能模块，真实可运行）
 
 ### 3.2 核心功能模块
 
@@ -410,7 +410,7 @@ date: 2026年7月
 
 - **项目编号**：2026FINTECH-FINT-0093
 - **参赛组别**：AFAC2026 初创组
-- **产品 Demo**：https://quantinsight.cn
+- **产品 Demo**：https://3blue1brownlab.cn
 - **回测引擎**：开源 MIT License（`streamlit_app/backtest_engine.py`）
 
 ### 9.2 知识产权规划
@@ -433,10 +433,10 @@ date: 2026年7月
 
 | 角色 | 姓名 | 邮箱 |
 |------|------|------|
-| CEO | 冯亦根 | ceo@quantinsight.cn |
-| CTO | 王宇寒 | cto@quantinsight.cn |
-| 产品 | 官馨 | product@quantinsight.cn |
-| 量化 | 梁理智 | ops@quantinsight.cn |
+| CEO | 冯亦根 | ceo@3blue1brownlab.cn |
+| CTO | 王宇寒 | cto@3blue1brownlab.cn |
+| 产品 | 官馨 | product@3blue1brownlab.cn |
+| 量化 | 梁理智 | ops@3blue1brownlab.cn |
 
 ---
 

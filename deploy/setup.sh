@@ -6,7 +6,7 @@ set -euo pipefail
 REPO="${REPO:-https://github.com/yigenfeng0707-netizen/quantinsight-pro.git}"
 REPO_DIR="${REPO_DIR:-/opt/quantinsight-repo}"
 APP_DIR="${APP_DIR:-/opt/quantinsight}"
-DOMAIN="${DOMAIN:-quantinsight.cn}"
+DOMAIN="${DOMAIN:-3blue1brownlab.cn}"
 # 默认安装目标；若已存在 conda/miniconda 则自动复用，不会重复安装
 CONDA_INSTALL_PREFIX="${CONDA_INSTALL_PREFIX:-/opt/miniconda3}"
 

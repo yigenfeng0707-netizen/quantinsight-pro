@@ -4,7 +4,7 @@ title QuantInsight Pro Demo 启动器
 echo ========================================
 echo   QuantInsight Pro - AFAC2026 Demo
 echo   项目编号: 2026FINTECH-FINT-0093
-echo   在线地址: https://quantinsight.cn
+echo   在线地址: https://3blue1brownlab.cn
 echo ========================================
 echo.
 

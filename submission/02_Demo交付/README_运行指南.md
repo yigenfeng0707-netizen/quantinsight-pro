@@ -1,7 +1,7 @@
 # QuantInsight Pro Demo 运行指南
 
 **项目编号**：2026FINTECH-FINT-0093  
-**产品 Demo**：https://quantinsight.cn  
+**产品 Demo**：https://3blue1brownlab.cn  
 **版本**：AFAC2026 提交包 V1.0
 
 ---
@@ -10,7 +10,7 @@
 
 直接访问生产环境，无需本地安装：
 
-**https://quantinsight.cn**
+**https://3blue1brownlab.cn**
 
 包含 8 大功能模块：智能选股、SHAP 解读、AI 投研问答、量化回测、智能盯盘、模拟交易、自动报告、实时数据看板。
 
@@ -164,5 +164,5 @@ streamlit_app/
 
 ---
 
-**技术支持**：王宇寒 cto@quantinsight.cn  
-**产品咨询**：官馨 product@quantinsight.cn
+**技术支持**：王宇寒 cto@3blue1brownlab.cn  
+**产品咨询**：官馨 product@3blue1brownlab.cn

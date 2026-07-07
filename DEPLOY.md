@@ -2,7 +2,7 @@
 
 > 本地目录：`D:\AFAC2026金融智能创新大赛\quantinsight-deploy\`  
 > 仓库：https://github.com/yigenfeng0707-netizen/quantinsight-pro  
-> 生产域名：**https://quantinsight.cn/**  
+> 生产域名：**https://3blue1brownlab.cn/**  
 > ECS：**47.76.46.88** · CentOS 7.9
 
 ## 目录说明
@@ -12,7 +12,7 @@
 | `streamlit_app/` | 应用源码（Streamlit） |
 | `deploy/` | ECS 部署脚本（nginx / systemd / SSL） |
 | `deploy/setup.sh` | 服务器一键部署 |
-| `deploy/ssl-acme.sh` | HTTPS 证书申请 |
+| `deploy/apply-domain.sh` | 仅切换 nginx 域名/SSL（不重装依赖） |
 
 ## 服务器路径
 
@@ -40,16 +40,25 @@ cd /opt/quantinsight-repo && git pull
 bash deploy/setup.sh
 ```
 
+## 切换域名（复用 3blue1brownlab.cn 旧 SSL）
+
+```bash
+cd /opt/quantinsight-repo && git pull
+DOMAIN=3blue1brownlab.cn bash deploy/apply-domain.sh
+```
+
+证书路径：`/etc/nginx/ssl/www.3blue1brownlab.cn.pem`（FinAgent 时期已申请）
+
 ## 验证
 
 ```bash
-curl -sk https://quantinsight.cn/_stcore/health
-systemctl status quantinsight
+curl http://3blue1brownlab.cn/_stcore/health    # 当前可用
+curl -sk https://3blue1brownlab.cn/_stcore/health  # apply-domain 后
 ```
 
 ## DNS
 
-将 `quantinsight.cn` 和 `www.quantinsight.cn` 的 **A 记录** 指向 `47.76.46.88`。
+将 `3blue1brownlab.cn` 和 `www.3blue1brownlab.cn` 的 **A 记录** 指向 `47.76.46.88`。
 
 ## 本地开发
 

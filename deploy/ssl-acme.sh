@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# 为 quantinsight.cn 申请 Let's Encrypt 证书（CentOS 7 + acme.sh）
+# 为 3blue1brownlab.cn 申请/续期 Let's Encrypt 证书（CentOS 7 + acme.sh）
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-quantinsight.cn}"
+DOMAIN="${DOMAIN:-3blue1brownlab.cn}"
 REPO_DIR="${REPO_DIR:-/opt/quantinsight-repo}"
 EMAIL="${SSL_EMAIL:-admin@${DOMAIN}}"
 

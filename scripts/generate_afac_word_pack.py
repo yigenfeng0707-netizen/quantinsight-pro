@@ -162,7 +162,7 @@ def gen_compliance_audit():
         doc,
         ["类别", "官方/平台要求", "QuantInsight 交付物", "状态"],
         [
-            ["在线提交", "Demo URL + 3分钟视频 + BP", "https://quantinsight.cn + MP4 + Word/PDF", "Demo✅ 视频⚠"],
+            ["在线提交", "Demo URL + 3分钟视频 + BP", "https://3blue1brownlab.cn + MP4 + Word/PDF", "Demo✅ 视频⚠"],
             ["代码仓库", "GitHub/Gitee + README", "github.com/yigenfeng0707-netizen/quantinsight-pro", "✅"],
             ["商业计划书", "PDF/DOCX，八章节", "submission/03_正式文档_WORD/", "✅"],
             ["产品原型", "可运行 Demo", "Streamlit + ECS 生产部署", "✅"],
@@ -211,7 +211,7 @@ def gen_test_report():
         doc,
         ["项目", "配置"],
         [
-            ["生产 Demo", "https://quantinsight.cn"],
+            ["生产 Demo", "https://3blue1brownlab.cn"],
             ["ECS", "47.76.46.88 · CentOS 7.9 · Python 3.9"],
             ["本地测试", "Windows · pytest · streamlit_app/"],
             ["测试日期", datetime.now().strftime("%Y-%m-%d %H:%M")],
@@ -288,8 +288,8 @@ def gen_executive_summary():
         [3, 3, 10],
     )
     heading(doc, "联系方式")
-    body(doc, "Demo：https://quantinsight.cn · GitHub：yigenfeng0707-netizen/quantinsight-pro\n"
-              "冯亦根 ceo@quantinsight.cn · 王宇寒 cto@quantinsight.cn")
+    body(doc, "Demo：https://3blue1brownlab.cn · GitHub：yigenfeng0707-netizen/quantinsight-pro\n"
+              "冯亦根 ceo@3blue1brownlab.cn · 王宇寒 cto@3blue1brownlab.cn")
     return save(doc, "03_Executive_Summary.docx")
 
 

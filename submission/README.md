@@ -2,7 +2,7 @@
 
 **项目编号**：2026FINTECH-FINT-0093  
 **参赛组别**：AFAC2026 金融智能创新大赛 · 初创组  
-**产品 Demo**：https://quantinsight.cn  
+**产品 Demo**：https://3blue1brownlab.cn  
 **编制日期**：2026 年 7 月
 
 ---
@@ -69,7 +69,7 @@ AFAC 标准八章节结构：
 | 项目 | 说明 |
 |------|------|
 | 源码位置 | `streamlit_app/` |
-| 在线地址 | https://quantinsight.cn |
+| 在线地址 | https://3blue1brownlab.cn |
 | 本地启动 | 双击 `02_Demo交付/启动Demo.bat` |
 | 验证结果 | `app.py` 语法通过 · 回测引擎 7/7 测试通过 |
 
@@ -134,7 +134,7 @@ AFAC 标准八章节结构：
 - [x] **FinAgent 旧项目已归档**（`_archive/`）
 - [ ] **3 分钟 MP4 视频待录制**
 - [ ] BP PDF（可选：HTML 或 Word 另存为 PDF）
-- [ ] **HTTPS quantinsight.cn**（当前 HTTP 47.76.46.88 可用，DNS/SSL 待确认）
+- [x] **HTTPS Demo**（https://3blue1brownlab.cn，复用旧域名 SSL）
 
 ---
 
@@ -174,5 +174,5 @@ submission/
 
 ---
 
-**联系人**：冯亦根 ceo@quantinsight.cn  
-**技术支持**：王宇寒 cto@quantinsight.cn
+**联系人**：冯亦根 ceo@3blue1brownlab.cn  
+**技术支持**：王宇寒 cto@3blue1brownlab.cn
