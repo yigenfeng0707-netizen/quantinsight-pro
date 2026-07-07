@@ -67,6 +67,23 @@ _data_*
 .deploy_venv/
 venv/
 env/
+.venv/
+streamlit_app/.venv/
+
+# Node / 视频中间产物
+node_modules/
+demo-video-remotion/node_modules/
+streamlit_app/node_modules/
+demo-output/
+
+# 调试归档（不提交）
+_archive_debug/
+_dbg.py
+_grep_hits.txt
+_m.txt
+_m2.txt
+_p.py
+_patch_*.py
 
 # 运行时数据 (Streamlit 模拟交易/任务)
 _tasks_data/

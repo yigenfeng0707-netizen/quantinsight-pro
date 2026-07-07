@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>QuantInsight Pro 商业计划书 — AFAC2026</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  body {
+    font-family: "Microsoft YaHei", "SimSun", serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #222;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 { color: #0A0E27; font-size: 22pt; border-bottom: 3px solid #00D4FF; padding-bottom: 8px; }
+  h2 { color: #0A0E27; font-size: 14pt; margin-top: 24px; border-left: 4px solid #FFB800; padding-left: 10px; }
+  h3 { color: #333; font-size: 12pt; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
+  th { background: #0A0E27; color: #00D4FF; padding: 6px 10px; text-align: left; }
+  td { border: 1px solid #ddd; padding: 6px 10px; }
+  tr:nth-child(even) { background: #f8f9fc; }
+  blockquote { border-left: 4px solid #FFB800; margin: 12px 0; padding: 8px 16px; background: #fffbf0; font-style: italic; }
+  .meta { color: #666; font-size: 10pt; margin-bottom: 20px; }
+  .highlight { color: #FFB800; font-weight: bold; }
+  .cyan { color: #00D4FF; }
+  pre { background: #f4f4f8; padding: 12px; font-size: 9pt; overflow-x: auto; border: 1px solid #ddd; }
+  .footer { text-align: center; color: #999; font-size: 9pt; margin-top: 40px; border-top: 1px solid #eee; padding-top: 12px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+
+<h1>QuantInsight Pro 商业计划书</h1>
+<p class="meta">
+  <strong>AI 驱动的另类数据量化投研平台 · SHAP 可解释性深度集成</strong><br>
+  项目编号：2026FINTECH-FINT-0093 ｜ AFAC2026 初创组 ｜ 2026 年 7 月<br>
+  Demo：https://quantinsight.cn ｜ 推荐单位：杭州永字资产管理有限公司
+</p>
+
+<h2>1. 执行摘要</h2>
+<p><strong>QuantInsight Pro</strong> 是面向专业机构投资者的新一代资管科技 (AssetTech) 平台，整合另类数据、AI 投研智能体（DeepSeek/Qwen 微调 + RAG）和开源量化回测引擎。<strong>核心差异化</strong>：业内首家将 SHAP 可解释性深度集成到 A 股智能选股流程。</p>
+<blockquote>让量化投资更智能，让另类数据更普惠，让 AI 决策可解释</blockquote>
+<table>
+  <tr><th>指标</th><th>2026</th><th>2028</th><th>2030</th></tr>
+  <tr><td>客户数</td><td>30</td><td>200</td><td>620</td></tr>
+  <tr><td>营收 (亿元)</td><td>0.20</td><td>2.01</td><td>7.95</td></tr>
+  <tr><td>净利润 (亿元)</td><td>-0.18</td><td>0.29</td><td>1.98</td></tr>
+</table>
+
+<h2>2. 市场分析</h2>
+<p>中国资管行业 200 万亿+，资管科技渗透率 &lt; 5%。5000+ 中小私募长期被 Wind/同花顺忽视，形成结构性蓝海。关键趋势：AI 大模型降门槛、另类数据爆发、算法可解释性合规刚需。</p>
+<table>
+  <tr><th>客户类型</th><th>核心痛点</th><th>强度</th></tr>
+  <tr><td>中小私募</td><td>数据贵/AI 不会用/合规压力</td><td>★★★★★</td></tr>
+  <tr><td>银行理财子</td><td>净值化转型/另类数据</td><td>★★★★</td></tr>
+  <tr><td>券商资管</td><td>资管新规/智能风控</td><td>★★★</td></tr>
+</table>
+
+<h2>3. 产品与技术方案</h2>
+<p>8 大功能模块已上线 Demo（quantinsight.cn）：智能选股、SHAP 解读、AI 问答、量化回测、智能盯盘、模拟交易、自动报告、实时看板。</p>
+<pre>
+┌─ 应用层：投研终端 | API | 可视化 ─────────────────┐
+├─ 智能体层：投研助手 | 因子挖掘 | 问答 | 报告 ─────┤
+├─ 服务层：AI引擎 | 策略引擎 | 风控 | SHAP解释器 ────┤
+├─ 数据层：5大数据源 + 17因子库 ────────────────────┤
+├─ 算法层：XGBoost | SHAP | RAG | 回测引擎MIT ──────┤
+└─ 基础设施：云原生 | 弹性算力 | 零信任安全 ────────┘
+</pre>
+<p><strong>回测验证（T35 修正）</strong>：HS300 多因子 11.4 年 — 年化 <span class="highlight">8.56%</span>，夏普 <span class="highlight">0.63</span>，最大回撤 <span class="highlight">-38.33%</span>。</p>
+
+<h2>4. 商业模式</h2>
+<table>
+  <tr><th>收入来源</th><th>2030 占比</th><th>单价</th></tr>
+  <tr><td>SaaS 订阅</td><td>70%</td><td>30-200 万/年</td></tr>
+  <tr><td>定制开发</td><td>15%</td><td>100-500 万/项目</td></tr>
+  <tr><td>数据 API</td><td>7%</td><td>按次计费</td></tr>
+</table>
+<p>聚焦 9 类客户，加权 ARPU 79 万/年。目标续约率 92%，NRR 120%。</p>
+
+<h2>5. 团队介绍</h2>
+<table>
+  <tr><th>角色</th><th>姓名</th><th>院校</th><th>职责</th></tr>
+  <tr><td>CEO/主讲</td><td><strong>冯亦根</strong></td><td>亚洲城市大学</td><td>战略、融资、BD</td></tr>
+  <tr><td>CTO</td><td><strong>王宇寒</strong></td><td>杭州电子科技大学</td><td>技术架构、AI</td></tr>
+  <tr><td>产品/数据</td><td><strong>官馨</strong></td><td>陕西师范大学</td><td>产品、数据</td></tr>
+  <tr><td>量化/运营</td><td><strong>梁理智</strong></td><td>河北科技大学</td><td>量化、运营</td></tr>
+</table>
+<p>推荐单位/场外顾问：<strong>薛永再</strong>（杭州永字资管法定代表人，非参赛队员）</p>
+
+<h2>6. 财务预测</h2>
+<p>天使轮 500 万 → 5 轮累计融资 4.35 亿。2030 营收 7.95 亿，净利率 25%，IRR 28%。2028 年净利润转正。</p>
+
+<h2>7. 风险评估</h2>
+<table>
+  <tr><th>风险</th><th>概率</th><th>应对</th><th>责任人</th></tr>
+  <tr><td>AI 技术迭代滞后</td><td>20%</td><td>R&D 15% 营收</td><td>王宇寒</td></tr>
+  <tr><td>竞品价格战</td><td>40%</td><td>SHAP 差异化壁垒</td><td>冯亦根</td></tr>
+  <tr><td>监管收紧</td><td>30%</td><td>监管沙盒 + 合规</td><td>王宇寒</td></tr>
+  <tr><td>数据源断供</td><td>10%</td><td>多源备份</td><td>王宇寒</td></tr>
+</table>
+
+<h2>8. 落地案例</h2>
+<h3>杭州永字资产管理有限公司 — 战略合作已签署</h3>
+<table>
+  <tr><th>项目</th><th>内容</th></tr>
+  <tr><td>合作方</td><td>杭州永字资产管理有限公司</td></tr>
+  <tr><td>法定代表人</td><td>薛永再（推荐单位代表 / 场外顾问）</td></tr>
+  <tr><td>合作状态</td><td><strong>战略合作已签署</strong></td></tr>
+  <tr><td>合作范围</td><td>AI 投研问答 + 量化回测 + SHAP 可解释选股</td></tr>
+  <tr><td>验证结果</td><td>多因子年化 8.56%，AI 问答准确率 80%+</td></tr>
+</table>
+<p>永字资管提供合规指导、试点场景、200+ 客户网络导入。下一步：2026 Q3 SHAP 模块投研流程嵌入，Q4 推荐 3-5 家同业试点。</p>
+
+<div class="footer">
+  QuantInsight Pro · 2026FINTECH-FINT-0093 · 慧点资本 (InsightQuant) 量化研究部<br>
+  浏览器打印本页即可导出 PDF（Ctrl+P → 另存为 PDF）
+</div>
+
+</body>
+</html>

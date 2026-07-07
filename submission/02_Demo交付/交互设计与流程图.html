@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantInsight Pro — 交互设计与流程图</title>
+<style>
+  :root {
+    --bg: #0A0E27;
+    --cyan: #00D4FF;
+    --gold: #FFB800;
+    --white: #FFFFFF;
+    --gray: #8892B0;
+    --card: #111633;
+    --border: #1E2A5A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg);
+    color: var(--white);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  h1 { color: var(--cyan); font-size: 2rem; margin-bottom: 0.5rem; }
+  h2 { color: var(--gold); font-size: 1.4rem; margin: 2rem 0 1rem; border-left: 4px solid var(--cyan); padding-left: 12px; }
+  h3 { color: var(--cyan); font-size: 1.1rem; margin: 1rem 0 0.5rem; }
+  .subtitle { color: var(--gray); margin-bottom: 2rem; }
+  .badge { display: inline-block; background: var(--card); border: 1px solid var(--cyan); color: var(--cyan); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; margin-right: 8px; }
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 1rem 0; }
+  .flow-step {
+    background: var(--bg);
+    border: 2px solid var(--cyan);
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    min-width: 120px;
+    font-size: 0.9rem;
+  }
+  .flow-step.gold { border-color: var(--gold); color: var(--gold); }
+  .flow-arrow { color: var(--cyan); font-size: 1.5rem; }
+  .arch-grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin: 1rem 0; }
+  .arch-layer {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px;
+  }
+  .arch-label { color: var(--gold); font-weight: bold; min-width: 100px; font-size: 0.85rem; }
+  .arch-items { color: var(--gray); font-size: 0.85rem; }
+  .arch-items span { color: var(--cyan); margin-right: 12px; }
+  .wireframe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+  .wireframe {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .wf-header {
+    background: linear-gradient(90deg, #0A0E27, #1a2040);
+    border-bottom: 1px solid var(--cyan);
+    padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .wf-title { color: var(--cyan); font-size: 0.9rem; font-weight: bold; }
+  .wf-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 4px; }
+  .wf-body { padding: 14px; font-size: 0.8rem; }
+  .wf-sidebar { background: #0d1230; border-right: 1px solid var(--border); padding: 8px; }
+  .wf-nav-item { padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; color: var(--gray); }
+  .wf-nav-item.active { background: rgba(0,212,255,0.15); color: var(--cyan); border-left: 3px solid var(--cyan); }
+  .wf-metric { display: inline-block; background: rgba(255,184,0,0.15); color: var(--gold); padding: 4px 10px; border-radius: 4px; margin: 4px; font-weight: bold; }
+  .wf-bar { height: 8px; background: var(--border); border-radius: 4px; margin: 6px 0; overflow: hidden; }
+  .wf-bar-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--gold)); border-radius: 4px; }
+  .wf-chart { height: 60px; background: repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,212,255,0.1) 8px, rgba(0,212,255,0.1) 9px); border: 1px solid var(--border); border-radius: 4px; margin: 8px 0; position: relative; }
+  .wf-chart::after { content: "📈 NAV 曲线"; position: absolute; bottom: 4px; right: 8px; color: var(--gray); font-size: 0.7rem; }
+  .dataflow { display: flex; flex-direction: column; gap: 0; }
+  .df-row { display: flex; align-items: stretch; gap: 0; }
+  .df-box {
+    flex: 1; text-align: center; padding: 16px 8px;
+    border: 1px solid var(--border); position: relative;
+  }
+  .df-box:first-child { border-radius: 8px 0 0 8px; }
+  .df-box:last-child { border-radius: 0 8px 8px 0; }
+  .df-icon { font-size: 1.5rem; margin-bottom: 4px; }
+  .df-label { color: var(--cyan); font-size: 0.85rem; font-weight: bold; }
+  .df-sub { color: var(--gray); font-size: 0.75rem; }
+  .df-connector { display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 1.2rem; padding: 0 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+  th { background: rgba(0,212,255,0.1); color: var(--cyan); padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--cyan); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--gray); }
+  td strong { color: var(--gold); }
+  .footer { text-align: center; color: var(--gray); margin-top: 2rem; font-size: 0.8rem; }
+  @media print {
+    body { background: white; color: #333; padding: 1cm; }
+    .section { border: 1px solid #ccc; background: #f9f9f9; }
+    h1, h2, h3 { color: #003366; }
+  }
+</style>
+</head>
+<body>
+
+<h1>QuantInsight Pro</h1>
+<p class="subtitle">
+  <span class="badge">2026FINTECH-FINT-0093</span>
+  <span class="badge">AFAC2026 初创组</span>
+  <span class="badge">交互设计与逻辑流程图</span>
+</p>
+
+<!-- 用户旅程 -->
+<h2>一、用户旅程流程</h2>
+<div class="section">
+  <div class="flow">
+    <div class="flow-step">登录/访问</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">数据看板</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step gold">智能选股</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step gold">SHAP 解读</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">AI 问答</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step gold">量化回测</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">自动报告</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">客户交付</div>
+  </div>
+  <p style="color:var(--gray);font-size:0.85rem;margin-top:8px;">
+    核心路径：选股 → SHAP 归因 → AI 增强 → 回测验证 → 报告输出。金色节点为 AFAC 3 分钟 Demo 重点展示模块。
+  </p>
+</div>
+
+<!-- 六层架构 -->
+<h2>二、六层技术架构</h2>
+<div class="section">
+  <div class="arch-grid">
+    <div class="arch-layer" style="border-color:var(--cyan)">
+      <div class="arch-label">应用层</div>
+      <div class="arch-items"><span>投研终端</span><span>移动 App</span><span>API 接口</span><span>数据可视化</span></div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">智能体层</div>
+      <div class="arch-items"><span>投研助手</span><span>因子挖掘</span><span>智能问答</span><span>自动报告</span></div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">服务层</div>
+      <div class="arch-items"><span>AI 引擎</span><span>策略引擎</span><span>风控引擎</span><span>SHAP 解释器</span></div>
+    </div>
+    <div class="arch-layer" style="border-color:var(--gold)">
+      <div class="arch-label">数据层</div>
+      <div class="arch-items"><span>财报/公告</span><span>新闻舆情</span><span>产业链</span><span>消费行为</span><span>17 因子库</span></div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">算法层</div>
+      <div class="arch-items"><span>XGBoost</span><span>SHAP</span><span>RAG</span><span>回测引擎 MIT</span></div>
+    </div>
+    <div class="arch-layer">
+      <div class="arch-label">基础设施</div>
+      <div class="arch-items"><span>云原生 K8s</span><span>弹性算力</span><span>实时数据流</span><span>零信任安全</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 数据流 -->
+<h2>三、核心数据流</h2>
+<div class="section">
+  <div class="dataflow">
+    <div class="df-row">
+      <div class="df-box" style="background:rgba(0,212,255,0.05)">
+        <div class="df-icon">📡</div>
+        <div class="df-label">数据采集</div>
+        <div class="df-sub">akshare · 东方财富 · 公告 · 舆情</div>
+      </div>
+      <div class="df-connector">→</div>
+      <div class="df-box" style="background:rgba(0,212,255,0.08)">
+        <div class="df-icon">⚙️</div>
+        <div class="df-label">因子评分</div>
+        <div class="df-sub">清洗 · 17 因子 · XGBoost</div>
+      </div>
+      <div class="df-connector">→</div>
+      <div class="df-box" style="background:rgba(255,184,0,0.08)">
+        <div class="df-icon">🔍</div>
+        <div class="df-label">SHAP 解读</div>
+        <div class="df-sub">TreeExplainer · 归因图</div>
+      </div>
+      <div class="df-connector">→</div>
+      <div class="df-box" style="background:rgba(0,212,255,0.08)">
+        <div class="df-icon">💬</div>
+        <div class="df-label">AI 问答</div>
+        <div class="df-sub">RAG · Qwen · 引用溯源</div>
+      </div>
+      <div class="df-connector">→</div>
+      <div class="df-box" style="background:rgba(255,184,0,0.08)">
+        <div class="df-icon">📈</div>
+        <div class="df-label">策略回测</div>
+        <div class="df-sub">信号 · NAV · 7 大指标</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 核心界面线框 -->
+<h2>四、核心界面线框图</h2>
+<div class="wireframe-grid">
+
+  <!-- 智能选股 -->
+  <div class="wireframe">
+    <div class="wf-header">
+      <span class="wf-title">🤖 智能选股</span>
+      <span><span class="wf-dot" style="background:#ff5f57"></span><span class="wf-dot" style="background:#febc2e"></span><span class="wf-dot" style="background:#28c840"></span></span>
+    </div>
+    <div class="wf-body" style="display:flex;gap:8px;">
+      <div class="wf-sidebar" style="width:35%">
+        <div class="wf-nav-item">📊 数据看板</div>
+        <div class="wf-nav-item active">🤖 智能选股</div>
+        <div class="wf-nav-item">💬 AI 问答</div>
+        <div class="wf-nav-item">📈 量化回测</div>
+        <div class="wf-nav-item">🔍 SHAP 解读</div>
+      </div>
+      <div style="flex:1">
+        <div style="color:var(--gold);font-size:0.75rem;margin-bottom:6px;">17 因子综合评分 · Top10</div>
+        <div>① 贵州茅台 <span class="wf-metric">92.5</span></div>
+        <div class="wf-bar"><div class="wf-bar-fill" style="width:92%"></div></div>
+        <div>② 宁德时代 <span class="wf-metric">89.1</span></div>
+        <div class="wf-bar"><div class="wf-bar-fill" style="width:89%"></div></div>
+        <div>③ 比亚迪 <span class="wf-metric">86.7</span></div>
+        <div class="wf-bar"><div class="wf-bar-fill" style="width:87%"></div></div>
+        <div style="color:var(--gray);font-size:0.7rem;margin-top:6px;">... 共 17 因子 · 估值/成长/质量/动量/流动性/技术</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHAP -->
+  <div class="wireframe">
+    <div class="wf-header">
+      <span class="wf-title">🔍 SHAP 可解释性</span>
+      <span><span class="wf-dot" style="background:#ff5f57"></span><span class="wf-dot" style="background:#febc2e"></span><span class="wf-dot" style="background:#28c840"></span></span>
+    </div>
+    <div class="wf-body">
+      <div style="color:var(--gold);font-size:0.75rem;margin-bottom:8px;">贵州茅台 · Force Plot 单股归因</div>
+      <div style="display:flex;gap:4px;align-items:center;margin:4px 0;">
+        <span style="color:var(--gray);width:80px;font-size:0.75rem;">ROE</span>
+        <div class="wf-bar" style="flex:1"><div class="wf-bar-fill" style="width:78%"></div></div>
+        <span class="wf-metric" style="font-size:0.7rem">+0.32</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;margin:4px 0;">
+        <span style="color:var(--gray);width:80px;font-size:0.75rem;">20日动量</span>
+        <div class="wf-bar" style="flex:1"><div class="wf-bar-fill" style="width:65%"></div></div>
+        <span class="wf-metric" style="font-size:0.7rem">+0.24</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;margin:4px 0;">
+        <span style="color:var(--gray);width:80px;font-size:0.75rem;">PE分位</span>
+        <div class="wf-bar" style="flex:1"><div class="wf-bar-fill" style="width:45%;background:linear-gradient(90deg,#ff6b6b,#ff6b6b)"></div></div>
+        <span style="color:#ff6b6b;font-size:0.7rem">-0.15</span>
+      </div>
+      <div style="color:var(--cyan);font-size:0.7rem;margin-top:8px;">✓ 算法备案可解释 · 4 类 SHAP 图</div>
+    </div>
+  </div>
+
+  <!-- AI 问答 -->
+  <div class="wireframe">
+    <div class="wf-header">
+      <span class="wf-title">💬 AI 投研问答</span>
+      <span><span class="wf-dot" style="background:#ff5f57"></span><span class="wf-dot" style="background:#febc2e"></span><span class="wf-dot" style="background:#28c840"></span></span>
+    </div>
+    <div class="wf-body">
+      <div style="background:rgba(0,212,255,0.1);border-radius:8px;padding:8px;margin-bottom:8px;font-size:0.8rem;">
+        <span style="color:var(--cyan)">Q:</span> 贵州茅台最新财报的核心亮点？
+      </div>
+      <div style="background:rgba(255,184,0,0.08);border-radius:8px;padding:8px;font-size:0.8rem;">
+        <span style="color:var(--gold)">A:</span> 营收同比增长 15.2%，毛利率维持 91%+...
+        <div style="color:var(--gray);font-size:0.7rem;margin-top:4px;">📎 引用: 2025年报 · akshare · 公告#20250428</div>
+      </div>
+      <div style="margin-top:8px;border:1px solid var(--border);border-radius:4px;padding:6px;color:var(--gray);font-size:0.75rem;">输入投研问题...</div>
+    </div>
+  </div>
+
+  <!-- 回测 -->
+  <div class="wireframe">
+    <div class="wf-header">
+      <span class="wf-title">📈 量化策略回测</span>
+      <span><span class="wf-dot" style="background:#ff5f57"></span><span class="wf-dot" style="background:#febc2e"></span><span class="wf-dot" style="background:#28c840"></span></span>
+    </div>
+    <div class="wf-body">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <span class="wf-metric">HS300</span>
+        <span class="wf-metric">多因子</span>
+        <span style="color:var(--gray);font-size:0.75rem;align-self:center">11.4 年</span>
+      </div>
+      <div class="wf-chart"></div>
+      <table>
+        <tr><td>年化收益</td><td><strong>8.56%</strong></td></tr>
+        <tr><td>夏普比率</td><td><strong>0.63</strong></td></tr>
+        <tr><td>最大回撤</td><td><strong>-38.33%</strong></td></tr>
+        <tr><td>交易次数</td><td>407</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- 回测数据表 -->
+<h2>五、HS300 回测关键指标（T35 修正）</h2>
+<div class="section">
+  <table>
+    <thead>
+      <tr><th>策略</th><th>年化收益</th><th>夏普比率</th><th>最大回撤</th><th>交易次数</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>买入持有 (基准)</td><td>5.46%</td><td>0.35</td><td>-72.30%</td><td>0</td></tr>
+      <tr><td>双均线</td><td>6.57%</td><td>0.48</td><td>-49.39%</td><td>109</td></tr>
+      <tr><td><strong>多因子 (核心)</strong></td><td><strong>8.56%</strong></td><td><strong>0.63</strong></td><td><strong>-38.33%</strong></td><td><strong>407</strong></td></tr>
+      <tr><td>动量</td><td>8.13%</td><td>0.57</td><td>-39.66%</td><td>255</td></tr>
+      <tr><td>均值回归</td><td>-13.49%</td><td>-0.99</td><td>-97.33%</td><td>1,184</td></tr>
+    </tbody>
+  </table>
+  <p style="color:var(--gray);font-size:0.8rem;">数据来源：T35 开源回测引擎 · akshare 公开数据 · 2015-01 ~ 2026-06</p>
+</div>
+
+<!-- 团队 -->
+<h2>六、团队与落地合作</h2>
+<div class="section">
+  <div class="flow">
+    <div class="flow-step">冯亦根<br><small style="color:var(--gray)">CEO/主讲</small></div>
+    <div class="flow-step">王宇寒<br><small style="color:var(--gray)">CTO</small></div>
+    <div class="flow-step">官馨<br><small style="color:var(--gray)">产品/数据</small></div>
+    <div class="flow-step">梁理智<br><small style="color:var(--gray)">量化/运营</small></div>
+    <div class="flow-step gold">永字资管<br><small style="color:var(--gray)">战略合作已签署</small></div>
+  </div>
+</div>
+
+<div class="footer">
+  QuantInsight Pro · 2026FINTECH-FINT-0093 · AFAC2026 初创组<br>
+  https://quantinsight.cn · 让 AI 可解释，让投资更可信
+</div>
+
+</body>
+</html>

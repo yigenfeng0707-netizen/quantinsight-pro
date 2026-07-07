@@ -1,0 +1,6 @@
+strategy,name,annual_return_pct,sharpe,max_drawdown_pct,trades,role
+buy_hold,买入持有,5.46,0.35,-72.30,0,benchmark
+ma_cross,双均线,6.57,0.48,-49.39,109,
+multi_factor,多因子,8.56,0.63,-38.33,407,core_strategy
+momentum,动量,8.13,0.57,-39.66,255,
+mean_reversion,均值回归,-13.49,-0.99,-97.33,1184,not_recommended

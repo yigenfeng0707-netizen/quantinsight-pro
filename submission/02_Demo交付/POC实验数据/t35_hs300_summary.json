@@ -1,0 +1,66 @@
+{
+  "project_id": "2026FINTECH-FINT-0093",
+  "report_version": "T35_corrected",
+  "generated_at": "2026-07-07",
+  "backtest_period": {
+    "start": "2015-01-01",
+    "end": "2026-06-05",
+    "years": 11.4,
+    "trading_days_approx": 2800
+  },
+  "data_source": "akshare",
+  "engine": "streamlit_app/backtest_engine.py (MIT License)",
+  "index": {
+    "id": "hs300",
+    "name": "沪深300",
+    "code": "sh000300"
+  },
+  "strategies": {
+    "buy_hold": {
+      "name": "买入持有",
+      "annual_return_pct": 5.46,
+      "sharpe": 0.35,
+      "max_drawdown_pct": -72.30,
+      "trades": 0,
+      "role": "benchmark"
+    },
+    "ma_cross": {
+      "name": "双均线",
+      "annual_return_pct": 6.57,
+      "sharpe": 0.48,
+      "max_drawdown_pct": -49.39,
+      "trades": 109
+    },
+    "multi_factor": {
+      "name": "多因子",
+      "annual_return_pct": 8.56,
+      "sharpe": 0.63,
+      "max_drawdown_pct": -38.33,
+      "trades": 407,
+      "role": "core_strategy",
+      "excess_return_vs_benchmark_pct": 3.10,
+      "drawdown_improvement_vs_benchmark_pct": 33.97
+    },
+    "momentum": {
+      "name": "动量",
+      "annual_return_pct": 8.13,
+      "sharpe": 0.57,
+      "max_drawdown_pct": -39.66,
+      "trades": 255
+    },
+    "mean_reversion": {
+      "name": "均值回归",
+      "annual_return_pct": -13.49,
+      "sharpe": -0.99,
+      "max_drawdown_pct": -97.33,
+      "trades": 1184,
+      "note": "A股长期下跌段失效，不推荐"
+    }
+  },
+  "unit_tests": {
+    "total": 7,
+    "passed": 7,
+    "status": "ALL_PASSED"
+  },
+  "correction_note": "T30早期报告多因子年化19.22%，T35引擎修正为8.56%。以本文件为准。"
+}
