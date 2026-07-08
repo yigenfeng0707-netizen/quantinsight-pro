@@ -337,6 +337,61 @@ class QIDataDB:
             return None
         return df
 
+    def get_history_stats(self) -> dict:
+        """历史 K 线库统计 (HS300/ZZ500 等本地缓存)"""
+        conn = self._get_conn()
+        try:
+            stock_count = conn.execute(
+                "SELECT COUNT(DISTINCT code) FROM stock_history"
+            ).fetchone()[0]
+            bar_count = conn.execute(
+                "SELECT COUNT(*) FROM stock_history"
+            ).fetchone()[0]
+            meta = conn.execute(
+                "SELECT last_updated, source FROM data_meta WHERE table_name = 'stock_history'"
+            ).fetchone()
+            return {
+                "stock_count": int(stock_count or 0),
+                "bar_count": int(bar_count or 0),
+                "last_updated": meta[0] if meta else None,
+                "source": meta[1] if meta else "qveris",
+            }
+        except Exception as e:
+            logger.warning("get_history_stats 失败: %s", e)
+            return {"stock_count": 0, "bar_count": 0, "last_updated": None, "source": None}
+
+    def history_has_code(self, code: str) -> bool:
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT 1 FROM stock_history WHERE code = ? LIMIT 1",
+            (str(code).strip(),),
+        ).fetchone()
+        return row is not None
+
+    def get_spot_from_history_latest(self) -> Optional[pd.DataFrame]:
+        """用每只股票的最新一根 K 线构造行情快照 (stock_spot 为空时的 UI 兜底)"""
+        conn = self._get_conn()
+        try:
+            df = pd.read_sql(
+                """
+                SELECT h.code, h.close AS latest_price, h.pct_change AS change_pct,
+                       h.volume, h.amount, h.turnover AS turnover_rate, h.date AS updated_at
+                FROM stock_history h
+                INNER JOIN (
+                    SELECT code, MAX(date) AS max_date FROM stock_history GROUP BY code
+                ) t ON h.code = t.code AND h.date = t.max_date
+                ORDER BY h.code
+                """,
+                conn,
+            )
+        except Exception as e:
+            logger.warning("get_spot_from_history_latest 失败: %s", e)
+            return None
+        if df is None or df.empty:
+            return None
+        df["name"] = df["code"]
+        return df
+
     def get_stock_profile(self, code: str) -> Optional[dict]:
         """读取个股基本信息
 
@@ -649,6 +704,83 @@ class QIDataDB:
         except Exception as e:
             conn.rollback()
             logger.error("upsert_stock_spot 失败: %s", e)
+            raise
+
+    def upsert_stock_spot_rows(self, df: pd.DataFrame, source: str = "qveris"):
+        """按行 upsert 实时行情 (不清空全表), 供 QVeris 等重点标的增量更新"""
+        if df is None or df.empty:
+            return
+
+        now = self._now_iso()
+        conn = self._get_conn()
+
+        col_map = {
+            "代码": "code",
+            "名称": "name",
+            "最新价": "latest_price",
+            "涨跌幅": "change_pct",
+            "市盈率-动态": "pe_ttm",
+            "市净率": "pb",
+            "总市值": "total_mv",
+            "换手率": "turnover_rate",
+            "成交额": "amount",
+            "60日涨跌幅": "change_pct_60d",
+        }
+
+        write_df = pd.DataFrame()
+        for src_col, dst_col in col_map.items():
+            if src_col in df.columns:
+                write_df[dst_col] = df[src_col].values
+            else:
+                write_df[dst_col] = None
+
+        for src_col, dst_col in {
+            "code": "code", "name": "name", "close": "latest_price",
+            "change_pct": "change_pct", "turnover_rate": "turnover_rate",
+            "amount": "amount", "total_mv": "total_mv",
+        }.items():
+            if src_col in df.columns:
+                write_df[dst_col] = df[src_col].values
+
+        write_df["updated_at"] = now
+
+        if "code" in write_df.columns:
+            write_df = write_df[write_df["code"].astype(str).str.match(r"^\d{6}$", na=False)]
+        if "latest_price" in write_df.columns:
+            write_df = write_df[
+                write_df["latest_price"].notna() & (write_df["latest_price"] > 0)
+            ]
+        if write_df.empty:
+            return
+
+        sql = """
+            INSERT INTO stock_spot (
+                code, name, latest_price, change_pct, pe_ttm, pb,
+                total_mv, turnover_rate, amount, change_pct_60d, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(code) DO UPDATE SET
+                name=excluded.name,
+                latest_price=excluded.latest_price,
+                change_pct=excluded.change_pct,
+                pe_ttm=excluded.pe_ttm,
+                pb=excluded.pb,
+                total_mv=excluded.total_mv,
+                turnover_rate=excluded.turnover_rate,
+                amount=excluded.amount,
+                change_pct_60d=excluded.change_pct_60d,
+                updated_at=excluded.updated_at
+        """
+        try:
+            for row in write_df.itertuples(index=False):
+                conn.execute(sql, tuple(row))
+            conn.commit()
+            cur = conn.execute("SELECT COUNT(*) FROM stock_spot")
+            count = cur.fetchone()[0]
+            self._update_meta("stock_spot", count, source=source)
+            logger.info("upsert_stock_spot_rows: 更新 %d 行 (source=%s)", len(write_df), source)
+        except Exception as e:
+            conn.rollback()
+            logger.error("upsert_stock_spot_rows 失败: %s", e)
             raise
 
     def upsert_stock_history(self, code: str, df: pd.DataFrame):

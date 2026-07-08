@@ -219,7 +219,23 @@ def safe_get_spot_df():
                 pass
         return result
 
-    # 4. Demo data fallback (existing)
+    # 5. QVeris 实时兜底 (Top50 自选)
+    try:
+        from features.qveris_source import fetch_realtime_batch, is_configured
+        from features.data_source_bridge import _default_watchlist_codes
+        if is_configured():
+            df = fetch_realtime_batch(_default_watchlist_codes()[:50])
+            if df is not None and len(df) > 0:
+                if HAS_SQLITE_DB:
+                    try:
+                        _qi_db.upsert_stock_spot_rows(df, source="qveris")
+                    except Exception:
+                        pass
+                return df
+    except Exception as e:
+        logger.warning(f'QVeris 行情兜底失败: {e}')
+
+    # 6. Demo data fallback (existing)
     logger.warning('akshare stock_zh_a_spot_em 不可用, 使用演示数据')
     return _get_demo_spot_df()
 
@@ -240,51 +256,57 @@ def _normalize_spot_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=60, show_spinner=False)
+def load_spot_bundle():
+    """行情 DataFrame + 来源标签（侧边栏 / 首页 / 选股共用）"""
+    from features.data_source_bridge import resolve_spot_dataframe
+    return resolve_spot_dataframe()
+
+
+@st.cache_data(ttl=60, show_spinner=False)
 def safe_get_spot_df_fast():
-    """UI 快速路径: 仅 SQLite → 静态演示，不触发 Baostock/akshare。"""
-    if HAS_SQLITE_DB:
-        try:
-            df = _qi_db.get_stock_spot()
-            if df is not None and len(df) > 0:
-                return _normalize_spot_columns(df)
-        except Exception:
-            pass
+    """UI 快速路径: SQLite 实时 → 历史最新价 → QVeris，不阻塞 Baostock/akshare。"""
+    df, _src = load_spot_bundle()
+    if df is not None and len(df) > 0:
+        return df
     return _get_demo_spot_df()
 
 
+def get_spot_source_label() -> str:
+    _df, src = load_spot_bundle()
+    if _df is not None and len(_df) > 0:
+        return src
+    return "演示数据"
+
+
 def lookup_stock_code_fast(stock_input: str):
-    """SQLite-only 股票代码/名称解析（UI 交互路径）。"""
+    """SQLite / 本地历史库 / QVeris 代码解析（UI 交互路径）。"""
+    from features.data_source_bridge import lookup_code_in_local_db
+    code, name = lookup_code_in_local_db(stock_input)
+    if code:
+        return code, name
+    return _match_demo_stock(stock_input)
+
+
+def _match_demo_stock(stock_input: str):
     text = (stock_input or '').strip()
     if not text:
         return '', ''
-
-    def _match(df):
-        if df is None or df.empty:
-            return '', ''
-        code_col = next((c for c in df.columns if c in ('代码', 'code')), None)
-        name_col = next((c for c in df.columns if c in ('名称', 'name')), None)
-        if not code_col:
-            return '', ''
-        if text.isdigit():
-            mask = df[code_col].astype(str).str.strip() == text
-            if mask.any():
-                name = df.loc[mask, name_col].iloc[0] if name_col else text
-                return str(df.loc[mask, code_col].iloc[0]), str(name)
-            return text, text
-        if name_col:
-            mask = df[name_col].astype(str).str.contains(text, na=False)
-            if mask.any():
-                return str(df.loc[mask, code_col].iloc[0]), str(df.loc[mask, name_col].iloc[0])
+    df = _get_demo_spot_df()
+    code_col = next((c for c in df.columns if c in ('代码', 'code')), None)
+    name_col = next((c for c in df.columns if c in ('名称', 'name')), None)
+    if not code_col:
         return '', text
-
-    if HAS_SQLITE_DB:
-        try:
-            code, name = _match(_qi_db.get_stock_spot())
-            if code:
-                return code, name
-        except Exception:
-            pass
-    return _match(_get_demo_spot_df())
+    if text.isdigit():
+        mask = df[code_col].astype(str).str.strip() == text
+        if mask.any():
+            name = df.loc[mask, name_col].iloc[0] if name_col else text
+            return str(df.loc[mask, code_col].iloc[0]), str(name)
+        return text, text
+    if name_col:
+        mask = df[name_col].astype(str).str.contains(text, na=False)
+        if mask.any():
+            return str(df.loc[mask, code_col].iloc[0]), str(df.loc[mask, name_col].iloc[0])
+    return '', text
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -1411,6 +1433,20 @@ with st.sidebar.expander('📡 数据源状态'):
         st.caption(f"{icon} **{item['name']}**: {item.get('detail', '')}{lat}")
     if not st.session_state.get('_probe_network_items'):
         st.caption('💡 默认仅本地快检，点击上方按钮按需网络探测')
+    try:
+        from features.data_source_bridge import get_history_stats, qveris_status
+        hist = get_history_stats()
+        qv = qveris_status()
+        icon = '🟢' if qv.get('ok') else '🔴'
+        st.caption(f"{icon} **QVeris**: {qv.get('detail', '')}")
+        if hist.get('stock_count'):
+            st.caption(
+                f"🟢 **历史 K 线库**: {hist['stock_count']} 只 · "
+                f"{hist['bar_count']:,} 条 · {hist.get('source') or 'sqlite'}"
+            )
+        st.caption(f"📊 **当前行情源**: {get_spot_source_label()}")
+    except Exception:
+        pass
 
 # Logout button
 st.sidebar.markdown('---')
@@ -1468,12 +1504,23 @@ if page == '🏠 首页':
     """, unsafe_allow_html=True)
 
     # 实时数据条
-    st.markdown("""
+    _spot_label = get_spot_source_label()
+    _hist = {}
+    try:
+        from features.data_source_bridge import get_history_stats
+        _hist = get_history_stats()
+    except Exception:
+        pass
+    _hist_txt = (
+        f" · 历史库 <b style=\"color:#00D4FF;\">{_hist.get('stock_count', 0)}</b> 只"
+        if _hist.get('stock_count') else ""
+    )
+    st.markdown(f"""
     <div style="background: linear-gradient(90deg, rgba(0, 212, 255, 0.1), rgba(212, 175, 55, 0.1));
                 padding: 8px 16px; border-radius: 8px; margin-bottom: 16px;
                 border-left: 3px solid #00D4FF; display: flex; align-items: center; gap: 12px;">
         <span style="color: #00FF88; font-size: 0.7rem;">●</span>
-        <span style="color: #B8C5D6; font-size: 0.85rem;"><b style="color: #FFFFFF;">缓存数据</b> · SQLite 本地缓存优先 · 后台 refresh_data 定时刷新</span>
+        <span style="color: #B8C5D6; font-size: 0.85rem;"><b style="color: #FFFFFF;">{_spot_label}</b>{_hist_txt} · QVeris 实时兜底</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -3804,58 +3851,42 @@ elif page == '🔍 个股分析':
         )
 
         if analysis_tab == '📋 基本面':
-            st.markdown('#### 📋 基本面指标')
-            st.caption('数据源: SQLite 缓存 → 东方财富直连（UI 不调用 Baostock）')
+            from features.data_source_bridge import resolve_stock_quote, resolve_stock_history
 
-            # 获取个股信息
+            st.markdown('#### 📋 基本面指标')
+
             info_dict = {}
             realtime_data = {}
             hist_data = None
+            quote_source = ''
+            hist_source = ''
 
-            # 1. 个股基本信息
             info_dict = safe_get_stock_info(stock_code)
 
-            # 2. 实时行情数据
             try:
-                df_spot = safe_get_spot_df_fast()
-                if df_spot is not None and len(df_spot) > 0:
-                    code_col = [c for c in df_spot.columns if '代码' in c]
-                    if code_col:
-                        mask = df_spot[code_col[0]].astype(str).str.strip() == str(stock_code).strip()
-                        if mask.any():
-                            row = df_spot[mask].iloc[0]
-                            for col in df_spot.columns:
-                                realtime_data[col] = row[col]
+                realtime_data, quote_source = resolve_stock_quote(stock_code)
+                if realtime_data.get('名称') and realtime_data.get('名称') != stock_code:
+                    stock_name = str(realtime_data['名称'])
             except Exception as e:
                 logger.warning(f'实时行情加载失败: {e}')
 
-            # 3. 历史K线: SQLite → 东方财富直连（UI 不调用 Baostock/akshare）
             try:
-                if HAS_SQLITE_DB:
-                    hist_data = _qi_db.get_stock_history(stock_code, days=365)
-                    if hist_data is not None and len(hist_data) > 0:
-                        col_rename = {'date': '日期', 'open': '开盘', 'close': '收盘',
-                                      'high': '最高', 'low': '最低', 'volume': '成交量',
-                                      'amount': '成交额', 'pct_change': '涨跌幅', 'turnover': '换手率'}
-                        hist_data = hist_data.rename(columns={k: v for k, v in col_rename.items() if k in hist_data.columns})
-                        if '日期' in hist_data.columns:
-                            hist_data['日期'] = pd.to_datetime(hist_data['日期'])
-
-                if hist_data is None or len(hist_data) == 0:
-                    try:
-                        from features.eastmoney_direct import fetch_stock_history
-                        end_date = datetime.now().strftime('%Y%m%d')
-                        start_date_hist = (datetime.now() - timedelta(days=90)).strftime('%Y%m%d')
-                        hist_data = fetch_stock_history(stock_code, start_date_hist, end_date)
-                        if hist_data is not None and len(hist_data) > 0 and HAS_SQLITE_DB:
-                            try:
-                                _qi_db.upsert_stock_history(stock_code, hist_data)
-                            except Exception:
-                                pass
-                    except Exception as e:
-                        logger.warning(f'东方财富直连历史K线失败: {e}')
+                hist_raw, hist_source = resolve_stock_history(stock_code, days=365)
+                if hist_raw is not None and len(hist_raw) > 0:
+                    col_rename = {'date': '日期', 'open': '开盘', 'close': '收盘',
+                                  'high': '最高', 'low': '最低', 'volume': '成交量',
+                                  'amount': '成交额', 'pct_change': '涨跌幅', 'turnover': '换手率'}
+                    hist_data = hist_raw.rename(
+                        columns={k: v for k, v in col_rename.items() if k in hist_raw.columns}
+                    )
+                    if '日期' in hist_data.columns:
+                        hist_data['日期'] = pd.to_datetime(hist_data['日期'])
             except Exception as e:
                 logger.warning(f'历史K线加载失败: {e}')
+
+            src_parts = [s for s in (quote_source, hist_source) if s]
+            if src_parts:
+                st.caption('数据源: ' + ' · '.join(dict.fromkeys(src_parts)))
 
             # 显示基本信息卡片
             if info_dict:

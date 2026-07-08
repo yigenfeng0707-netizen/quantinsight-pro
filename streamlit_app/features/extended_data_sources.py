@@ -30,6 +30,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 DATA_SOURCE_CATALOG: List[Dict[str, str]] = [
+    {"id": "qveris", "name": "QVeris", "types": "A股实时/历史K线(付费API)", "priority": "P1"},
     {"id": "sqlite", "name": "SQLite 本地缓存", "types": "行情/北向/板块/宏观/两融", "priority": "P0"},
     {"id": "eastmoney_http", "name": "东方财富直连 HTTP", "types": "A股行情/北向/板块/两融/资金流", "priority": "P0"},
     {"id": "akshare", "name": "AKShare 聚合", "types": "A股/宏观/新闻/龙虎榜/概念/期货", "priority": "P1"},
@@ -461,12 +462,35 @@ def probe_sources_fast() -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     try:
         from features.sqlite_data_layer import QIDataDB
+        from features.data_source_bridge import get_history_stats, qveris_status
+
         db = QIDataDB()
         fresh = db.get_freshness("stock_spot")
+        hist = get_history_stats()
+        if fresh.get("row_count"):
+            results.append({
+                "name": "SQLite 实时缓存",
+                "ok": True,
+                "detail": f"stock_spot {fresh.get('row_count')} 行 · {fresh.get('last_updated') or '—'}",
+            })
+        elif hist.get("stock_count"):
+            results.append({
+                "name": "SQLite 历史 K 线",
+                "ok": True,
+                "detail": f"{hist['stock_count']} 只 · {hist['bar_count']:,} 条 (最新价作行情)",
+            })
+        else:
+            results.append({
+                "name": "SQLite 缓存",
+                "ok": False,
+                "detail": "暂无本地数据，请运行 refresh_data 或 qveris_sync",
+            })
+
+        qv = qveris_status()
         results.append({
-            "name": "SQLite 缓存",
-            "ok": bool(fresh.get("last_updated")),
-            "detail": f"stock_spot 更新: {fresh.get('last_updated') or '无'} ({fresh.get('row_count') or 0} 行)",
+            "name": "QVeris",
+            "ok": qv.get("ok", False),
+            "detail": qv.get("detail", ""),
         })
     except Exception as e:
         results.append({"name": "SQLite 缓存", "ok": False, "detail": str(e)[:60]})
@@ -532,10 +556,15 @@ def probe_sources() -> List[Dict[str, Any]]:
         results.append({"name": "东方财富直连", "ok": False, "detail": str(e)[:60]})
 
     try:
-        import baostock as bs
-        results.append({"name": "Baostock", "ok": True, "detail": "已安装"})
-    except ImportError:
-        results.append({"name": "Baostock", "ok": False, "detail": "未安装(可选)"})
+        from features.data_source_bridge import qveris_status
+        qv = qveris_status()
+        results.append({
+            "name": "QVeris",
+            "ok": qv.get("ok", False),
+            "detail": qv.get("detail", ""),
+        })
+    except Exception as e:
+        results.append({"name": "QVeris", "ok": False, "detail": str(e)[:60]})
 
     return results
 

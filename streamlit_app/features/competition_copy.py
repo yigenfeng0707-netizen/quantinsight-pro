@@ -39,8 +39,8 @@ HERO_TAGLINE = "AI 驱动的另类数据量化投研 Demo · 多源数据 · SHA
 SIDEBAR_TAGLINE = COMPETITION_SHORT
 
 DATA_SOURCE_LINE = (
-    "数据链路：SQLite 本地缓存 → 东方财富直连 HTTP → Baostock/AKShare 备用 · "
-    "后台 `python refresh_data.py` 定时刷新（ECS 上东方财富可能限流，演示数据自动兜底）"
+    "数据链路：SQLite 本地库 (800只历史K线) → 东方财富直连 → QVeris 实时/历史兜底 → Baostock/AKShare · "
+    "后台 `python refresh_data.py` / `scripts/qveris_sync_historical.py` 刷新"
 )
 
 PAGE_SUBTITLES = {

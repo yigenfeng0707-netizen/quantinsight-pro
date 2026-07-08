@@ -103,12 +103,16 @@ def refresh_all(full: bool = False) -> bool:
             for k, v in akshare_results.items():
                 if v:
                     results[k] = True
+        # QVeris 兜底: 行情或历史仍失败时
+        _refresh_qveris_fallback(results, full=full)
     except ImportError as e:
         logger.warning("东方财富直连模块不可用: %s, 回退到 akshare", e)
         results = _refresh_via_akshare(full=full)
+        _refresh_qveris_fallback(results, full=full)
     except Exception as e:
         logger.warning("东方财富直连刷新失败: %s, 回退到 akshare", e)
         results = _refresh_via_akshare(full=full)
+        _refresh_qveris_fallback(results, full=full)
 
     # 扩展数据源: 概念板块 / 市场宽度 / 宏观快照
     try:
@@ -131,6 +135,31 @@ def refresh_all(full: bool = False) -> bool:
     print(f"{'='*60}\n")
 
     return all_ok
+
+
+def _refresh_qveris_fallback(results: dict, full: bool = False) -> None:
+    """QVeris 兜底: 行情 / 历史仍失败时尝试付费 API"""
+    try:
+        from features.qveris_source import is_configured, refresh_spot_to_sqlite, sync_historical_to_sqlite
+    except ImportError:
+        return
+
+    if not is_configured():
+        return
+
+    if not results.get("stock_spot"):
+        print("📡 QVeris 兜底: 更新 Top50 实时行情...")
+        ok = refresh_spot_to_sqlite(top_n=50)
+        if ok:
+            results["stock_spot"] = True
+            print("  ✅ stock_spot (QVeris 部分更新)")
+
+    if full and not results.get("stock_history"):
+        print("📡 QVeris 兜底: 同步 Top100 历史 K 线 (消耗积分, 较慢)...")
+        hist = sync_historical_to_sqlite(top_n=100)
+        if hist.get("success", 0) > 0:
+            results["stock_history"] = True
+            print(f"  ✅ stock_history (QVeris): {hist['success']} 成功, {hist['fail']} 失败")
 
 
 # ============================================================================
@@ -607,6 +636,8 @@ def main():
 示例:
   python refresh_data.py           # 快速模式 (~30s)
   python refresh_data.py --full    # 完整模式 (~5min)
+  python refresh_data.py --qveris-history              # QVeris 同步 Top100 历史
+  python refresh_data.py --qveris-history --codes 600519,300750 --days 730
         """,
     )
     parser.add_argument(
@@ -614,11 +645,38 @@ def main():
         action="store_true",
         help="完整模式: 同时刷新 Top100 个股历史行情 (~5min)",
     )
+    parser.add_argument(
+        "--qveris-history",
+        action="store_true",
+        help="仅用 QVeris 同步历史 K 线到 SQLite (空闲时跑, 消耗积分)",
+    )
+    parser.add_argument(
+        "--codes",
+        type=str,
+        default="",
+        help="配合 --qveris-history: 指定股票代码, 逗号分隔, 如 600519,300750",
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=365,
+        help="配合 --qveris-history: 回溯天数 (默认 365)",
+    )
     args = parser.parse_args()
 
     _setup_logging()
 
     try:
+        if args.qveris_history:
+            from features.qveris_source import is_configured, sync_historical_to_sqlite
+
+            if not is_configured():
+                print("❌ 未配置 QVERIS_API_KEY, 请在 secrets.toml 或环境变量中设置")
+                sys.exit(1)
+            codes = [c.strip() for c in args.codes.split(",") if c.strip()] or None
+            hist = sync_historical_to_sqlite(codes=codes, days=args.days)
+            sys.exit(0 if hist.get("success", 0) > 0 else 1)
+
         all_ok = refresh_all(full=args.full)
         sys.exit(0 if all_ok else 1)
     except Exception as e:
