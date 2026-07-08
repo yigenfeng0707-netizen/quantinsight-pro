@@ -10,16 +10,26 @@ import {
 import { Video } from "@remotion/media";
 import { BRAND } from "./constants";
 
+type KeyNumber = { label: string; value: string };
+
 type TitleSceneProps = {
   title: string;
   subtitle?: string;
   highlight?: string;
+  /** V2 幕次序号 1..5 */
+  actNumber?: number;
+  /** 幕标签（Opening / Pain / Technology · SHAP / POC Backtest / Business Model） */
+  actLabel?: string;
+  keyNumbers?: KeyNumber[];
 };
 
 export const TitleScene: React.FC<TitleSceneProps> = ({
   title,
   subtitle,
   highlight,
+  actNumber,
+  actLabel,
+  keyNumbers,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -62,6 +72,47 @@ export const TitleScene: React.FC<TitleSceneProps> = ({
           filter: "blur(80px)",
         }}
       />
+      {/* V2 五幕左上角徽章 */}
+      {actNumber ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 60,
+            left: 80,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            opacity: fadeIn,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 36,
+              fontWeight: 700,
+              color: BRAND.accent,
+              padding: "8px 24px",
+              border: `2px solid ${BRAND.accent}`,
+              borderRadius: 8,
+              background: "rgba(0, 212, 255, 0.08)",
+            }}
+          >
+            ACT {actNumber} / 5
+          </div>
+          {actLabel ? (
+            <div
+              style={{
+                fontSize: 28,
+                color: BRAND.muted,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+              }}
+            >
+              {actLabel}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div
         style={{
           display: "flex",
@@ -114,6 +165,55 @@ export const TitleScene: React.FC<TitleSceneProps> = ({
             {highlight}
           </div>
         ) : null}
+        {/* V2 关键数字 3 列横排 */}
+        {keyNumbers && keyNumbers.length > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              gap: 48,
+              marginTop: 32,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            {keyNumbers.map((k, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  minWidth: 220,
+                  padding: "16px 28px",
+                  borderRadius: 12,
+                  background: "rgba(0, 212, 255, 0.08)",
+                  border: `1px solid rgba(0, 212, 255, 0.3)`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 56,
+                    fontWeight: 700,
+                    color: BRAND.accent,
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {k.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: 22,
+                    color: BRAND.muted,
+                    marginTop: 8,
+                    letterSpacing: 1,
+                  }}
+                >
+                  {k.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div
           style={{
             position: "absolute",
@@ -132,15 +232,24 @@ export const TitleScene: React.FC<TitleSceneProps> = ({
 type ScreenshotSceneProps = {
   screenshot?: string;
   video?: string;
+  /** V2 图表 PNG（来自 public/charts/），优先级最高 */
+  chartImage?: string;
   title: string;
   highlight?: string;
+  actNumber?: number;
+  actLabel?: string;
+  keyNumbers?: KeyNumber[];
 };
 
 export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
   screenshot,
   video,
+  chartImage,
   title,
   highlight,
+  actNumber,
+  actLabel,
+  keyNumbers,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -164,8 +273,22 @@ export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
     scale: zoom,
   };
 
+  // 媒体优先级：chartImage (V2) > video (V1 兼容) > screenshot
+  const primary = chartImage
+    ? { kind: "chart" as const, src: staticFile(`charts/${chartImage}`) }
+    : video
+    ? { kind: "video" as const, src: staticFile(`videos/${video}`) }
+    : screenshot
+    ? { kind: "img" as const, src: staticFile(`screenshots/${screenshot}`) }
+    : null;
+
   return (
-    <AbsoluteFill style={{ background: BRAND.bg, fontFamily: "Segoe UI, Microsoft YaHei, sans-serif" }}>
+    <AbsoluteFill
+      style={{
+        background: BRAND.bg,
+        fontFamily: "Segoe UI, Microsoft YaHei, sans-serif",
+      }}
+    >
       <div
         style={{
           position: "absolute",
@@ -173,7 +296,8 @@ export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
           left: 0,
           right: 0,
           height: 120,
-          background: "linear-gradient(180deg, rgba(10,14,39,0.95) 0%, transparent 100%)",
+          background:
+            "linear-gradient(180deg, rgba(10,14,39,0.95) 0%, transparent 100%)",
           zIndex: 2,
           display: "flex",
           alignItems: "center",
@@ -181,7 +305,25 @@ export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
           opacity: headerOpacity,
         }}
       >
-        <div style={{ fontSize: 48, fontWeight: 700, color: BRAND.accent }}>{title}</div>
+        {actNumber ? (
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: BRAND.accent,
+              padding: "4px 16px",
+              border: `1.5px solid ${BRAND.accent}`,
+              borderRadius: 6,
+              marginRight: 24,
+              background: "rgba(0, 212, 255, 0.08)",
+            }}
+          >
+            ACT {actNumber} / 5
+          </div>
+        ) : null}
+        <div style={{ fontSize: 48, fontWeight: 700, color: BRAND.accent }}>
+          {title}
+        </div>
         {highlight ? (
           <div
             style={{
@@ -193,6 +335,19 @@ export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
             }}
           >
             {highlight}
+          </div>
+        ) : null}
+        {actLabel ? (
+          <div
+            style={{
+              marginLeft: "auto",
+              fontSize: 22,
+              color: BRAND.muted,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+            }}
+          >
+            {actLabel}
           </div>
         ) : null}
       </div>
@@ -207,12 +362,89 @@ export const ScreenshotScene: React.FC<ScreenshotSceneProps> = ({
           overflow: "hidden",
         }}
       >
-        {video ? (
-          <Video src={staticFile(`videos/${video}`)} style={mediaStyle} volume={0} />
-        ) : screenshot ? (
-          <Img src={staticFile(`screenshots/${screenshot}`)} style={mediaStyle} />
-        ) : null}
+        {primary ? (
+          primary.kind === "video" ? (
+            <Video src={primary.src} style={mediaStyle} volume={0} />
+          ) : (
+            <Img src={primary.src} style={mediaStyle} />
+          )
+        ) : (
+          // 图表占位：当 chartImage 还没复制到 public/charts/ 时的兜底
+          <div
+            style={{
+              width: "70%",
+              height: "70%",
+              border: `2px dashed ${BRAND.accent}`,
+              borderRadius: 16,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              color: BRAND.muted,
+              fontSize: 32,
+              gap: 16,
+            }}
+          >
+            <div style={{ fontSize: 48, color: BRAND.accent, fontWeight: 700 }}>
+              📊 Chart Placeholder
+            </div>
+            <div>{chartImage ?? "(no chart)"}</div>
+          </div>
+        )}
       </div>
+      {/* V2 关键数字条（底部横排） */}
+      {keyNumbers && keyNumbers.length > 0 ? (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 48,
+            background:
+              "linear-gradient(0deg, rgba(10,14,39,0.95) 0%, transparent 100%)",
+            zIndex: 2,
+            opacity: fadeIn,
+          }}
+        >
+          {keyNumbers.map((k, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                minWidth: 200,
+                padding: "8px 20px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 40,
+                  fontWeight: 700,
+                  color: BRAND.accent,
+                  lineHeight: 1.1,
+                }}
+              >
+                {k.value}
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  color: BRAND.muted,
+                  marginTop: 4,
+                }}
+              >
+                {k.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };

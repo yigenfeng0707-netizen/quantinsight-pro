@@ -1,5 +1,5 @@
 # QuantInsight Pro 3轮模拟答辩录像脚本 V1
-## —— 创·在上海国际创新创业大赛 赛前魔鬼训练
+## —— AFAC2026 金融智能创新大赛 赛前魔鬼训练
 
 **录像编号**: QIP-MOCK-2026-001
 **版本**: V1.0
@@ -118,10 +118,10 @@
 
 **期望答案**：
 > "4位创始人是**4维互补**：
-> - **陈思远（CEO）**：复旦金融+MIT Sloan，前蚂蚁金融科技
-> - **林志远（CTO）**：上交大AI博士，前微软亚研
-> - **王雪（CPO）**：北大金融数学，**前桥水基金**
-> - **赵明（CSO）**：长江EMBA，**前华泰私行副总**
+> - **冯亦根（CEO）**：复旦金融+MIT Sloan，前蚂蚁金融科技
+> - **王宇寒（CTO）**：上交大AI博士，前微软亚研
+> - **官馨（产品/数据）**：北大金融数学，**前桥水基金**
+> - **梁理智（AI/量化）**：长江EMBA，**前华泰私行副总**
 >
 > **金融+技术+量化+客户**——4个人4份行业积累。"
 
@@ -738,11 +738,11 @@
 
 | 角色 | 责任人 | 职责 |
 |------|--------|------|
-| 主答辩 | CEO陈思远 | 演讲+回答 |
-| 副答辩 | CTO林志远 | 技术问题+补充 |
-| 副答辩 | CSO赵明 | 商业问题+补充 |
+| 主答辩 | CEO冯亦根 | 演讲+回答 |
+| 副答辩 | CTO王宇寒 | 技术问题+补充 |
+| 副答辩 | 量化梁理智 | 商业问题+补充 |
 | 计时员 | PM张工 | 控制时间 |
-| 记录员 | CPO王雪 | 记录+复盘 |
+| 记录员 | 产品官馨 | 记录+复盘 |
 | 摄影师 | 市场部 | 录像+拍照 |
 
 ### 6.3 评分维度（每轮）
@@ -826,18 +826,18 @@
 
 | 录像 | 文件名 | 大小 | 时长 | 路径 |
 |------|--------|------|------|------|
-| 第1轮 | Mock_Round1_Gentle.mp4 | 1GB | 60min | d:\shFintech\_mock_round1.mp4 |
-| 第2轮 | Mock_Round2_Pro.mp4 | 2GB | 180min | d:\shFintech\_mock_round2.mp4 |
-| 第3轮 | Mock_Round3_Devil.mp4 | 3GB | 300min | d:\shFintech\_mock_round3.mp4 |
-| 精华 | Mock_Highlights_5min.mp4 | 200MB | 5min | d:\shFintech\_mock_highlights.mp4 |
+| 第1轮 | Mock_Round1_Gentle.mp4 | 1GB | 60min | D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_mock_round1.mp4 |
+| 第2轮 | Mock_Round2_Pro.mp4 | 2GB | 180min | D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_mock_round2.mp4 |
+| 第3轮 | Mock_Round3_Devil.mp4 | 3GB | 300min | D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_mock_round3.mp4 |
+| 精华 | Mock_Highlights_5min.mp4 | 200MB | 5min | D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_mock_highlights.mp4 |
 
 ### 附录C：相关文档
 
-- 答辩话术V3：d:\shFintech\QuantInsight_Pro_答辩话术_V3.md
-- PPT V3：d:\shFintech\QuantInsight_Pro_PPT_V3_15pages.md
-- Demo视频脚本V2：d:\shFintech\QuantInsight_Pro_Demo_Video_Script_V2.md
-- 风险预案V2：d:\shFintech\QuantInsight_Pro_风险预案_V2.md
-- 5杀手锏提问：d:\shFintech\QuantInsight_Pro_5_杀手锏提问_V1.md
+- 答辩话术V3：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_答辩话术_V3.md
+- PPT V3：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_PPT_V3_15pages.md
+- Demo视频脚本V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_Demo_Video_Script_V2.md
+- 风险预案V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_风险预案_V2.md
+- 5杀手锏提问：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_5_杀手锏提问_V1.md
 
 ---
 

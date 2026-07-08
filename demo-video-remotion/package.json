@@ -1,11 +1,13 @@
 {
   "name": "quantinsight-demo-remotion",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "QuantInsight Pro 3-min AFAC demo — hyperframes capture + Remotion compose",
+  "description": "QuantInsight Pro 3-min AFAC demo (V2) — PNG screenshots + embedded charts + Remotion compose",
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts QuantInsightDemo ../submission/02_Demo交付/QuantInsight_Pro_Demo_3min.mp4",
+    "render:v2": "remotion render src/index.ts QuantInsightDemo ../submission/02_Demo交付/QuantInsight_Pro_Demo_3min_V2.mp4",
+    "render:5min": "remotion render src/index.ts QuantInsightDemo ../submission/02_Demo交付/QuantInsight_Pro_Pitch_5min_V1.mp4",
     "compositions": "remotion compositions src/index.ts"
   },
   "dependencies": {

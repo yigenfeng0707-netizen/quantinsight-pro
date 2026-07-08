@@ -5,7 +5,7 @@
 **版本**: V3.5
 **编制日期**: 2026年6月
 **核心**: 一份BP，三种时长，适配所有场景
-**配套**: BP V2 完整版（d:\shFintech\QuantInsight_Pro_BP_V2.md）
+**配套**: BP V2 完整版（D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_BP_V2.md）
 
 ---
 
@@ -33,7 +33,7 @@
 
 ### 2.2 完整话术（200字）
 
-> **"我是陈思远，QuantInsight Pro创始人。**
+> **"我是冯亦根，QuantInsight Pro创始人。**
 >
 > **我们做的是：AI驱动的另类数据量化投研平台，核心是SHAP可解释AI + 宏观因子融合。**
 >
@@ -86,7 +86,7 @@
 
 > **【0:00-0:30 开场30秒】**
 >
-> "评委好/投资人好，我是陈思远，QuantInsight Pro创始人。
+> "评委好/投资人好，我是冯亦根，QuantInsight Pro创始人。
 > **3句话介绍我们的项目**：
 > 1. **做什么**：AI驱动的另类数据量化投研平台，融合Qlib因子挖掘+宏观因子+另类数据信号验证
 > 2. **差异化**：业内首家把SHAP可解释性+宏观因子融合+Exabel级信号验证深度集成到A股选股
@@ -149,7 +149,7 @@
 > 这一切，**始于一个可解释的AI**。
 >
 > **让AI可解释，让投资更可信**——
-> 我们在创·在上海，等您的好消息。
+> 我们在AFAC2026，等您的好消息。
 >
 > 扫码7天免费试用，访问 **quantinsight.cn**。
 > 谢谢！"
@@ -185,7 +185,7 @@
 
 ### 4.2 完整结构
 
-详见：`d:\shFintech\QuantInsight_Pro_PPT_V3_15pages.md`
+详见：`D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_PPT_V3_15pages.md`
 
 **15页大纲**：
 1. 封面（5秒）
@@ -443,7 +443,7 @@ BP V2 (30页详版)
 
 #### 时间不够（10秒）
 
-> "评委好，我是陈思远，**QuantInsight Pro——可解释的AI，¥2.33M订单**。扫码7天免费试用。"
+> "评委好，我是冯亦根，**QuantInsight Pro——可解释的AI，¥2.33M订单**。扫码7天免费试用。"
 
 #### 时间充裕（1分钟）
 
@@ -504,12 +504,12 @@ BP V2 (30页详版)
 
 ### 附录C：相关文档
 
-- BP V2完整版：d:\shFintech\QuantInsight_Pro_BP_V2.md
-- PPT V3：d:\shFintech\QuantInsight_Pro_PPT_V3_15pages.md
-- Demo视频脚本V2：d:\shFintech\QuantInsight_Pro_Demo_Video_Script_V2.md
-- 答辩话术V3：d:\shFintech\QuantInsight_Pro_答辩话术_V3.md
-- 财务模型V2：d:\shFintech\QuantInsight_Pro_财务模型V2.xlsx
-- 客户验证证据包：d:\shFintech\QuantInsight_Pro_客户验证证据包_V1.md
+- BP V2完整版：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_BP_V2.md
+- PPT V3：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_PPT_V3_15pages.md
+- Demo视频脚本V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_Demo_Video_Script_V2.md
+- 答辩话术V3：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_答辩话术_V3.md
+- 财务模型V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_财务模型V2.xlsx
+- 客户验证证据包：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_客户验证证据包_V1.md
 
 ### 附录D：3版本使用决策矩阵
 

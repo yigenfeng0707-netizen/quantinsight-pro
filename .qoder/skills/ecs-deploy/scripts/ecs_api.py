@@ -7,7 +7,7 @@ Usage:
     ecs = ECSClient()
     ecs.status()                              # instance status
     ecs.run("systemctl is-active quantinsight")  # remote command
-    ecs.hotfix(r"d:\shFintech\streamlit_app\app.py", "/opt/quantinsight/app.py")
+    ecs.hotfix(r"D:/AFAC2026金融智能创新大赛/quantinsight-deploy/streamlit_app\app.py", "/opt/quantinsight/app.py")
     ecs.deploy_files(["app.py", "ui_themes.py"])
 """
 import urllib.request, urllib.parse, hashlib, hmac, base64, time, uuid, json, os, tarfile, io

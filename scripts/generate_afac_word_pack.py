@@ -18,6 +18,8 @@ from docx.oxml.ns import nsdecls, qn
 from docx.shared import Cm, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / "scripts"))
 OUT = ROOT / "submission" / "03_正式文档_WORD"
 POC_JSON = ROOT / "submission" / "02_Demo交付" / "POC实验数据" / "t35_hs300_summary.json"
 TEST_JSON = ROOT / "submission" / "04_测试报告" / "unit_and_smoke_report.json"
@@ -208,7 +210,7 @@ def gen_submission_master(charts: dict):
         [
             ["商业计划书 PDF/DOCX", "07_商业计划书.docx", "✅", "八章节 AFAC 标准结构，优于旧版 BP V2/V3"],
             ["产品 Demo URL", "https://3blue1brownlab.cn", "✅", "ECS 生产部署，HTTPS 可用"],
-            ["3 分钟演示视频", "02_Demo交付/QuantInsight_Pro_Demo_3min.mp4", "⚠", "脚本/分镜就绪，MP4 待录制"],
+            ["3 分钟演示视频", "02_Demo交付/QuantInsight_Pro_Demo_3min.mp4", "✅", "180s MP4 已完成"],
             ["可运行原型代码", "streamlit_app/", "✅", "含 README 与一键启动 bat"],
             ["技术方案/白皮书", "06_技术方案白皮书.docx", "✅", "基于 Technical_Whitepaper_V1 精炼"],
             ["POC/实验数据", "05_POC实验报告.docx + POC实验数据/", "✅", "T35 修正指标为准"],
@@ -217,8 +219,12 @@ def gen_submission_master(charts: dict):
             ["评委 FAQ", "04_评委FAQ手册.docx", "✅", "10 问 10 答"],
             ["规则对照自评", "01_AFAC2026_规则对照与评分自评.docx", "✅", "五维 88 分自评"],
             ["交互设计/流程图", "02_Demo交付/交互设计与流程图.html", "✅", "自包含 HTML"],
-            ["营业执照/信用代码", "线下人工材料", "⚠", "已工商登记则扫描上传"],
-            ["参赛承诺书+身份证", "线下人工材料", "⚠", "打印签字扫描"],
+            ["商业计划书", "07_商业计划书.docx", "✅", "基于 BP_V3 精炼"],
+            ["团队信息", "08_Demo运行与验证指南.docx §1", "✅", "4 人真实注册"],
+            ["落地案例", "01 商业计划书 §4", "✅", "永字资管战略合作"],
+            ["参赛承诺书", "线下人工材料", "⚠", "**1 人**签字（核心人员第一人 = 冯亦根/CEO）；模板已生成 submission/03_正式文档_WORD/承诺书_AFAC2026_可打印签字.docx"],
+            ["核心团队排名第一人身份证/护照扫描件", "线下人工材料", "⚠", "**仅 1 人**（冯亦根/CEO）；4 人身份信息已在系统在线填写，无需再上传其余 3 人扫描件"],
+            ["（如已注册）营业执照", "线下人工材料", "○", "非强制，未注册公司可填 OPC"],
         ],
         [3.5, 4.5, 1.5, 5.5],
     )
@@ -227,7 +233,7 @@ def gen_submission_master(charts: dict):
         doc,
         ["历史文档", "问题/口径", "本包处理方式"],
         [
-            ["QuantInsight_Pro_BP_V2.md", "FinTech@外滩旧口径", "❌ 不提交；以 submission/01 商业计划书为准"],
+            ["QuantInsight_Pro_BP_V2.md", "AFAC2026金融智能创新大赛旧口径", "❌ 不提交；以 submission/01 商业计划书为准"],
             ["T30 回测报告", "多因子年化 19.22% 引擎 bug", "❌ 废弃；统一 T35 → 8.56%"],
             ["QuantInsight_Pro_答辩话术_V3", "内容冗长", "✅ 精华并入 04_评委FAQ"],
             ["Technical_Whitepaper_V1", "19 页完整版", "✅ 精炼为 06_技术方案白皮书"],
@@ -260,18 +266,24 @@ def gen_compliance_audit(charts: dict):
         ["类别", "官方/平台要求", "QuantInsight 交付物", "状态"],
         [
             ["平台项目", f"控制台 #{PLATFORM_PROJECT_ID}", PLATFORM_URL, "✅"],
-            ["在线提交", "Demo URL + 3分钟视频 + BP", "https://3blue1brownlab.cn + MP4 + Word", "Demo✅ 视频⚠"],
+            ["在线提交", "Demo URL + 3分钟视频 + BP", "https://3blue1brownlab.cn + MP4 + Word", "Demo✅ 视频✅"],
             ["代码仓库", "GitHub/Gitee + README", "github.com/yigenfeng0707-netizen/quantinsight-pro", "✅"],
             ["商业计划书", "PDF/DOCX，八章节", "07_商业计划书.docx", "✅"],
             ["产品原型", "可运行 Demo", "Streamlit + ECS 生产部署", "✅"],
-            ["团队信息", "AFAC 平台注册真名", "冯亦根/王宇寒/官馨/梁理智", "✅"],
-            ["工商材料", "营业执照+信用代码（如已注册）", "线下扫描上传", "⚠ 人工"],
-            ["证明材料", "承诺书+身份证", "打印签字扫描", "⚠ 人工"],
+            ["团队信息", "AFAC 平台注册真名 · ≥3人", "冯亦根/王宇寒/官馨/梁理智（4人）", "✅"],
+            ["落地案例", "至少 1 个可验证案例", "永字资管战略合作已签署", "✅"],
+            ["平台报名-承诺书", "**1 人**签字（核心人员第一人 = 冯亦根/CEO）", "打印 → 签字 → 扫描 PDF", "⚠ 人工"],
+            ["平台报名-核心团队排名第一人身份证/护照", "**仅 1 人**（冯亦根/CEO）", "身份证正反面 → 扫描 PDF；其余 3 人身份信息已在系统在线填写", "⚠ 人工"],
+            ["（可选）营业执照", "非强制 — 未注册公司可填 OPC 一人公司", "如已注册则附扫描件", "○"],
         ],
         [3, 4.5, 5.5, 2.5],
     )
-    heading(doc, "二、AFAC 初筛五维评分自评（100分制）")
-    add_picture(doc, charts["scoring"], "图1 五维评分雷达图", width_cm=11)
+    heading(doc, "二、技术可行性示意图")
+    add_picture(doc, charts["architecture"], "图1 六层技术架构", width_cm=14)
+    add_picture(doc, charts["data_flow"], "图2 数据流全链路", width_cm=14)
+    add_picture(doc, charts["team_org"], "图3 参赛团队组织架构", width_cm=14)
+    heading(doc, "三、AFAC 初筛五维评分自评（100分制）")
+    add_picture(doc, charts["scoring"], "图4 五维评分雷达图", width_cm=11)
     add_table(
         doc,
         ["维度", "权重", "自评分", "满分", "核心证据"],
@@ -285,17 +297,17 @@ def gen_compliance_audit(charts: dict):
         ],
         [3.5, 2, 2, 2, 8],
     )
-    heading(doc, "三、评分维度说明")
+    heading(doc, "四、评分维度说明")
     body(doc, "AFAC 初创组初筛采用项目创新性、技术成熟度、商业模式与落地、团队综合素质、社会效益五维加权。"
               "本自评 88 分，核心证据：SHAP 可解释选股、公网 Demo 稳定、永字资管战略合作、T35 回测验证。")
-    heading(doc, "四、P0 缺口与缓解")
+    heading(doc, "五、P0 缺口与缓解")
     add_table(
         doc,
         ["优先级", "缺口", "缓解措施", "负责人"],
         [
-            ["P0", "3分钟MP4", "demo-video-factory 自动化录制 / OBS 备用", "王宇寒"],
-            ["P1", "承诺书签字PDF", "打印签字扫描上传", "冯亦根"],
-            ["P1", "身份证扫描", "核心成员第一人", "冯亦根"],
+            ["P0", "3分钟MP4", "已完成 QuantInsight_Pro_Demo_3min.mp4（180s）", "王宇寒"],
+            ["P0", "平台承诺书签字PDF", "**1 人**签字（核心人员第一人 = 冯亦根/CEO）→ 模板已生成 submission/03_正式文档_WORD/承诺书_AFAC2026_可打印签字.docx", "冯亦根"],
+            ["P0", "核心团队排名第一人身份证/护照扫描件", "**仅 1 人**（冯亦根/CEO）正反面 → 扫描 PDF；其余 3 人身份信息已在系统在线填写，无需再上传", "冯亦根"],
             ["P2", "5分钟路演视频", "决赛备用，脚本已就绪", "官馨"],
         ],
         [2, 4, 6, 3],
@@ -363,7 +375,7 @@ def gen_test_report(charts: dict):
     return save(doc, "02_生产级测试报告.docx")
 
 
-def gen_executive_summary():
+def gen_executive_summary(charts: dict):
     doc = setup_doc("Executive Summary", "一页纸 · QuantInsight Pro")
     heading(doc, "项目定位")
     body(doc, "QuantInsight Pro 是面向专业机构投资者的新一代资管科技平台，"
@@ -386,14 +398,15 @@ def gen_executive_summary():
         doc,
         ["角色", "姓名", "背景"],
         [
-            ["CEO/主讲", "冯亦根", "AFAC 参赛队员 · 产品战略"],
-            ["CTO", "王宇寒", "AFAC 参赛队员 · 架构与部署"],
-            ["产品/数据", "官馨", "AFAC 参赛队员 · 数据与 UX"],
-            ["量化/运营", "梁理智", "AFAC 参赛队员 · 策略与交付"],
+            ["CEO/主讲", "冯亦根", "浙大计算机通信工程本科、亚城大硕士 · 慧点资本创始人"],
+            ["CTO", "王宇寒", "杭电软件工程专业 2022级本科 · 架构与 AI 工程"],
+            ["产品/数据", "官馨", "陕师大人工智能专业大三 · 数据与 UX"],
+            ["量化/运营", "梁理智", "翼支付 AI 开发者 · 金融科技师二级"],
             ["推荐单位", "薛永再", "杭州永字资管法定代表人 · 场外顾问"],
         ],
         [3, 3, 10],
     )
+    add_picture(doc, charts["team_org"], "图1 参赛团队组织架构", width_cm=14)
     heading(doc, "联系方式")
     body(doc, "Demo：https://3blue1brownlab.cn · GitHub：yigenfeng0707-netizen/quantinsight-pro\n"
               "冯亦根 ceo@3blue1brownlab.cn · 王宇寒 cto@3blue1brownlab.cn")
@@ -456,58 +469,61 @@ def parse_md_table(lines, start):
     return headers, rows, i
 
 
+def rich_md_to_docx(
+    md_path: Path,
+    out_name: str,
+    doc_title: str,
+    *,
+    subtitle: str = "",
+    extra_charts: list[tuple[Path, str, float]] | None = None,
+) -> Path:
+    """Convert markdown to native Word via md_to_docx_rich; optionally append diagrams."""
+    from md_to_docx_rich import convert_markdown_file
+
+    meta = f"项目编号 2026FINTECH-FINT-0093 · AFAC2026 初创组 · {datetime.now():%Y年%m月%d日}"
+    out_path = OUT / out_name
+    convert_markdown_file(
+        md_path,
+        out_path,
+        doc_title=doc_title,
+        subtitle=subtitle,
+        meta=meta,
+    )
+    if extra_charts:
+        from docx import Document as Doc2
+
+        d2 = Doc2(out_path)
+        h = d2.add_heading("附录 · 架构与数据示意图", level=1)
+        for r in h.runs:
+            r.font.name = "微软雅黑"
+            r._element.rPr.rFonts.set(qn("w:eastAsia"), "微软雅黑")
+        for img_path, caption, width in extra_charts:
+            add_picture(d2, img_path, caption, width_cm=width)
+        d2.save(out_path)
+    print(f"  OK {out_name} ({out_path.stat().st_size:,} bytes)")
+    return out_path
+
+
 def md_to_docx(md_path: Path, out_name: str, doc_title: str):
-    text = md_path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    doc = setup_doc(doc_title)
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        if line.startswith("# "):
-            heading(doc, line[2:].strip(), 1)
-        elif line.startswith("## "):
-            heading(doc, line[3:].strip(), 2)
-        elif line.startswith("### "):
-            heading(doc, line[4:].strip(), 3)
-        elif line.strip().startswith("|") and i + 1 < len(lines) and "---" in lines[i + 1]:
-            headers, rows, ni = parse_md_table(lines, i)
-            if headers and rows:
-                add_table(doc, headers, rows)
-            i = ni - 1
-        elif line.strip().startswith("- ") or line.strip().startswith("* "):
-            bullet(doc, line.strip()[2:])
-        elif line.strip().startswith(">"):
-            body(doc, line.strip().lstrip("> ").strip())
-        elif line.strip() and not line.startswith("---") and not line.startswith("```"):
-            if not line.startswith("!["):
-                body(doc, re.sub(r"\*\*(.+?)\*\*", r"\1", line.strip()))
-        i += 1
-    return save(doc, out_name)
+    """Legacy alias — delegates to rich_md_to_docx."""
+    return rich_md_to_docx(md_path, out_name, doc_title)
 
 
 def gen_technical_spec(charts: dict):
     wp = ROOT / "QuantInsight_Pro_Technical_Whitepaper_V1.md"
+    chart_bundle = [
+        (charts["architecture"], "图1 六层技术架构", 15.0),
+        (charts["data_flow"], "图2 数据流全链路（采集→因子→SHAP→AI→回测）", 14.0),
+        (charts["strategy"], "图3 HS300 五策略回测对比（T35）", 15.0),
+    ]
     if wp.exists():
-        path = md_to_docx(wp, "06_技术方案白皮书.docx", "技术方案白皮书")
-        # 在已有 docx 末尾追加架构图（重新打开写入）
-        from docx import Document as Doc2
-        d2 = Doc2(path)
-        h = d2.add_heading("架构示意图", level=1)
-        for r in h.runs:
-            r.font.name = "微软雅黑"
-        p = d2.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.add_run().add_picture(str(charts["architecture"]), width=Cm(15))
-        cap = d2.add_paragraph("图：六层技术架构")
-        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p2 = d2.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p2.add_run().add_picture(str(charts["data_flow"]), width=Cm(14))
-        cap2 = d2.add_paragraph("图：SQLite 优先数据链路")
-        cap2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        d2.save(path)
-        print(f"  OK {path.name} (+charts) ({path.stat().st_size:,} bytes)")
-        return path
+        return rich_md_to_docx(
+            wp,
+            "06_技术方案白皮书.docx",
+            "技术方案白皮书",
+            subtitle="QuantInsight Pro · 六层架构与数据链路",
+            extra_charts=chart_bundle,
+        )
     doc = setup_doc("技术方案", "QuantInsight Pro 架构说明")
     heading(doc, "六层架构")
     add_table(
@@ -531,39 +547,210 @@ def gen_technical_spec(charts: dict):
 def gen_demo_guide():
     guide = ROOT / "submission" / "02_Demo交付" / "README_运行指南.md"
     if guide.exists():
-        return md_to_docx(guide, "08_Demo运行与验证指南.docx", "Demo 运行与验证指南")
+        return rich_md_to_docx(
+            guide,
+            "08_Demo运行与验证指南.docx",
+            "Demo 运行与验证指南",
+            subtitle="QuantInsight Pro · AFAC2026",
+        )
     doc = setup_doc("Demo 运行与验证指南", "QuantInsight Pro · AFAC2026")
     body(doc, "在线 Demo：https://3blue1brownlab.cn\n本地启动：双击 02_Demo交付/启动Demo.bat")
     return save(doc, "08_Demo运行与验证指南.docx")
 
 
+SELF_SCORE_MD = ROOT / "submission" / "07_AFAC2026_自评打分报告.md"
+SELF_SCORE_DOCX = ROOT / "submission" / "07_AFAC2026_自评打分报告.docx"
+
+
+def _self_score_content() -> dict:
+    """Official criteria → evidence → scores (100-point scale)."""
+    return {
+        "total": 86,
+        "tier": "二等奖（稳健）/ TOP20 初筛",
+        "tier_note": "具备初筛竞争力；若路演与答辩稳定，有望冲击一等奖；学生团队与营收规模是主要扣分项。",
+        "matrix": [
+            ["业务创新", "20%", "18", "20", "SHAP×17因子A股选股、另类数据融合、多智能体投研，业内差异化明确"],
+            ["技术成熟度", "20%", "17", "20", "公网 HTTPS Demo、21/21 pytest、ECS systemd 部署、MIT 回测引擎开源"],
+            ["商业模式", "15%", "13", "15", "9类机构 SaaS 分层定价、私有化+沙盒；财务模型完整但早期营收有限"],
+            ["落地案例", "15%", "14", "15", "永字资管战略合作已签署（薛永再推荐单位）；POC 回测 T35 可复现"],
+            ["团队", "15%", "12", "15", "4人 AFAC 注册完整分工；CEO 15年+经验；CTO/产品为在校学生，产业纵深待加强"],
+            ["可推广性", "15%", "12", "15", "Streamlit 可复现、回测引擎 MIT 开源；依赖金融数据 API 与合规环境"],
+        ],
+        "requirements": [
+            ["创新", "✅", "SHAP 可解释 AI 选股 + 另类数据"],
+            ["可落地", "✅", "https://3blue1brownlab.cn 生产部署"],
+            ["可复制", "✅", "开源回测引擎 + Demo 一键启动"],
+            ["≥1 落地案例", "✅", "永字资管战略合作已签署"],
+            ["团队 ≥3 人", "✅", "冯亦根/王宇寒/官馨/梁理智（4人）"],
+            ["五篇大文章", "⚠", "白皮书/POC/BP/测试/FAQ 齐备；学术发表计划中"],
+        ],
+        "strengths": [
+            "SHAP 可解释性深度集成，满足算法备案与客户沟通双重需求",
+            "公网 Demo + 3 分钟 MP4 + 21 项自动化测试，交付完整度高",
+            "永字资管战略合作已签署，推荐单位法定代表人薛永再场外背书",
+            "T35 修正回测口径统一，POC 数据包可复现",
+        ],
+        "gaps": [
+            "团队以 CEO + 3 名学生为主，大规模商业化执行经验有限",
+            "多因子年化 8.56% 绝对收益偏保守，需强调风险调整后超额",
+            "平台要求线下材料：承诺书（**1 人**签字=冯亦根）+ 核心团队排名第一人身份证/护照扫描件（**仅 1 人**=冯亦根；其余 3 人身份信息已在系统在线填写，**营业执照非必填**，未注册公司可填 OPC）",
+            "「五篇大文章」学术产出尚在计划中，未发表",
+        ],
+        "improvements": [
+            "路演突出永字 POC 试点进展与可量化业务指标",
+            "准备评委追问：8.56% vs 基准超额 3.10% 的逻辑",
+            "补齐平台承诺书（**1 人**签字=冯亦根）+ **1 人**身份证/护照扫描件（冯亦根；其余 3 人系统已填，**营业执照非必填**）",
+            "决赛前完成 5 分钟路演视频备用",
+        ],
+    }
+
+
+def gen_self_score_report(charts: dict):
+    data = _self_score_content()
+    today = datetime.now().strftime("%Y年%m月%d日")
+
+    md_lines = [
+        "# AFAC2026 自评打分报告",
+        "",
+        f"**项目**：QuantInsight Pro · 2026FINTECH-FINT-0093  ",
+        f"**组别**：AFAC2026 金融智能创新大赛 · 初创组  ",
+        f"**编制日期**：{today}  ",
+        f"**加权自评总分**：**{data['total']} / 100**  ",
+        f"**预估奖项区间**：{data['tier']}",
+        "",
+        "---",
+        "",
+        "## 一、官方初创组硬性要求对照",
+        "",
+        "| 要求 | 状态 | 项目证据 |",
+        "|------|------|----------|",
+    ]
+    for req, status, evidence in data["requirements"]:
+        md_lines.append(f"| {req} | {status} | {evidence} |")
+    md_lines.extend([
+        "",
+        "## 二、六维评分矩阵（100 分制）",
+        "",
+        "| 评分维度 | 权重 | 自评分 | 满分 | 核心证据 |",
+        "|----------|------|--------|------|----------|",
+    ])
+    for row in data["matrix"]:
+        md_lines.append(f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} |")
+    md_lines.append(f"| **加权合计** | **100%** | **{data['total']}** | **100** | 详见下文 |")
+    md_lines.extend([
+        "",
+        "## 三、优势（Strengths）",
+        "",
+    ])
+    for s in data["strengths"]:
+        md_lines.append(f"- {s}")
+    md_lines.extend(["", "## 四、缺口（Gaps）", ""])
+    for g in data["gaps"]:
+        md_lines.append(f"- {g}")
+    md_lines.extend(["", "## 五、改进建议", ""])
+    for i in data["improvements"]:
+        md_lines.append(f"- {i}")
+    md_lines.extend([
+        "",
+        "## 六、诚实披露项",
+        "",
+        "- **永字合作**：战略合作已签署；薛永再为推荐单位法定代表人，**非参赛队员**",
+        "- **团队构成**：4 名 AFAC 平台注册队员；含 2 名在校本科生/大三学生",
+        "- **演示视频**：3 分钟 MP4 已存在于 submission/02_Demo交付/",
+        "- **回测口径**：统一采用 T35 修正（多因子年化 8.56%），废弃 T30 错误 19.22%",
+        "",
+        "## 七、预估奖项区间说明",
+        "",
+        data["tier_note"],
+        "",
+        "---",
+        "",
+        "编制：QuantInsight Pro 团队 · AFAC2026 初创组",
+    ])
+    SELF_SCORE_MD.write_text("\n".join(md_lines), encoding="utf-8")
+    print(f"  OK {SELF_SCORE_MD.name} ({SELF_SCORE_MD.stat().st_size:,} bytes)")
+
+    doc = setup_doc("AFAC2026 自评打分报告", "QuantInsight Pro · 初创组 · 六维评分矩阵")
+    heading(doc, "一、官方初创组硬性要求对照")
+    add_table(doc, ["要求", "状态", "项目证据"], data["requirements"], [3, 2, 11])
+    heading(doc, "二、六维评分矩阵（100 分制）")
+    add_picture(doc, charts["scoring"], "图1 AFAC 五维/六维评分雷达图（参考）", width_cm=11)
+    matrix_rows = [[r[0], r[1], r[2], r[3], r[4]] for r in data["matrix"]]
+    matrix_rows.append(["加权合计", "100%", str(data["total"]), "100", data["tier_note"][:40] + "…"])
+    add_table(doc, ["评分维度", "权重", "自评分", "满分", "核心证据"], matrix_rows, [2.5, 2, 2, 2, 7.5])
+    heading(doc, "三、优势")
+    for s in data["strengths"]:
+        bullet(doc, s)
+    heading(doc, "四、缺口")
+    for g in data["gaps"]:
+        bullet(doc, g)
+    heading(doc, "五、改进建议")
+    for i in data["improvements"]:
+        bullet(doc, i)
+    heading(doc, "六、诚实披露")
+    for item in [
+        "永字合作：战略合作已签署；薛永再为推荐单位法定代表人，非参赛队员",
+        "团队构成：4 名 AFAC 注册队员；含在校本科生/大三学生",
+        "演示视频：3 分钟 MP4 已完成（submission/02_Demo交付/）",
+        "回测口径：T35 修正多因子年化 8.56%，废弃 T30 错误值",
+    ]:
+        bullet(doc, item)
+    heading(doc, "七、预估奖项区间")
+    body(doc, f"预估：{data['tier']}\n{data['tier_note']}")
+    add_picture(doc, charts["team_org"], "图2 参赛团队组织架构", width_cm=14)
+    add_picture(doc, charts["strategy"], "图3 T35 回测策略对比", width_cm=14)
+    SUB = ROOT / "submission"
+    SUB.mkdir(parents=True, exist_ok=True)
+    doc.save(SELF_SCORE_DOCX)
+    print(f"  OK {SELF_SCORE_DOCX.name} ({SELF_SCORE_DOCX.stat().st_size:,} bytes)")
+    return SELF_SCORE_DOCX
+
+
 def main():
-    print("=== QuantInsight AFAC Word 文档包 ===")
+    print("=== QuantInsight AFAC Word 文档包 (Rich Text v2) ===")
     OUT.mkdir(parents=True, exist_ok=True)
-    print("\n[1/2] 渲染专业图表...")
-    import sys
-    sys.path.insert(0, str(ROOT / "scripts"))
+    print("\n[0/4] 项目 README（submission/00_*.docx）...")
+    from generate_project_readme import main as gen_readme_main
+    gen_readme_main()
+    print("\n[1/4] 渲染专业图表...")
     from afac_charts import render_all_charts
     charts = render_all_charts()
     for k, p in charts.items():
         print(f"  chart {k}: {p.name}")
-    print("\n[2/2] 生成 Word 文档...")
+    print("\n[2/4] 生成 Word 文档...")
+    bp_charts = [
+        (charts["architecture"], "图1 六层技术架构", 15.0),
+        (charts["data_flow"], "图2 数据流全链路", 14.0),
+        (charts["team_org"], "图3 参赛团队组织架构", 14.0),
+        (charts["strategy"], "图4 HS300 五策略回测对比（T35）", 15.0),
+    ]
     paths = [
         gen_submission_master(charts),
         gen_compliance_audit(charts),
         gen_test_report(charts),
-        gen_executive_summary(),
+        gen_executive_summary(charts),
         gen_judge_faq(),
         gen_poc_report(charts),
         gen_technical_spec(charts),
         gen_demo_guide(),
-        md_to_docx(
+        rich_md_to_docx(
             ROOT / "submission" / "01_商业计划书_QuantInsight_Pro.md",
             "07_商业计划书.docx",
             "商业计划书",
+            subtitle="QuantInsight Pro · AFAC2026 初创组",
+            extra_charts=bp_charts,
         ),
     ]
+    print("\n[3/4] 自评打分报告...")
+    paths.append(gen_self_score_report(charts))
     print(f"\n共生成 {len(paths)} 个 Word 文件 → {OUT}")
+    print("项目 README → submission/00_项目README_QuantInsight_Pro.docx")
+    print("自评报告 → submission/07_AFAC2026_自评打分报告.docx")
+    print("\n[4/4] 质量检查...")
+    from check_docx_markdown import main as check_main
+    rc = check_main()
+    if rc:
+        print("WARNING: 部分 DOCX 仍含 markdown 痕迹，请检查上述 FAIL 项")
     return paths
 
 

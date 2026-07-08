@@ -1,9 +1,19 @@
 # QuantInsight Pro
 ## 让AI可解释，让投资更可信
 
-> **AI 驱动的另类数据量化投研平台** ｜ 资管科技赛道
-> 项目编号：2026FINTECH-FINT-0093 ｜ 大赛：创·在上海 第一届金融科技国际创新创业大赛
-> 版本：V3.5（2026-06-16 Exabel-Grade升级版） ｜ 访问：https://3blue1brownlab.cn
+> **AI 驱动的另类数据量化投研平台** ｜ AFAC2026 金融智能创新大赛 · 初创组
+> 项目编号：2026FINTECH-FINT-0093 ｜ 产品 Demo：https://3blue1brownlab.cn
+
+### 📌 文档导航（评委 / 合作方优先阅读）
+
+| 用途 | 路径 |
+|------|------|
+| **AFAC2026 正式提交包（权威）** | [`submission/`](submission/) — 含 BP、Demo、Word 文档包、ZIP |
+| **项目 README（Word / 可打印 HTML）** | [`submission/00_项目README_QuantInsight_Pro.docx`](submission/00_项目README_QuantInsight_Pro.docx) · [HTML 版](submission/00_项目README_QuantInsight_Pro.html) |
+| **文档索引（一站式入口）** | [`DOCS_HUB.md`](DOCS_HUB.md) |
+| **V1 过时材料（已归档，勿引用）** | [`archive/legacy_v1/`](archive/legacy_v1/) — 见 [`archive/README.md`](archive/README.md) |
+
+> 工作区根目录其他 Markdown 多为内部迭代稿；**提交与答辩请以 `submission/` 为准**（参赛队员：冯亦根 / 王宇寒 / 官馨 / 梁理智）。
 
 ---
 
@@ -48,11 +58,11 @@ QuantInsight Pro：
 ## 📊 项目目录结构
 
 ```
-shFintech/
+quantinsight-deploy/
 ├── README.md                                   # 本文件（项目根README V3）
 ├── DOCS_HUB.md                                 # 文档索引（一站式入口）
 │
-├── 比赛提交包/                                 # 创·在上海比赛
+├── 比赛提交包/                                 # AFAC2026比赛
 │   ├── 00_执行摘要/
 │   ├── 01_产品与技术/
 │   ├── 02_商业模式与市场/
@@ -345,10 +355,10 @@ python _enable_https.py
 
 | 角色 | 姓名 | 院校 | 背景 |
 |------|------|------|------|
-| **CEO/主讲** | 冯亦根 | 亚洲城市大学 | 慧点资本创始人，CFA，15+ 年金融科技投资 |
-| **CTO/技术** | 王宇寒 | 杭州电子科技大学 | 计算机/软件，大模型应用与系统开发 |
-| **产品/数据** | 官馨 | 陕西师范大学 | 金融/数据，产品设计与客户研究 |
-| **量化/运营** | 梁理智 | 河北科技大学 | 工科背景，量化策略与工程实施 |
+| **CEO/主讲** | 冯亦根 | 浙江大学 / 亚洲城市大学 | 浙江大学计算机通信工程本科、亚洲城市大学硕士，慧点资本创始人，CFA，15+ 年金融科技投资，项目总负责人 |
+| **CTO/技术** | 王宇寒 | 杭州电子科技大学 | 软件工程专业 2022级本科，负责平台开发与 AI 工程 |
+| **产品/数据** | 官馨 | 陕西师范大学 | 人工智能专业大三学生，负责产品设计与客户研究 |
+| **AI/量化负责人** | 梁理智 | 河北科技大学 | 中国电信翼支付 AI 开发者，金融科技师（二级）证书，从事金融业务，负责量化与 AI 金融科技落地 |
 
 ### 推荐单位与场外顾问
 
@@ -534,7 +544,7 @@ python _enable_https.py
 
 ---
 
-## 🏆 比赛：创·在上海 第一届金融科技国际创新创业大赛
+## 🏆 比赛：AFAC2026 第一届金融科技国际创新创业大赛
 
 ### 评审标准（5维度25项100分制）
 
@@ -575,7 +585,7 @@ python _enable_https.py
 | CEO/主讲 | 冯亦根 | ceo@3blue1brownlab.cn | 战略+融资+路演 |
 | CTO/技术备问 | 王宇寒 | cto@3blue1brownlab.cn | 技术+架构+AI |
 | 产品/数据备问 | 官馨 | product@3blue1brownlab.cn | 产品+数据+客户研究 |
-| 量化/运营备问 | 梁理智 | ops@3blue1brownlab.cn | 量化策略+运营 |
+| AI/量化备问 | 梁理智 | ops@3blue1brownlab.cn | 量化策略+AI 金融科技落地 |
 
 ---
 
@@ -628,5 +638,5 @@ python _enable_https.py
 **【README V3.5 完】**
 
 > **让AI可解释，让投资更可信**——
-> 我们在创·在上海，等您的好消息。
+> 我们在AFAC2026，等您的好消息。
 > https://3blue1brownlab.cn

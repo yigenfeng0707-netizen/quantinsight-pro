@@ -1,10 +1,12 @@
 # 📚 DOCS HUB — QuantInsight Pro 文档索引
 
-> **一站式入口 · 26+ 份核心文档 · 7 大分类 · V3.5 Exabel-Grade版**
+> **一站式入口 · 26+ 份核心文档 · 8 大分类 · V3.5 Exabel-Grade版**
 >
-> 文档版本：V1.5 / 2026-06-16 / 奇亮花智能科技（上海）有限公司筹备组
+> 文档版本：V1.6 / 2026-07-08 / 奇亮花智能科技（上海）有限公司筹备组
 >
 > **本索引目的**：让评委、合作伙伴、新员工 5 分钟内找到所需文档
+>
+> ⚠ **V1.6 数据统一：HS300 8.56%（修正前 19.22% 旧值）**
 
 ---
 
@@ -37,7 +39,7 @@
 
 ---
 
-## 📂 文档分类（7 大类 · 26+ 份核心文档）
+## 📂 文档分类（8 大类 · 26+ 份核心文档 + H 类 17 项物料）
 
 ### 🎯 A 类：项目门面（3 份）
 
@@ -101,6 +103,63 @@
 | [QuantInsight_Pro_MacroFactorFusion_设计文档.md](QuantInsight_Pro_MacroFactorFusion_设计文档.md) | Markdown | 8类18因子宏观融合引擎设计 | 量化工程师 |
 | [QuantInsight_Pro_SignalVerifier_设计文档.md](QuantInsight_Pro_SignalVerifier_设计文档.md) | Markdown | 信号验证中心全生命周期设计 | 量化/产品 |
 | [QuantInsight_Pro_SentimentVectorStore_设计文档.md](QuantInsight_Pro_SentimentVectorStore_设计文档.md) | Markdown | FAISS语义检索引擎设计 | AI工程师 |
+
+### 🏁 H 类：最终冲刺物料（V1.6 新增 · 2026-07-08）
+
+> AFAC2026 最终冲刺阶段产出的全部交付物（图片 / 视频 / Word / 杀手锏 / P2 锦上添花 / 提交包）。路径以 `submission/` 为根。
+
+#### 🖼️ H1. 7 张图 PNG（`submission/03_正式文档_WORD/_assets/`）
+
+| # | 文件 | 用途 | 受众 |
+|---|------|------|------|
+| 1 | `submission/03_正式文档_WORD/_assets/01_business_model_canvas.png` | 商业模式画布（9 宫格） | 评委/投资人 |
+| 2 | `submission/03_正式文档_WORD/_assets/02_ltv_cac_radar.png` | LTV/CAC 雷达图 | 评委/投资人 |
+| 3 | `submission/03_正式文档_WORD/_assets/03_nrr_funnel.png` | NRR 净收入留存漏斗 | 评委/投资人 |
+| 4 | `submission/03_正式文档_WORD/_assets/04_backtest_curve.png` | T35 HS300 多因子回测曲线（8.56% 修正版） | 评委/技术 |
+| 5 | `submission/03_正式文档_WORD/_assets/05_client_growth.png` | 客户增长曲线 | 评委/客户 |
+| 6 | `submission/03_正式文档_WORD/_assets/06_customer_subscription_matrix.png` | 客户订阅矩阵 | 评委/客户 |
+| 7 | `submission/03_正式文档_WORD/_assets/07_team_structure.png` | 团队组织架构 | 评委 |
+
+#### 🎬 H2. 2 段视频
+
+| # | 文件 | 用途 | 状态 | 受众 |
+|---|------|------|------|------|
+| 1 | `submission/02_Demo交付/QuantInsight_Pro_Demo_3min_V2.mp4` | 3 分钟产品 Demo V2 修订版 | ⏳ 即将生成 | 评委/客户 |
+| 2 | `submission/QuantInsight_Pro_Pitch_5min_V1.mp4` | 5 分钟路演 Pitch V1 | ⏳ 即将生成 | 评委/路演 |
+
+> 配套：V1 终版 Demo（`submission/02_Demo交付/QuantInsight_Pro_Demo_3min.mp4`，180s，V3 电影级）已交付。
+
+#### 📄 H3. 5 份答辩 Word
+
+| # | 文件 | 用途 | 受众 |
+|---|------|------|------|
+| 1 | `submission/01_答辩话术_Word版.docx` | 答辩话术 Word 富文本版 | 答辩团队 |
+| 2 | `submission/02_3轮模拟答辩脚本_Word版.docx` | 3 轮模拟答辩脚本 Word | 答辩团队 |
+| 3 | `submission/03_5杀手锏提问_Word版.docx` | 5 杀手锏提问 Word | 答辩团队 |
+| 4 | `submission/04_评委FAQ手册_Word版.docx` | 评委 FAQ 手册 Word | 答辩团队 |
+| 5 | `submission/05_风险预案_Word版.docx` | 风险预案 Word（V2 富文本版） | 答辩团队 |
+
+#### 🎤 H4. 5 分钟路演 PPT V1
+
+| 文件 | 用途 | 受众 |
+|------|------|------|
+| `submission/QuantInsight_Pro_Pitch_PPT_5min_V1.pptx` | 5 分钟路演 PPT V1（基于 `QuantInsight_Pro_PPT_V3_15pages.md` 压缩） | 路演/答辩 |
+
+#### 🎁 H5. P2 锦上添花物料
+
+| # | 文件 | 用途 | 状态 | 受众 |
+|---|------|------|------|------|
+| 1 | `submission/A1_海报_QuantInsight_Pro_V1.png` | A1 尺寸（594×841mm）项目海报 | ⏳ 即将生成 | 评委/现场观众 |
+| 2 | `submission/易拉宝_QuantInsight_Pro_V1.png` | 80×200cm 易拉宝主视觉 | ⏳ 即将生成 | 现场观众 |
+| 3 | `submission/永字资管战略合作背书函_V1.pdf` | 永字资管（薛永再）签章背书函 | ⏳ 即将生成 | 评委/客户 |
+
+#### 📦 H6. 提交包 V2 ZIP
+
+| 文件 | 用途 | 受众 |
+|------|------|------|
+| `submission/QuantInsight_Pro_AFAC2026_提交包_V2_20260708.zip` | **V2 最终提交包**（7 图 / 2 视频 / 5 Word / 5 杀手锏 / 3 P2 物料 / 9 正式 Word / BP / 测试报告 全收录） | 评委/平台 |
+
+> 打包命令：`python scripts/build_submission_zip.py --version V2`
 
 ---
 
@@ -202,6 +261,7 @@
 
 | 版本 | 日期 | 主要变更 |
 |------|------|----------|
+| V1.6 | 2026-07-08 | **最终冲刺物料**：新增 H 类 17 项物料（H1 7图 / H2 2视频 / H3 5答辩Word / H4 5min PPT / H5 3 P2物料 / H6 V2 ZIP）+ 数据统一 HS300 8.56%（T35 修正） |
 | V1.5 | 2026-06-16 | V3.5 Exabel-Grade升级：新增G类架构文档5份 + 快速跳转6项 + 关键数据3项 + 工程师路径更新 |
 | V1.1 | 2026-06-16 | 新增 V3.5 升级说明；标记用户手册需更新 |
 | V1.0 | 2026-06-16 | 初版：22 份核心文档 + 6 大分类 + 5 类角色路径 |
@@ -250,16 +310,33 @@ V3.5 Exabel-Grade Architecture Upgrade 已完成，用户手册需同步更新�
 
 ## 📊 文档统计
 
-- **总文档数**：26+ 份核心文档 + 50+ 份辅助文档
-- **总字数**：~35 万字
-- **总页数**：~700 页（A4）
-- **覆盖维度**：商业/技术/产品/路演/学术/风控/Exabel-Grade架构 7 大类
+- **总文档数**：26+ 份核心文档 + 50+ 份辅助文档 + H 类 17 项最终冲刺物料
+- **总字数**：~38 万字（含 H 类物料）
+- **总页数**：~800 页（A4）
+- **覆盖维度**：商业/技术/产品/路演/学术/风控/Exabel-Grade架构/最终冲刺物料 8 大类
 - **目标受众**：投资人/客户/学术/工程师/答辩团队/新员工 6 类
 
 ---
 
-> **DOCS HUB 结束 · V1.5 · 2026-06-16**
+> **DOCS HUB 结束 · V1.6 · 2026-07-08**
 >
 > 📧 contact@quantinsight.ai | 🌐 https://www.quantinsight.ai
 >
 > **"让每一行代码都为投资人创造超额收益"**
+---
+
+## 👥 权威团队信息（AFAC2026）
+
+| 角色 | 姓名 | 说明 |
+|------|------|------|
+| CEO/队长 | **冯亦根** | 浙大计算机通信工程本科，亚洲城市大学硕士，项目总负责人 |
+| CTO | **王宇寒** | 杭电软件工程 2022 级本科 |
+| 产品/数据 | **官馨** | 陕师大人工智能专业大三 |
+| AI/量化 | **梁理智** | 翼支付 AI 开发者，金融科技师（二级） |
+| 推荐单位/场外顾问 | **薛永再** | 杭州永字资管法定代表人，**非参赛队员** |
+
+- **项目编号**：2026FINTECH-FINT-0093
+- **大赛**：AFAC2026金融智能创新大赛（初创组）
+- **提交依据**：`submission/01_商业计划书_QuantInsight_Pro.md`
+- **历史归档**：`archive/legacy_v1/`（V1 过程材料）、`archive/AFAC2026_专题赛/`（独立项目，与 AFAC 无隶属关系）— **非提交依据**
+

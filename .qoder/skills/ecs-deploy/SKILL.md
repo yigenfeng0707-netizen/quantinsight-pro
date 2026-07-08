@@ -15,7 +15,7 @@ Deploy code to Alibaba Cloud ECS without SSH — uses Cloud Assistant `RunComman
 - **DB**: `/opt/quantinsight/data/users.db`
 - **Service**: `quantinsight` (systemd, Streamlit with TLS on port 8443)
 - **Secrets**: `/opt/quantinsight/.streamlit/secrets.toml`
-- **Local source**: `d:\shFintech\streamlit_app\`
+- **Local source**: `D:/AFAC2026金融智能创新大赛/quantinsight-deploy/streamlit_app\`
 
 ## Credentials
 
@@ -43,7 +43,7 @@ Use when multiple files changed (app.py + ui_themes.py + etc).
 4. Upload each chunk via `echo -n "..." >> /tmp/deploy_b64.txt`
 5. On server: base64-decode → extract → backup originals → copy → restart
 
-Run: `python d:\shFintech\_ecs_deploy_files.py`
+Run: `python D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_ecs_deploy_files.py`
 
 **File list** is defined in `FILES_TO_TRANSFER` at the top of the script. Update it when adding new files.
 
@@ -55,7 +55,7 @@ Use for quick fixes to one file (typically `app.py`).
 1. Read local file → base64 encode → split into 15KB chunks
 2. Upload chunks → decode on server → backup → replace → restart
 
-Run: `python d:\shFintech\_ecs_hotfix.py`
+Run: `python D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_ecs_hotfix.py`
 
 Edit the `app_path` variable at line 73 to target a different file.
 
@@ -63,7 +63,7 @@ Edit the `app_path` variable at line 73 to target a different file.
 
 Use to add/modify `secrets.toml` entries (API keys, model configs).
 
-Run: `python d:\shFintech\_ecs_update_secrets.py`
+Run: `python D:/AFAC2026金融智能创新大赛/quantinsight-deploy/_ecs_update_secrets.py`
 
 The script: backs up secrets → checks for existing keys → merges new entries → restarts service.
 

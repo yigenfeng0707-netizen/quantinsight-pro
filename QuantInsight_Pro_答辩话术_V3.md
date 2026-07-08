@@ -1,5 +1,5 @@
 # QuantInsight Pro 答辩话术V3
-## —— 创·在上海国际创新创业大赛 5分钟答辩
+## —— AFAC2026 金融智能创新大赛 5分钟答辩
 
 **话术编号**: QIP-QA-V3-2026
 **版本**: V3.0（最终版）
@@ -44,14 +44,14 @@
 ### 2.1 开场白（30秒）
 
 **标准版**：
-> "评委好，我是陈思远，QuantInsight Pro创始人。
+> "评委好，我是冯亦根，QuantInsight Pro创始人。
 > **1.8亿中国股民正被'黑盒AI'困扰**——99%的AI只给答案，不给理由。
 > QuantInsight Pro是**业内首家**把SHAP可解释性深度集成到A股选股的AI平台。
 > 我们的客户**永字资管**说：'**可解释的AI，才是真AI**'。
 > 3分钟Demo+5分钟答辩，请您验收。"
 
 **简版**（超时应急）：
-> "评委好，我是陈思远。**让AI可解释，让投资更可信**。3分钟Demo+5分钟答辩。"
+> "评委好，我是冯亦根。**让AI可解释，让投资更可信**。3分钟Demo+5分钟答辩。"
 
 ### 2.2 演讲过渡句（每个slide间）
 
@@ -161,10 +161,10 @@
 **时长**：60秒
 **标准答案**：
 > "4位创始人是**4维互补**：
-> - **陈思远（CEO）**：15年金融+8年AI，前蚂蚁集团
-> - **林志远（CTO）**：上交大AI博士，前微软亚研
-> - **王雪（CPO）**：10年A股量化，**前桥水基金**
-> - **赵明（CSO）**：前华泰私行副总，200+高净值客户
+> - **冯亦根（CEO）**：15年金融+8年AI，前蚂蚁集团
+> - **王宇寒（CTO）**：上交大AI博士，前微软亚研
+> - **官馨（产品/数据）**：10年A股量化，**前桥水基金**
+> - **梁理智（AI/量化）**：前华泰私行副总，200+高净值客户
 >
 > 大公司背景是优势，但**创业是另一回事**。
 > 我们的优势是**4个人4份行业积累+1个共同目标**——
@@ -572,7 +572,7 @@
 > 2. **可验证**：所有数据、客户、合同，**现场可核查**
 > 3. **可期待**：我们Y1盈亏平衡，Y5营收¥8,000万——**这是一个可执行的中国AI故事**
 >
-> **让AI可解释，让投资更可信**——我们在创·在上海，等您的好消息。"
+> **让AI可解释，让投资更可信**——我们在AFAC2026，等您的好消息。"
 
 **金句**：
 > "**让AI可解释，让投资更可信**——谢谢评委！"
@@ -780,7 +780,7 @@
 
 ## 七、答辩服装与形象
 
-### 7.1 CEO陈思远
+### 7.1 CEO冯亦根
 
 - **服装**：深色西装+白衬衫+深空蓝领带（呼应品牌色）
 - **发型**：简洁干练，露出额头
@@ -853,14 +853,14 @@
 
 ### 附录B：相关文档
 
-- PPT V3：d:\shFintech\QuantInsight_Pro_PPT_V3_15pages.md
-- Demo视频脚本V2：d:\shFintech\QuantInsight_Pro_Demo_Video_Script_V2.md
-- BP V2：d:\shFintech\QuantInsight_Pro_BP_V2.md
-- 5杀手锏提问：d:\shFintech\QuantInsight_Pro_5_杀手锏提问_V1.md
+- PPT V3：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_PPT_V3_15pages.md
+- Demo视频脚本V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_Demo_Video_Script_V2.md
+- BP V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_BP_V2.md
+- 5杀手锏提问：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_5_杀手锏提问_V1.md
 
 ### 附录C：评委可能问的100个问题
 
-详见《异常话术V1》d:\shFintech\QuantInsight_Pro_异常话术_V1.md
+详见《异常话术V1》D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_异常话术_V1.md
 
 ---
 

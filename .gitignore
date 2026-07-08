@@ -155,3 +155,26 @@ _*.avi
 # Streamlit 内部测试脚本
 streamlit_app/_check_*.py
 streamlit_app/_run_check.bat
+
+## ============ V2 仓库清理 (2026-07-08) ============
+# 本地归档目录（不提交到 GitHub）
+archive/
+# V2 临时脚本
+_extract_docx.py
+_qa_search.py
+_qa_search2.py
+afac_qa.txt
+rule_eval.txt
+rule_eval_full.txt
+assets/
+"AFAC2026：初创组 QA文档.pdf"
+# 个人 IP 证明（敏感 · 不入库）
+软著/
+# IDE 技能配置（开发工具 · 不入库）
+.qoder/
+# V2 临时清理脚本（执行完即可忽略）
+scripts/_github_cleanup.py
+scripts/_team_consistency_cleanup.py
+scripts/_extract_docx.py
+"AFAC2026：初创组 QA文档.pdf"
+'AFAC2026：初创组 QA文档.pdf'

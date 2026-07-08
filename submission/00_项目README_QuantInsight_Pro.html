@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantInsight Pro — 项目 README · AFAC2026</title>
+<style>
+:root { --dark:#0A0E27; --cyan:#00D4FF; --gold:#FFB800; --bg:#f4f8fc; }
+* { box-sizing:border-box; }
+body { font-family:"Microsoft YaHei","PingFang SC",sans-serif; background:var(--bg); color:#222; line-height:1.7; margin:0; }
+.wrap { max-width:920px; margin:0 auto; padding:32px 24px 48px; }
+header { background:var(--dark); color:#fff; padding:36px 32px; border-radius:12px; margin-bottom:28px; }
+header h1 { margin:0 0 8px; font-size:2rem; color:var(--cyan); }
+header p { margin:4px 0; opacity:.92; }
+.badge { display:inline-block; background:var(--gold); color:var(--dark); padding:2px 10px; border-radius:4px; font-size:.85rem; font-weight:700; margin-top:8px; }
+section { background:#fff; border-radius:10px; padding:24px 28px; margin-bottom:20px; box-shadow:0 2px 8px rgba(10,14,39,.06); }
+h2 { color:var(--dark); border-left:4px solid var(--cyan); padding-left:12px; margin-top:0; }
+table { width:100%; border-collapse:collapse; font-size:.92rem; margin:12px 0; }
+th { background:var(--dark); color:#fff; padding:10px 8px; text-align:left; }
+td { padding:9px 8px; border-bottom:1px solid #e8eef5; vertical-align:top; }
+tr:nth-child(even) td { background:#E8F4FC; }
+figure { text-align:center; margin:20px 0; }
+figure img { max-width:100%; border-radius:8px; border:1px solid #dde; }
+figcaption { font-size:.85rem; color:#666; margin-top:6px; }
+.colors { display:flex; gap:16px; flex-wrap:wrap; }
+.swatch { flex:1; min-width:140px; padding:16px; border-radius:8px; color:#fff; text-align:center; font-weight:600; }
+.swatch small { display:block; font-weight:400; opacity:.9; margin-top:4px; }
+footer { text-align:center; color:#666; font-size:.85rem; margin-top:24px; }
+@media print { body { background:#fff; } section { box-shadow:none; border:1px solid #ddd; page-break-inside:avoid; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>QuantInsight Pro</h1>
+  <p>AI 驱动的另类数据量化投研平台</p>
+  <p>AFAC2026 金融智能创新大赛 · 初创组 · 项目编号 2026FINTECH-FINT-0093</p>
+  <p>AFAC 平台 ID 20260110040 · Demo <a href="https://3blue1brownlab.cn" style="color:var(--cyan)">https://3blue1brownlab.cn</a></p>
+  <span class="badge">永字资管战略合作已签署</span>
+</header>
+
+<section>
+<h2>执行摘要</h2>
+<p>QuantInsight Pro 面向专业机构投资者，将 SHAP 可解释性深度集成到 A 股智能选股流程，整合另类数据、AI 投研智能体与 MIT 开源回测引擎，提供数据 + 模型 + 策略 + 合规的一站式智能投研解决方案。生产 Demo 已公网部署，推荐单位杭州永字资产管理有限公司战略合作已签署。</p>
+</section>
+
+<section>
+<h2>参赛团队（4 人）</h2>
+<table><thead><tr><th>角色</th><th>姓名</th><th>背景</th><th>职责</th></tr></thead><tbody><tr><td>CEO / 主讲</td><td><strong>冯亦根</strong></td><td>浙江大学计算机通信工程本科、亚洲城市大学硕士；慧点资本创始人，CFA；15+ 年金融科技投资经验。</td><td>战略、融资、BD、路演总负责</td></tr><tr><td>CTO</td><td><strong>王宇寒</strong></td><td>杭州电子科技大学软件工程专业 2022 级本科；平台架构与 AI 工程负责人。</td><td>技术架构、AI 模型、系统开发、生产部署</td></tr><tr><td>产品 / 数据</td><td><strong>官馨</strong></td><td>陕西师范大学人工智能专业大三；产品设计与客户研究。</td><td>数据策略、产品设计、客户研究、UX</td></tr><tr><td>AI / 量化</td><td><strong>梁理智</strong></td><td>河北科技大学；翼支付 AI 开发者，金融科技师（二级）证书。</td><td>量化策略、AI 金融科技落地、运营</td></tr></tbody></table>
+<p><em>推荐单位顾问：薛永再（杭州永字资管法定代表人，场外非参赛队员）</em></p>
+</section>
+
+<section>
+<h2>核心功能（8 模块）</h2>
+<table><thead><tr><th>#</th><th>模块</th><th>能力</th><th>状态</th></tr></thead><tbody><tr><td>1</td><td>智能选股</td><td>17 因子综合评分 + Top10 推荐</td><td>✅ 已上线</td></tr><tr><td>2</td><td>SHAP 解读</td><td>4 类 SHAP 图 + 17 因子归因</td><td>✅ 业内独家</td></tr><tr><td>3</td><td>AI 投研问答</td><td>RAG 数据接地 + Qwen 解读 + 引用溯源</td><td>✅ 已上线</td></tr><tr><td>4</td><td>量化策略回测</td><td>5 策略 + 11.4 年 HS300 真实数据</td><td>✅ 开源引擎</td></tr><tr><td>5</td><td>智能盯盘</td><td>7×24 涨跌停预警 + 异动监控</td><td>✅ 已上线</td></tr><tr><td>6</td><td>模拟交易</td><td>A 股实时模拟 + 3 层 fallback</td><td>✅ 已上线</td></tr><tr><td>7</td><td>自动报告</td><td>6 段式周报 + Word/PDF 导出</td><td>✅ 已上线</td></tr><tr><td>8</td><td>实时数据看板</td><td>大盘卡片 + 北向资金热力图</td><td>✅ V2 已上线</td></tr></tbody></table>
+</section>
+
+<section>
+<h2>关键指标（T35 回测）</h2>
+<table>
+<thead><tr><th>指标</th><th>数值</th></tr></thead>
+<tbody>
+<tr><td>多因子年化收益</td><td><strong>8.56%</strong></td></tr>
+<tr><td>夏普比率</td><td>0.63</td></tr>
+<tr><td>最大回撤</td><td>-38.33%</td></tr>
+<tr><td>单元测试</td><td>21/21 PASS</td></tr>
+<tr><td>永字资管</td><td>战略合作已签署</td></tr>
+<tr><td>AFAC 自评</td><td>88 / 100</td></tr>
+</tbody>
+</table>
+<figure><img src="03_正式文档_WORD/_charts/readme_key_metrics.png" alt="图1 T35 回测核心指标"><figcaption>图1 T35 回测核心指标</figcaption></figure>
+<figure><img src="03_正式文档_WORD/_charts/readme_strategy.png" alt="图2 HS300 五策略回测对比"><figcaption>图2 HS300 五策略回测对比</figcaption></figure>
+</section>
+
+<section>
+<h2>访问与提交</h2>
+<table>
+<tbody>
+<tr><td>在线 Demo</td><td><a href="https://3blue1brownlab.cn">https://3blue1brownlab.cn</a></td></tr>
+<tr><td>提交 ZIP</td><td><code>submission/QuantInsight_Pro_AFAC2026_提交包_20260708.zip</code></td></tr>
+<tr><td>文档归档</td><td><code>archive/legacy_v1/</code>（V1 过时材料）</td></tr>
+<tr><td>权威 BP</td><td><code>submission/01_商业计划书_QuantInsight_Pro.md</code></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>submission/ 目录指南</h2>
+<table><thead><tr><th>路径</th><th>说明</th></tr></thead><tbody><tr><td><code>01_商业计划书_QuantInsight_Pro.md/.html</code></td><td>AFAC 八章节商业计划书（权威）</td></tr><tr><td><code>02_Demo交付/</code></td><td>Demo 视频、运行指南、POC 数据、交互设计</td></tr><tr><td><code>03_正式文档_WORD/</code></td><td>9 份正式 Word 文档（规则对照、测试、FAQ 等）</td></tr><tr><td><code>04_测试报告/</code></td><td>单元测试与冒烟测试 JSON</td></tr><tr><td><code>05_团队信息一致性核查报告.md</code></td><td>团队口径审计报告</td></tr><tr><td><code>06_文档归档说明.md</code></td><td>V1 文档归档与 README 位置说明</td></tr><tr><td><code>00_项目README_QuantInsight_Pro.docx/.html</code></td><td>本文件 — 项目一页纸总览</td></tr><tr><td><code>QuantInsight_Pro_AFAC2026_提交包_*.zip</code></td><td>一键打包提交 ZIP</td></tr></tbody></table>
+</section>
+
+<section>
+<h2>品牌色</h2>
+<div class="colors">
+  <div class="swatch" style="background:#0A0E27">深空蓝<small>#0A0E27 · 主背景/标题</small></div>
+  <div class="swatch" style="background:#00D4FF;color:#0A0E27">科技青<small>#00D4FF · 强调/链接</small></div>
+  <div class="swatch" style="background:#FFB800;color:#0A0E27">琥珀金<small>#FFB800 · 高亮/评分</small></div>
+</div>
+</section>
+
+<footer>编制日期 2026年07月08日 · 冯亦根 ceo@3blue1brownlab.cn · 王宇寒 cto@3blue1brownlab.cn</footer>
+</div>
+</body>
+</html>

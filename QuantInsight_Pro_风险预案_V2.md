@@ -1,5 +1,5 @@
 # QuantInsight Pro 5大风险+应急预案 V2
-## —— 创·在上海国际创新创业大赛 风险管理核心材料
+## —— AFAC2026 金融智能创新大赛 风险管理核心材料
 
 **文档编号**: QIP-RISK-2026-001
 **版本**: V2.0
@@ -35,10 +35,10 @@
 
 | 角色 | 责任人 | 联系电话 |
 |------|--------|----------|
-| 应急总指挥 | CEO陈思远 | 138-XXXX-XXXX |
-| 技术应急 | CTO林志远 | 138-XXXX-XXXX |
-| 商务应急 | CSO赵明 | 138-XXXX-XXXX |
-| 公关应急 | CPO王雪 | 138-XXXX-XXXX |
+| 应急总指挥 | CEO冯亦根 | 138-XXXX-XXXX |
+| 技术应急 | CTO王宇寒 | 138-XXXX-XXXX |
+| 商务应急 | 量化梁理智 | 138-XXXX-XXXX |
+| 公关应急 | 产品官馨 | 138-XXXX-XXXX |
 | 财务应急 | CFO（拟） | 138-XXXX-XXXX |
 
 ---
@@ -232,8 +232,8 @@ akshare数据源目前不稳定，我们已自动切换到备用源+示例数据
 |------|--------|------|
 | 首席合规官 | 拟聘（1名） | 前证监会法律部 |
 | 外部法律顾问 | 中伦律所 | 金融科技专长 |
-| 数据保护官 | CTO林志远 | ISO27001认证 |
-| 客户沟通 | CSO赵明 | 10年金融经验 |
+| 数据保护官 | CTO王宇寒 | ISO27001认证 |
+| 客户沟通 | 量化梁理智 | 10年金融经验 |
 
 ### 3.5 长期合规建设
 
@@ -632,18 +632,18 @@ Y1月度现金流：
 
 | 风险类型 | 第一响应 | 升级路径 |
 |----------|----------|----------|
-| 数据风险 | CTO林志远 | CSO→CEO |
-| 合规风险 | CSO赵明 | CEO+法务 |
-| 技术风险 | CTO林志远 | CEO |
-| 市场风险 | CSO赵明 | CEO+CMO |
+| 数据风险 | CTO王宇寒 | CSO→CEO |
+| 合规风险 | 量化梁理智 | CEO+法务 |
+| 技术风险 | CTO王宇寒 | CEO |
+| 市场风险 | 量化梁理智 | CEO+CMO |
 | 资金风险 | 财务（拟） | CEO+董事会 |
 
 ### 附录B：相关文档
 
-- 团队应急方案：d:\shFintech\QuantInsight_Pro_Team_Compliance_DR_V1.md
-- 客户验证证据包：d:\shFintech\QuantInsight_Pro_客户验证证据包_V1.md
-- 财务模型V2：d:\shFintech\QuantInsight_Pro_财务模型V2.xlsx
-- 营销获客漏斗：d:\shFintech\QuantInsight_Pro_营销获客漏斗_V1.md
+- 团队应急方案：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_Team_Compliance_DR_V1.md
+- 客户验证证据包：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_客户验证证据包_V1.md
+- 财务模型V2：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_财务模型V2.xlsx
+- 营销获客漏斗：D:/AFAC2026金融智能创新大赛/quantinsight-deploy/QuantInsight_Pro_营销获客漏斗_V1.md
 
 ### 附录C：应急预案演练计划
 

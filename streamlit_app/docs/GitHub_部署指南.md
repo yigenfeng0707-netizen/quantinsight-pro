@@ -22,7 +22,7 @@
 
 ```bash
 # 进入 streamlit_app 目录
-cd D:\shFintech\streamlit_app
+cd D:/AFAC2026金融智能创新大赛/quantinsight-deploy/streamlit_app
 
 # 初始化 git
 git init

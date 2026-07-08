@@ -117,13 +117,13 @@ def chart_architecture_layers(out_name: str = "chart_architecture.png") -> Path:
 
 
 def chart_data_flow(out_name: str = "chart_data_flow.png") -> Path:
-    """数据流：多源 → 缓存 → 应用"""
+    """数据流：数据采集 → 因子 → SHAP → AI → 回测"""
     boxes = [
-        ("外部数据源", "akshare / 东方财富 / Baostock"),
-        ("SQLite 缓存层", "refresh_data.py 定时刷新"),
-        ("特征 & 因子", "17 因子 · 另类数据融合"),
-        ("AI + 回测", "SHAP · MIT 回测引擎"),
-        ("用户界面", "https://3blue1brownlab.cn"),
+        ("数据采集", "akshare / 东财 / 另类数据"),
+        ("因子工程", "17 因子 · IC 检验 · 融合"),
+        ("SHAP 可解释", "XGBoost 归因 · 备案合规"),
+        ("AI 投研", "RAG + Qwen 智能体"),
+        ("量化回测", "MIT 引擎 · HS300 验证"),
     ]
     fig, ax = plt.subplots(figsize=(8, 4.5), facecolor="white")
     ax.set_xlim(0, 10)
@@ -139,7 +139,43 @@ def chart_data_flow(out_name: str = "chart_data_flow.png") -> Path:
         if i < len(boxes) - 1:
             ax.annotate("", xy=(xs[i + 1] - 0.78, 1.0), xytext=(x + 0.78, 1.0),
                         arrowprops=dict(arrowstyle="->", color=DARK, lw=1.5))
-    ax.set_title("数据链路：SQLite 优先 · 后台定时刷新", fontsize=12, fontweight="bold", color=DARK)
+    ax.set_title("QuantInsight Pro 数据流全链路", fontsize=12, fontweight="bold", color=DARK)
+    fig.tight_layout()
+    path = _ensure_dir() / out_name
+    fig.savefig(path, dpi=180, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return path
+
+
+def chart_team_org(out_name: str = "chart_team_org.png") -> Path:
+    """团队组织架构：4 参赛队员 + 薛永再场外顾问"""
+    members = [
+        ("冯亦根", "CEO / 主讲", "战略 · 融资 · BD", DARK),
+        ("王宇寒", "CTO", "架构 · AI · 部署", CYAN),
+        ("官馨", "产品 / 数据", "UX · 客户研究", GOLD),
+        ("梁理智", "AI / 量化", "策略 · 金融科技", VIOLET),
+    ]
+    fig, ax = plt.subplots(figsize=(9, 5.2), facecolor="white")
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 5)
+    ax.axis("off")
+
+    xs = np.linspace(1.2, 8.8, 4)
+    for x, (name, role, duty, color) in zip(xs, members):
+        rect = plt.Rectangle((x - 0.85, 2.55), 1.7, 0.95, facecolor=color, edgecolor="white", linewidth=1.5, alpha=0.92)
+        ax.add_patch(rect)
+        ax.text(x, 3.15, name, ha="center", va="center", fontsize=9.5, fontweight="bold", color="white")
+        ax.text(x, 2.88, role, ha="center", va="center", fontsize=8, color="white")
+        ax.text(x, 2.62, duty, ha="center", va="center", fontsize=7, color="white", alpha=0.92)
+
+    ax.annotate("", xy=(5, 1.55), xytext=(5, 2.55),
+                arrowprops=dict(arrowstyle="->", color=GOLD, lw=1.5, linestyle="dashed"))
+    rect = plt.Rectangle((2.8, 0.55), 4.4, 0.9, facecolor=GOLD, edgecolor=DARK, linewidth=1.5, alpha=0.88)
+    ax.add_patch(rect)
+    ax.text(5, 1.08, "薛永再 · 推荐单位场外顾问", ha="center", va="center", fontsize=9.5, fontweight="bold", color=DARK)
+    ax.text(5, 0.72, "杭州永字资管法定代表人 · 战略合作已签署 · 非参赛队员", ha="center", va="center", fontsize=7.5, color=DARK)
+
+    ax.set_title("QuantInsight Pro 参赛团队（AFAC 4 人 + 场外顾问）", fontsize=12, fontweight="bold", color=DARK, pad=10)
     fig.tight_layout()
     path = _ensure_dir() / out_name
     fig.savefig(path, dpi=180, bbox_inches="tight", facecolor="white")
@@ -153,6 +189,7 @@ def render_all_charts() -> dict[str, Path]:
         "scoring": chart_afac_scoring_radar(),
         "architecture": chart_architecture_layers(),
         "data_flow": chart_data_flow(),
+        "team_org": chart_team_org(),
     }
 
 
