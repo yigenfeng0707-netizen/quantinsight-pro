@@ -237,7 +237,7 @@ latency.observe(elapsed)
 
 ```bibtex
 @software{quantinsight_data_pipeline_2026,
-  author = {冯亦根, 薛永再, 黄成选, 冯思涵},
+  author = {冯亦根, 王宇寒, 官馨, 梁理智},
   title  = {QuantInsight Pro: Production-Grade Data Pipeline for China A-Share Quantitative Research},
   year   = {2026},
   url    = {https://github.com/yigenfeng0707-netizen/quantinsight-pro},

@@ -134,6 +134,35 @@ CREATE TABLE IF NOT EXISTS margin_trading (
     balance     REAL
 );
 
+-- 概念板块
+CREATE TABLE IF NOT EXISTS concept_board (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    date        TEXT NOT NULL,
+    board_name  TEXT NOT NULL,
+    change_pct  REAL,
+    net_flow    REAL,
+    lead_stock  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_concept_board_date ON concept_board(date);
+
+-- 市场宽度 (涨跌停/涨跌家数)
+CREATE TABLE IF NOT EXISTS market_breadth (
+    date        TEXT PRIMARY KEY,
+    limit_up    INTEGER,
+    limit_down  INTEGER,
+    up_count    INTEGER,
+    down_count  INTEGER,
+    flat_count  INTEGER,
+    total       INTEGER
+);
+
+-- 宏观快照 (JSON 汇总)
+CREATE TABLE IF NOT EXISTS macro_snapshot (
+    date        TEXT PRIMARY KEY,
+    data_json   TEXT,
+    updated_at  TEXT
+);
+
 -- 数据元信息
 CREATE TABLE IF NOT EXISTS data_meta (
     table_name  TEXT PRIMARY KEY,
@@ -156,6 +185,9 @@ _STALE_MINUTES = {
     "macro_indices": 1440,
     "fund_flow": 120,
     "margin_trading": 1440,
+    "concept_board": 120,
+    "market_breadth": 60,
+    "macro_snapshot": 1440,
 }
 
 
@@ -429,6 +461,53 @@ class QIDataDB:
             }
         return result
 
+    def get_concept_board(self) -> Optional[pd.DataFrame]:
+        """读取最新概念板块缓存"""
+        conn = self._get_conn()
+        try:
+            df = pd.read_sql(
+                "SELECT * FROM concept_board WHERE date = (SELECT MAX(date) FROM concept_board) "
+                "ORDER BY change_pct DESC",
+                conn,
+            )
+        except Exception as e:
+            logger.warning("读取 concept_board 失败: %s", e)
+            return None
+        if df.empty:
+            return None
+        return df
+
+    def get_market_breadth(self) -> Optional[dict]:
+        """读取最新市场宽度统计"""
+        conn = self._get_conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM market_breadth ORDER BY date DESC LIMIT 1"
+            ).fetchone()
+        except Exception as e:
+            logger.warning("读取 market_breadth 失败: %s", e)
+            return None
+        if row is None:
+            return None
+        return dict(row)
+
+    def get_macro_snapshot(self) -> Optional[dict]:
+        """读取宏观快照 JSON"""
+        conn = self._get_conn()
+        try:
+            row = conn.execute(
+                "SELECT data_json FROM macro_snapshot ORDER BY date DESC LIMIT 1"
+            ).fetchone()
+        except Exception as e:
+            logger.warning("读取 macro_snapshot 失败: %s", e)
+            return None
+        if row is None:
+            return None
+        try:
+            return json.loads(row["data_json"])
+        except (json.JSONDecodeError, KeyError):
+            return None
+
     def get_margin_trading(self) -> Optional[pd.DataFrame]:
         """读取融资融券数据
 
@@ -526,6 +605,17 @@ class QIDataDB:
                 write_df[dst_col] = df[src_col].values
             else:
                 write_df[dst_col] = None
+
+        # Baostock / 直连 API 英文列名兼容
+        for src_col, dst_col in {
+            "code": "code", "name": "name", "close": "latest_price",
+            "change_pct": "change_pct", "pctChg": "change_pct",
+            "turnover_rate": "turnover_rate", "turn": "turnover_rate",
+            "amount": "amount", "total_mv": "total_mv",
+        }.items():
+            if src_col in df.columns:
+                write_df[dst_col] = df[src_col].values
+
         write_df["updated_at"] = now
 
         # 数据清洗: 过滤无效数据
@@ -745,9 +835,13 @@ class QIDataDB:
 
         col_map = {
             "板块名称": "sector_name",
+            "名称": "sector_name",
+            "行业": "sector_name",
             "涨跌幅": "change_pct",
             "净流入": "net_flow",
+            "主力净流入": "net_flow",
             "领涨股": "lead_stock",
+            "领涨股票": "lead_stock",
         }
 
         alt_col_map = {
@@ -774,6 +868,13 @@ class QIDataDB:
                 write_df[col] = None
 
         write_df["date"] = today
+        write_df = write_df[
+            write_df["sector_name"].notna()
+            & (write_df["sector_name"].astype(str).str.strip() != "")
+        ]
+        if write_df.empty:
+            logger.warning("upsert_sector_flow: 无有效板块名称，跳过")
+            return
 
         try:
             conn.execute("DELETE FROM sector_flow WHERE date = ?", (today,))
@@ -871,28 +972,159 @@ class QIDataDB:
                 write_df[col] = None
 
         if "date" in write_df.columns:
-            write_df["date"] = write_df["date"].astype(str)
+            write_df["date"] = write_df["date"].astype(str).str[:10]
 
         try:
-            existing = conn.execute("SELECT date FROM margin_trading").fetchall()
-            existing_dates = {row["date"] for row in existing}
-
-            new_rows = write_df[~write_df["date"].isin(existing_dates)]
-            if new_rows.empty:
-                logger.debug("upsert_margin_trading: 无新数据")
-                return
-
-            new_rows[["date", "buy_amount", "sell_amount", "balance"]].to_sql(
-                "margin_trading", conn, if_exists="append", index=False
-            )
+            for _, row in write_df.iterrows():
+                if not row.get("date"):
+                    continue
+                conn.execute(
+                    """INSERT INTO margin_trading (date, buy_amount, sell_amount, balance)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(date) DO UPDATE SET
+                           buy_amount=excluded.buy_amount,
+                           sell_amount=excluded.sell_amount,
+                           balance=excluded.balance
+                    """,
+                    (
+                        str(row["date"])[:10],
+                        row.get("buy_amount"),
+                        row.get("sell_amount"),
+                        row.get("balance"),
+                    ),
+                )
             conn.commit()
 
             total = conn.execute("SELECT COUNT(*) as cnt FROM margin_trading").fetchone()["cnt"]
             self._update_meta("margin_trading", total)
-            logger.info("upsert_margin_trading: 追加 %d 行", len(new_rows))
+            logger.info("upsert_margin_trading: upsert %d 行", len(write_df))
         except Exception as e:
             conn.rollback()
             logger.error("upsert_margin_trading 失败: %s", e)
+            raise
+
+    def upsert_concept_board(self, df: pd.DataFrame, source: str = "akshare"):
+        """替换今日概念板块数据"""
+        if df is None or df.empty:
+            return
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        conn = self._get_conn()
+
+        col_map = {
+            "板块名称": "board_name",
+            "名称": "board_name",
+            "涨跌幅": "change_pct",
+            "净流入": "net_flow",
+            "主力净流入": "net_flow",
+            "领涨股票": "lead_stock",
+            "领涨股": "lead_stock",
+        }
+        alt_col_map = {
+            "board_name": "board_name",
+            "change_pct": "change_pct",
+            "net_flow": "net_flow",
+            "lead_stock": "lead_stock",
+        }
+
+        write_df = pd.DataFrame()
+        mapped = False
+        for src_col, dst_col in col_map.items():
+            if src_col in df.columns:
+                write_df[dst_col] = df[src_col].values
+                mapped = True
+        if not mapped:
+            for src_col, dst_col in alt_col_map.items():
+                if src_col in df.columns:
+                    write_df[dst_col] = df[src_col].values
+
+        for col in ["board_name", "change_pct", "net_flow", "lead_stock"]:
+            if col not in write_df.columns:
+                write_df[col] = None
+        write_df["date"] = today
+        write_df = write_df[
+            write_df["board_name"].notna()
+            & (write_df["board_name"].astype(str).str.strip() != "")
+        ]
+        if write_df.empty:
+            logger.warning("upsert_concept_board: 无有效板块名称，跳过")
+            return
+
+        try:
+            conn.execute("DELETE FROM concept_board WHERE date = ?", (today,))
+            write_df[["date", "board_name", "change_pct", "net_flow", "lead_stock"]].to_sql(
+                "concept_board", conn, if_exists="append", index=False
+            )
+            conn.commit()
+            total = conn.execute("SELECT COUNT(*) as cnt FROM concept_board").fetchone()["cnt"]
+            self._update_meta("concept_board", total, source=source)
+            logger.info("upsert_concept_board: 写入 %d 行 (日期: %s)", len(write_df), today)
+        except Exception as e:
+            conn.rollback()
+            logger.error("upsert_concept_board 失败: %s", e)
+            raise
+
+    def upsert_market_breadth(self, stats: dict, source: str = "computed"):
+        """写入/更新当日市场宽度统计"""
+        if not stats:
+            return
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                """INSERT INTO market_breadth
+                   (date, limit_up, limit_down, up_count, down_count, flat_count, total)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(date) DO UPDATE SET
+                       limit_up=excluded.limit_up,
+                       limit_down=excluded.limit_down,
+                       up_count=excluded.up_count,
+                       down_count=excluded.down_count,
+                       flat_count=excluded.flat_count,
+                       total=excluded.total
+                """,
+                (
+                    today,
+                    stats.get("limit_up"),
+                    stats.get("limit_down"),
+                    stats.get("up"),
+                    stats.get("down"),
+                    stats.get("flat"),
+                    stats.get("total"),
+                ),
+            )
+            conn.commit()
+            self._update_meta("market_breadth", 1, source=source)
+            logger.info("upsert_market_breadth: 完成 (%s)", today)
+        except Exception as e:
+            conn.rollback()
+            logger.error("upsert_market_breadth 失败: %s", e)
+            raise
+
+    def upsert_macro_snapshot(self, data: dict, source: str = "akshare"):
+        """写入宏观快照 JSON"""
+        if not data:
+            return
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                """INSERT INTO macro_snapshot (date, data_json, updated_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(date) DO UPDATE SET
+                       data_json=excluded.data_json,
+                       updated_at=excluded.updated_at
+                """,
+                (today, json.dumps(data, ensure_ascii=False, default=str), self._now_iso()),
+            )
+            conn.commit()
+            self._update_meta("macro_snapshot", 1, source=source)
+            logger.info("upsert_macro_snapshot: 完成 (%s)", today)
+        except Exception as e:
+            conn.rollback()
+            logger.error("upsert_macro_snapshot 失败: %s", e)
             raise
 
     def upsert_macro_indices(self, data: dict):

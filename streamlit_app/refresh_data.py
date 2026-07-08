@@ -110,6 +110,13 @@ def refresh_all(full: bool = False) -> bool:
         logger.warning("东方财富直连刷新失败: %s, 回退到 akshare", e)
         results = _refresh_via_akshare(full=full)
 
+    # 扩展数据源: 概念板块 / 市场宽度 / 宏观快照
+    try:
+        ext_results = _refresh_extended_sources()
+        results.update(ext_results)
+    except Exception as e:
+        logger.warning("扩展数据源刷新失败: %s", e)
+
     # 汇总
     elapsed = time.time() - start_time
     success = sum(1 for v in results.values() if v)
@@ -124,6 +131,101 @@ def refresh_all(full: bool = False) -> bool:
     print(f"{'='*60}\n")
 
     return all_ok
+
+
+# ============================================================================
+# 扩展数据源刷新 (概念板块 / 市场宽度 / 宏观快照)
+# ============================================================================
+
+def _macro_bundle_to_indices(bundle: dict) -> dict:
+    """将 fetch_macro_bundle 结果转为 macro_indices 格式"""
+    macro_data: dict = {}
+    key_map = {"cpi": "CPI", "pmi": "PMI", "m2": "M2", "gdp": "GDP"}
+    for key, indicator in key_map.items():
+        records = bundle.get(key)
+        if not isinstance(records, list):
+            continue
+        date_value = {}
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            date_str = None
+            value = None
+            for k, v in rec.items():
+                kl = str(k).lower()
+                if date_str is None and any(x in kl for x in ["date", "月份", "日期", "time", "year", "月"]):
+                    date_str = str(v)
+                elif value is None and any(x in kl for x in ["value", "值", "cpi", "ppi", "pmi", "gdp", "m2", "今值", "同比"]):
+                    try:
+                        value = float(v)
+                    except (ValueError, TypeError):
+                        pass
+            if date_str and value is not None:
+                date_value[date_str] = value
+        if date_value:
+            macro_data[indicator] = date_value
+    return macro_data
+
+
+def _refresh_extended_sources(db: QIDataDB = None) -> dict:
+    """刷新 extended_data_sources 提供的补充数据类型"""
+    from features.extended_data_sources import (
+        fetch_concept_boards,
+        fetch_limit_stats,
+        fetch_macro_bundle,
+    )
+
+    if db is None:
+        db = QIDataDB()
+
+    results = {}
+
+    print("📊 [扩展] 概念板块...")
+    try:
+        res = fetch_concept_boards(top_n=100)
+        if res.ok and res.data is not None and not res.data.empty:
+            db.upsert_concept_board(res.data, source=res.source)
+            results["concept_board"] = True
+            print(f"  ✅ concept_board ({res.source}): {len(res.data)} rows")
+        else:
+            results["concept_board"] = False
+            print(f"  ❌ concept_board: {res.error or '无数据'}")
+    except Exception as e:
+        results["concept_board"] = False
+        print(f"  ❌ concept_board: {e}")
+
+    print("📊 [扩展] 市场宽度 (涨跌停)...")
+    try:
+        res = fetch_limit_stats()
+        if res.ok and isinstance(res.data, dict):
+            db.upsert_market_breadth(res.data, source=res.source)
+            results["market_breadth"] = True
+            print(f"  ✅ market_breadth ({res.source}): {res.data}")
+        else:
+            results["market_breadth"] = False
+            print(f"  ❌ market_breadth: {res.error or '无数据'}")
+    except Exception as e:
+        results["market_breadth"] = False
+        print(f"  ❌ market_breadth: {e}")
+
+    print("📊 [扩展] 宏观指标包...")
+    try:
+        res = fetch_macro_bundle()
+        if res.ok and isinstance(res.data, dict):
+            db.upsert_macro_snapshot(res.data, source=res.source)
+            macro_indices = _macro_bundle_to_indices(res.data)
+            if macro_indices:
+                db.upsert_macro_indices(macro_indices)
+            results["macro_snapshot"] = True
+            print(f"  ✅ macro_snapshot ({res.source}): {len(res.data)} keys")
+        else:
+            results["macro_snapshot"] = False
+            print(f"  ❌ macro_snapshot: {res.error or '无数据'}")
+    except Exception as e:
+        results["macro_snapshot"] = False
+        print(f"  ❌ macro_snapshot: {e}")
+
+    return results
 
 
 # ============================================================================
@@ -297,14 +399,20 @@ def _refresh_via_akshare(full: bool = False, only_steps: list = None) -> dict:
         print("📊 [5/6] akshare: 融资融券...")
         try:
             df = None
-            for source_func, source_name in [
-                (lambda: ak.stock_margin_underlying_info_sz_szse(date=datetime.now().strftime("%Y%m%d")), "深交所"),
-                (lambda: ak.stock_margin_underlying_info_sh_sse(date=datetime.now().strftime("%Y%m%d")), "上交所"),
-            ]:
-                df = _akshare_call_with_retry(source_func)
-                if df is not None:
-                    logger.info("融资融券数据来源: %s", source_name)
-                    break
+            try:
+                from features.eastmoney_direct import fetch_margin_trading
+                df = fetch_margin_trading(days=60)
+            except Exception as em_err:
+                logger.debug("eastmoney margin: %s", em_err)
+            if df is None:
+                for source_func, source_name in [
+                    (lambda: ak.stock_margin_sse(start_date=(datetime.now() - timedelta(days=60)).strftime("%Y%m%d"),
+                                               end_date=datetime.now().strftime("%Y%m%d")), "上交所汇总"),
+                ]:
+                    df = _akshare_call_with_retry(source_func)
+                    if df is not None:
+                        logger.info("融资融券数据来源: %s", source_name)
+                        break
 
             if df is not None:
                 db.upsert_margin_trading(df)

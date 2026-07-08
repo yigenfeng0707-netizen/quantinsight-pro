@@ -535,8 +535,11 @@ def generate_ai_interpretation(shap_summary: pd.DataFrame, top_stock: Dict, conf
 
 # ============== 7. 主入口 UI ==============
 
-def render_shap_dashboard():
-    """SHAP可视化主面板 - 7种标准SHAP图，在app.py的AI量化策略模块调用"""
+def render_shap_dashboard(auto_run: bool = False):
+    """SHAP可视化主面板 - 7种标准SHAP图，在app.py的AI量化策略模块调用
+
+    auto_run=False 时须用户点击按钮才开始训练，避免 Streamlit 全 tab 预执行导致卡顿。
+    """
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
                 padding: 24px; border-radius: 12px; margin-bottom: 24px;
@@ -557,9 +560,14 @@ def render_shap_dashboard():
     with col3:
         st.markdown("""
         <div style="background: rgba(0,212,255,0.1); padding: 12px; border-radius: 8px; border-left: 3px solid #00D4FF;">
-        <small style="color: #B8C5D6;">💡 数据源<br><b style="color: #00D4FF;">akshare + XGBoost</b></small>
+        <small style="color: #B8C5D6;">💡 数据源<br><b style="color: #00D4FF;">SQLite + XGBoost</b></small>
         </div>
         """, unsafe_allow_html=True)
+
+    if not auto_run:
+        st.info("💡 SHAP 模型训练约需 10–30 秒。点击下方按钮开始分析（未点击不会占用资源）。")
+        if not st.button("🚀 开始 SHAP 分析", type="primary", key="shap_run_btn"):
+            return
 
     # 加载数据 + 训练
     with st.spinner("正在加载因子数据并训练模型..."):

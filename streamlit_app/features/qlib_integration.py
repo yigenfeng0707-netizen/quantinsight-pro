@@ -1247,6 +1247,16 @@ class FactorICTester:
         if isinstance(forward_returns, pd.Series):
             forward_returns = forward_returns.to_frame("return")
 
+        # MultiIndex (date, stock) from stack() — flatten for IC 序列
+        if isinstance(factor_values.index, pd.MultiIndex):
+            factor_values = factor_values.reset_index()
+            if "level_0" in factor_values.columns:
+                factor_values = factor_values.rename(columns={"level_0": "date", "level_1": "stock"})
+        if isinstance(forward_returns.index, pd.MultiIndex):
+            forward_returns = forward_returns.reset_index()
+            if "level_0" in forward_returns.columns:
+                forward_returns = forward_returns.rename(columns={"level_0": "date", "level_1": "stock"})
+
         # 获取因子列和收益列 (排除日期列)
         factor_cols = [c for c in factor_values.columns if c != date_col]
         return_cols = [c for c in forward_returns.columns if c != date_col]

@@ -1,0 +1,19 @@
+{
+  "name": "streamlit_app",
+  "version": "1.0.0",
+  "description": "> **AI 驱动的另类数据量化投研平台** ｜ 资管科技赛道\r > 业内首家把 **SHAP 可解释性** 深度集成到 A 股选股的 AI 平台\r > 项目编号：2026FINTECH-FINT-0093 ｜ 大赛：创·在上海 第一届金融科技国际创新创业大赛\r > 官方网站：https://quantinsight.cn\r > 版本：V3.0（2026年6月冠军冲刺版）",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

@@ -107,7 +107,7 @@ class TradeSimulator:
 
         # 风控检查
         if risk_checker:
-            check_result = risk_checker.check_order(order)
+            check_result = risk_checker.check_order(order, demo_mode=True)
             order.risk_check_passed = check_result["passed"]
             order.risk_check_message = check_result.get("message", "")
             if not order.risk_check_passed:
@@ -157,6 +157,8 @@ class RiskControlEngine:
     """
 
     POSITION_LIMIT_PCT = 0.20
+    DEMO_POSITION_LIMIT_PCT = 0.55   # 演示交易放宽单股仓位
+    DEMO_PORTFOLIO_VALUE = 1_000_000.0
     SECTOR_LIMIT_PCT = 0.40
     DAILY_LOSS_LIMIT_PCT = 0.03
     MAX_DRAWDOWN_PCT = 0.10
@@ -168,9 +170,14 @@ class RiskControlEngine:
         self._stoploss_time: float = 0
 
     def check_order(self, order: Order, portfolio_value: float = 1000000,
-                    current_holdings: dict = None) -> dict:
+                    current_holdings: dict = None, demo_mode: bool = True) -> dict:
         """风控检查"""
         current_holdings = current_holdings or {}
+        if demo_mode:
+            portfolio_value = max(float(portfolio_value or 0), self.DEMO_PORTFOLIO_VALUE)
+            position_limit = self.DEMO_POSITION_LIMIT_PCT
+        else:
+            position_limit = self.POSITION_LIMIT_PCT
 
         # 1. 仓位限制
         if order.side == "buy" and portfolio_value > 0:
@@ -180,10 +187,10 @@ class RiskControlEngine:
                 if k == order.stock_code
             )
             new_pct = (current_value + order_value) / portfolio_value
-            if new_pct > self.POSITION_LIMIT_PCT:
+            if new_pct > position_limit:
                 return {
                     "passed": False,
-                    "message": f"⚠️ 单股仓位限制: 买入后占比 {new_pct*100:.1f}% > {self.POSITION_LIMIT_PCT*100:.0f}%",
+                    "message": f"⚠️ 单股仓位限制: 买入后占比 {new_pct*100:.1f}% > {position_limit*100:.0f}%",
                 }
 
         # 2. 日内交易次数

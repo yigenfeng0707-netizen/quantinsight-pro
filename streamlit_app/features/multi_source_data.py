@@ -625,6 +625,53 @@ class DataHub:
 
     def _fetch_alt_fund_flow(self, source: str = "auto", market: str = "A股", **kw) -> Dict[str, Any]:
         """资金流向数据"""
+        # SQLite 缓存
+        try:
+            from features.sqlite_data_layer import QIDataDB
+            fund_data = QIDataDB().get_fund_flow()
+            if fund_data:
+                latest_date = sorted(fund_data.keys())[-1]
+                latest = fund_data[latest_date]
+                return {
+                    "data_type": "fund_flow",
+                    "market": market,
+                    "metrics": {
+                        "northbound_net_flow": latest.get("north_flow") or 0,
+                        "main_force_net_flow": latest.get("main_flow") or 0,
+                        "retail_net_flow": latest.get("retail_flow") or 0,
+                    },
+                    "source": "sqlite",
+                    "timestamp": datetime.now().isoformat(),
+                }
+        except Exception as e:
+            logger.debug(f"SQLite 资金流向获取失败: {e}")
+
+        # 北向资金序列 (extended_data_sources)
+        try:
+            from features.extended_data_sources import fetch_northbound_series
+            res = fetch_northbound_series(days=5)
+            if res.ok and res.data is not None and not res.data.empty:
+                df = res.data
+                flow_col = next(
+                    (c for c in df.columns if c in ("net_flow", "当日净流入", "north_net")),
+                    None,
+                )
+                if flow_col:
+                    latest_val = float(pd.to_numeric(df[flow_col], errors="coerce").dropna().iloc[-1])
+                    return {
+                        "data_type": "fund_flow",
+                        "market": market,
+                        "metrics": {
+                            "northbound_net_flow": latest_val,
+                            "main_force_net_flow": latest_val,
+                            "retail_net_flow": 0,
+                        },
+                        "source": res.source,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+        except Exception as e:
+            logger.debug(f"extended northbound 获取失败: {e}")
+
         # 尝试 AKShare
         if source in ("auto", "akshare") and HAS_AKSHARE:
             try:
@@ -834,6 +881,9 @@ class SentimentVectorStore:
             return np.zeros((0, self.dimension), dtype=np.float32)
 
         encoder_type = self._encoder[0]
+
+        if encoder_type == "llm_keywords":
+            return self._hash_encode(texts)
 
         # V3.13: DashScope embedding (阿里云 text-embedding-v2)
         if encoder_type == "dashscope":
@@ -1087,26 +1137,41 @@ class SentimentVectorStore:
 
         # 2. 计算每个文档与查询的关键词匹配分数
         scored_docs = []
+        query_norm = query.replace("，", "").replace("、", "").replace(" ", "")
         for i, doc in enumerate(self.documents):
             doc_text = doc["text"]
-            # 计算关键词命中数
+            doc_norm = doc_text.replace("，", "").replace("、", "").replace(" ", "")
+            # 计算关键词命中数（支持子串与同义词）
             hits = 0
             for kw in query_keywords:
-                if kw in doc_text:
+                if not kw:
+                    continue
+                if kw in doc_text or kw in doc_norm:
                     hits += 1
-            # 计算分数: 命中关键词数 / 总关键词数, 加上查询词直接命中
+                    continue
+                # 新能源车 ↔ 新能源汽车 等常见同义
+                if len(kw) >= 3 and any(kw[:2] in doc_norm for _ in [0]):
+                    if kw[:2] in doc_norm and (kw[-1] in doc_norm or kw[-2:] in doc_norm):
+                        hits += 0.8
             score = hits / max(len(query_keywords), 1)
-            # 额外: 查询中的词直接出现在文档中
+            # 查询词直接命中
             query_words = [w for w in query.replace("，", " ").replace("、", " ").split() if len(w) > 1]
             for qw in query_words:
-                if qw in doc_text:
-                    score += 0.1
+                if qw in doc_text or qw in doc_norm:
+                    score += 0.15
+                elif len(qw) >= 3 and qw[:2] in doc_norm:
+                    score += 0.08
+            # 整句子串匹配加分
+            if len(query_norm) >= 4 and query_norm[:4] in doc_norm:
+                score += 0.2
             scored_docs.append((i, min(score, 1.0)))
 
-        # 3. 按分数排序, 取 top_k
+        # 3. 按分数排序, 取 top_k（保留 score>0 的结果）
         scored_docs.sort(key=lambda x: x[1], reverse=True)
         results = []
-        for idx, score in scored_docs[:top_k]:
+        for idx, score in scored_docs:
+            if score <= 0:
+                continue
             doc = self.documents[idx]
             results.append({
                 "text": doc["text"],
@@ -1115,6 +1180,8 @@ class SentimentVectorStore:
                 "score": float(score),
                 "distance": float(1 - score),
             })
+            if len(results) >= top_k:
+                break
         return results
 
     def _numpy_search(self, query_vec: np.ndarray, top_k: int) -> List[Dict]:

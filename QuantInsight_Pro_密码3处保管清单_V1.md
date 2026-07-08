@@ -108,7 +108,7 @@
 ## 联系方式
 
 - **CEO**: 冯亦根 - 138-XXXX-XXXX
-- **CTO**: 薛永再 - 139-XXXX-XXXX
+- **CTO**: 王宇寒 - 139-XXXX-XXXX
 - **推荐单位**: 杭州永字资产管理有限公司 - 0571-XXXXXXXX
 - **GitHub**: https://github.com/yigenfeng0707-netizen/quantinsight-pro
 - **Streamlit Cloud**: https://quantinsight-pro-xxx.streamlit.app

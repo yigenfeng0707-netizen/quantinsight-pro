@@ -32,8 +32,6 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-from docx.shared import Pt, RGBColor, Cm, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
@@ -1010,221 +1008,156 @@ def _render_portfolio_report(doc, data, add_h1, add_h2, add_h3, add_para,
 
 # ============== 3.5 实时数据拉取 (供 dashboard_v2 使用) ==============
 
+_DEMO_MACRO = {
+    'source': 'demo',
+    'indices': [],  # 由 market_data_hub 填充
+    'north_flow': 38.52,
+    'limit_up': 42,
+    'limit_down': 8,
+    'breadth': {'advance': 2865, 'decline': 2156, 'equal': 198},
+}
+
+
+def _demo_macro_with_indices() -> Dict:
+    from features.market_data_hub import get_indices_for_display, get_northbound_yi
+
+    result = dict(_DEMO_MACRO)
+    result['indices'] = get_indices_for_display()
+    result['north_flow'] = get_northbound_yi()
+    return result
+
+
 def fetch_macro_data() -> Dict:
-    """拉取宏观市场数据：主要指数、北向资金、涨跌停、市场宽度。
-
-    Returns:
-        dict: {
-            'source': 'akshare' | 'demo',
-            'indices': [{name, price, change, change_pct}, ...],
-            'north_flow': float,
-            'limit_up': int,
-            'limit_down': int,
-            'breadth': {'advance': int, 'decline': int, 'equal': int}
-        }
-    """
+    """拉取宏观市场数据 — UI 快速路径: SQLite / extended → demo，不阻塞 akshare。"""
     try:
-        import akshare as ak
+        from features.sqlite_data_layer import QIDataDB
+        from features.extended_data_sources import fetch_limit_stats, fetch_northbound_series
 
-        # ---- 主要指数 ----
-        index_map = {
-            '上证指数': '000001',
-            '深证成指': '399001',
-            '创业板指': '399006',
-        }
-        indices = []
-        try:
-            df_idx = ak.stock_zh_index_spot_em()
-            for name, code in index_map.items():
-                row = df_idx[df_idx['代码'] == code]
-                if not row.empty:
-                    r = row.iloc[0]
-                    indices.append({
-                        'name': name,
-                        'price': float(r.get('最新价', 0)),
-                        'change': float(r.get('涨跌额', 0)),
-                        'change_pct': float(r.get('涨跌幅', 0)),
-                    })
-        except Exception as e:
-            logger.warning(f"akshare 指数数据获取失败: {e}")
+        db = QIDataDB()
+        result = _demo_macro_with_indices()
+        result['source'] = 'sqlite'
 
-        # 如果指数没拿到，直接跳到 demo
-        if not indices:
-            raise RuntimeError("akshare 指数数据为空，回退 demo")
+        # 市场宽度
+        mb = db.get_market_breadth()
+        if mb:
+            result['limit_up'] = int(mb.get('limit_up', result['limit_up']))
+            result['limit_down'] = int(mb.get('limit_down', result['limit_down']))
+            result['breadth'] = {
+                'advance': int(mb.get('up_count', mb.get('up', result['breadth']['advance']))),
+                'decline': int(mb.get('down_count', mb.get('down', result['breadth']['decline']))),
+                'equal': int(mb.get('flat_count', mb.get('flat', result['breadth']['equal']))),
+            }
+        else:
+            lim = fetch_limit_stats()
+            if lim.ok and isinstance(lim.data, dict):
+                d = lim.data
+                result['limit_up'] = int(d.get('limit_up', result['limit_up']))
+                result['limit_down'] = int(d.get('limit_down', result['limit_down']))
+                result['breadth'] = {
+                    'advance': int(d.get('up', result['breadth']['advance'])),
+                    'decline': int(d.get('down', result['breadth']['decline'])),
+                    'equal': int(d.get('flat', result['breadth']['equal'])),
+                }
+                result['source'] = lim.source
 
-        # ---- 北向资金 ----
-        north_flow = 0.0
-        try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol="北向")
-            if not df_north.empty:
-                north_flow = float(df_north.iloc[-1]['当日净流入'])
-        except Exception as e:
-            logger.warning(f"akshare 北向资金获取失败: {e}")
+        # 北向
+        nb = db.get_northbound_flow(days=5)
+        if nb is not None and not nb.empty:
+            flow_col = next(
+                (c for c in nb.columns if '净流入' in str(c) or 'net' in str(c).lower()),
+                nb.columns[-1],
+            )
+            val = float(pd.to_numeric(nb[flow_col].iloc[-1], errors='coerce'))
+            if val == val:
+                result['north_flow'] = round(val / 1e8 if abs(val) > 1e6 else val, 2)
+        else:
+            nb_res = fetch_northbound_series(days=5)
+            if nb_res.ok and isinstance(nb_res.data, pd.DataFrame) and not nb_res.data.empty:
+                df = nb_res.data
+                flow_col = next(
+                    (c for c in df.columns if '净流入' in str(c) or 'net' in str(c).lower()),
+                    df.columns[-1],
+                )
+                val = float(pd.to_numeric(df[flow_col].iloc[-1], errors='coerce'))
+                if val == val:
+                    result['north_flow'] = round(val / 1e8 if abs(val) > 1e6 else val, 2)
+                    result['source'] = nb_res.source
 
-        # ---- 涨跌停 ----
-        limit_up, limit_down = 0, 0
-        try:
-            df_zt = ak.stock_zt_pool_em(date=datetime.now().strftime('%Y%m%d'))
-            limit_up = len(df_zt) if not df_zt.empty else 0
-        except Exception as e:
-            logger.warning(f"akshare 涨停数据获取失败: {e}")
-        try:
-            df_dt = ak.stock_zt_pool_dtgc_em(date=datetime.now().strftime('%Y%m%d'))
-            limit_down = len(df_dt) if not df_dt.empty else 0
-        except Exception as e:
-            logger.warning(f"akshare 跌停数据获取失败: {e}")
-
-        # ---- 市场宽度 (涨/跌/平家数) ----
-        breadth = {'advance': 0, 'decline': 0, 'equal': 0}
-        try:
-            df_spot = ak.stock_zh_a_spot_em()
-            if not df_spot.empty:
-                chg_col = '涨跌幅'
-                breadth['advance'] = int((df_spot[chg_col] > 0).sum())
-                breadth['decline'] = int((df_spot[chg_col] < 0).sum())
-                breadth['equal'] = int((df_spot[chg_col] == 0).sum())
-        except Exception as e:
-            logger.warning(f"akshare 市场宽度获取失败: {e}")
-
-        return {
-            'source': 'akshare',
-            'indices': indices,
-            'north_flow': north_flow,
-            'limit_up': limit_up,
-            'limit_down': limit_down,
-            'breadth': breadth,
-        }
-
+        return result
     except Exception as e:
-        logger.warning(f"fetch_macro_data 回退 demo 数据: {e}")
-        return {
-            'source': 'demo',
-            'indices': [
-                {'name': '上证指数', 'price': 3358.47, 'change': 18.32, 'change_pct': 0.55},
-                {'name': '深证成指', 'price': 10246.83, 'change': -42.15, 'change_pct': -0.41},
-                {'name': '创业板指', 'price': 2067.39, 'change': -12.68, 'change_pct': -0.61},
-            ],
-            'north_flow': 38.52,
-            'limit_up': 42,
-            'limit_down': 8,
-            'breadth': {'advance': 2865, 'decline': 2156, 'equal': 198},
-        }
+        logger.warning(f"fetch_macro_data 回退 demo: {e}")
+        return _demo_macro_with_indices()
 
 
 def fetch_industry_data(top_n: int = 10) -> List[Dict]:
-    """拉取行业板块涨跌及资金流向数据。
-
-    Args:
-        top_n: 返回前 N 个行业 (按涨跌幅排序)
-
-    Returns:
-        list[dict]: [{name, change_pct, net_flow, lead_stock}, ...]
-    """
+    """拉取行业板块 — SQLite concept_board / sector_flow → demo。"""
     try:
-        import akshare as ak
-
-        # ---- 行业板块行情 ----
-        df_board = ak.stock_board_industry_name_em()
-        if df_board.empty:
-            raise RuntimeError("akshare 行业板块数据为空，回退 demo")
-
-        # 排序取 top_n (涨跌幅绝对值最大的)
-        df_board = df_board.sort_values('涨跌幅', ascending=False).head(top_n)
-
-        results = []
-        for _, row in df_board.iterrows():
-            board_name = str(row.get('板块名称', ''))
-            change_pct = float(row.get('涨跌幅', 0))
-            net_flow = 0.0
-            lead_stock = ''
-
-            # 尝试获取板块成分股以找领涨股
-            try:
-                df_cons = ak.stock_board_industry_cons_em(symbol=board_name)
-                if not df_cons.empty:
-                    df_cons_sorted = df_cons.sort_values('涨跌幅', ascending=False)
-                    lead_stock = str(df_cons_sorted.iloc[0].get('名称', ''))
-                    # 尝试获取净流入
-                    nf_col = '主力净流入-净额' if '主力净流入-净额' in df_cons.columns else None
-                    if nf_col:
-                        net_flow = float(df_cons[nf_col].sum())
-            except Exception as e:
-                logger.debug(f"获取行业 {board_name} 成分股失败: {e}")
-
-            results.append({
-                'name': board_name,
-                'change_pct': round(change_pct, 2),
-                'net_flow': round(net_flow, 2),
-                'lead_stock': lead_stock or '—',
-            })
-
-        return results
-
+        from features.sqlite_data_layer import QIDataDB
+        db = QIDataDB()
+        df = db.get_concept_board()
+        if df is not None and not df.empty:
+            name_col = next((c for c in df.columns if 'name' in c.lower() or '名称' in c), None)
+            chg_col = next((c for c in df.columns if 'change_pct' in c or '涨跌幅' in c), None)
+            if name_col and chg_col:
+                rows = []
+                for _, row in df.head(top_n).iterrows():
+                    rows.append({
+                        'name': str(row[name_col]),
+                        'change_pct': round(float(row[chg_col]), 2),
+                        'net_flow': float(row.get('net_flow', row.get('主力净流入', 0)) or 0),
+                        'lead_stock': str(row.get('lead_stock', row.get('领涨股', '—')) or '—'),
+                    })
+                if rows:
+                    return rows
     except Exception as e:
-        logger.warning(f"fetch_industry_data 回退 demo 数据: {e}")
-        demo_data = [
-            {'name': '半导体', 'change_pct': 3.82, 'net_flow': 2865000000.0, 'lead_stock': '中芯国际'},
-            {'name': '光伏设备', 'change_pct': 2.97, 'net_flow': 1920000000.0, 'lead_stock': '隆基绿能'},
-            {'name': '电池', 'change_pct': 2.45, 'net_flow': 1540000000.0, 'lead_stock': '宁德时代'},
-            {'name': '消费电子', 'change_pct': 1.88, 'net_flow': 980000000.0, 'lead_stock': '立讯精密'},
-            {'name': '汽车整车', 'change_pct': 1.53, 'net_flow': 720000000.0, 'lead_stock': '比亚迪'},
-            {'name': '军工', 'change_pct': 1.26, 'net_flow': 510000000.0, 'lead_stock': '中航沈飞'},
-            {'name': '白酒', 'change_pct': 0.87, 'net_flow': 340000000.0, 'lead_stock': '贵州茅台'},
-            {'name': '医药商业', 'change_pct': 0.62, 'net_flow': -120000000.0, 'lead_stock': '益丰药房'},
-            {'name': '房地产', 'change_pct': -0.95, 'net_flow': -860000000.0, 'lead_stock': '万科A'},
-            {'name': '银行', 'change_pct': -1.12, 'net_flow': -1150000000.0, 'lead_stock': '招商银行'},
-        ]
-        return demo_data[:top_n]
+        logger.debug(f"fetch_industry_data sqlite: {e}")
+
+    return _fetch_industry_data_demo(top_n)
+
+
+def _fetch_industry_data_demo(top_n: int) -> List[Dict]:
+    demo_data = [
+        {'name': '半导体', 'change_pct': 3.82, 'net_flow': 2865000000.0, 'lead_stock': '中芯国际'},
+        {'name': '光伏设备', 'change_pct': 2.97, 'net_flow': 1920000000.0, 'lead_stock': '隆基绿能'},
+        {'name': '电池', 'change_pct': 2.45, 'net_flow': 1540000000.0, 'lead_stock': '宁德时代'},
+        {'name': '消费电子', 'change_pct': 1.88, 'net_flow': 980000000.0, 'lead_stock': '立讯精密'},
+        {'name': '汽车整车', 'change_pct': 1.53, 'net_flow': 720000000.0, 'lead_stock': '比亚迪'},
+        {'name': '军工', 'change_pct': 1.26, 'net_flow': 510000000.0, 'lead_stock': '中航沈飞'},
+        {'name': '白酒', 'change_pct': 0.87, 'net_flow': 340000000.0, 'lead_stock': '贵州茅台'},
+        {'name': '医药商业', 'change_pct': 0.62, 'net_flow': -120000000.0, 'lead_stock': '益丰药房'},
+        {'name': '房地产', 'change_pct': -0.95, 'net_flow': -860000000.0, 'lead_stock': '万科A'},
+        {'name': '银行', 'change_pct': -1.12, 'net_flow': -1150000000.0, 'lead_stock': '招商银行'},
+    ]
+    return demo_data[:top_n]
 
 
 def fetch_money_flow() -> Dict:
-    """拉取资金流向数据：北向资金、主力资金、散户资金。
-
-    Returns:
-        dict: {'north_flow': float, 'main_flow': float, 'retail_flow': float}
-    """
+    """资金流向 — SQLite fund_flow → demo。"""
     try:
-        import akshare as ak
-
-        north_flow = 0.0
-        main_flow = 0.0
-        retail_flow = 0.0
-
-        # ---- 北向资金 ----
-        try:
-            df_north = ak.stock_hsgt_north_net_flow_in_em(symbol="北向")
-            if not df_north.empty:
-                north_flow = float(df_north.iloc[-1]['当日净流入'])
-        except Exception as e:
-            logger.warning(f"akshare 北向资金获取失败: {e}")
-
-        # ---- 主力 / 散户资金 ----
-        try:
-            df_flow = ak.stock_market_fund_flow()
-            if not df_flow.empty:
-                last = df_flow.iloc[-1]
-                main_flow = float(last.get('主力净流入-净额', 0))
-                retail_flow = float(last.get('散户净流入-净额', 0))
-        except Exception as e:
-            logger.warning(f"akshare 主力/散户资金获取失败: {e}")
-
-        # 如果全部为 0 则视为失败
-        if north_flow == 0.0 and main_flow == 0.0 and retail_flow == 0.0:
-            raise RuntimeError("akshare 资金流向数据全为 0，回退 demo")
-
-        return {
-            'north_flow': north_flow,
-            'main_flow': main_flow,
-            'retail_flow': retail_flow,
-        }
-
+        from features.sqlite_data_layer import QIDataDB
+        ff = QIDataDB().get_fund_flow()
+        if ff:
+            latest_date = sorted(ff.keys())[-1]
+            row = ff[latest_date]
+            north = float(row.get('north_flow', 0) or 0)
+            main = float(row.get('main_flow', 0) or 0)
+            retail = float(row.get('retail_flow', 0) or 0)
+            if north or main or retail:
+                return {
+                    'north_flow': north / 1e8 if abs(north) > 1e6 else north,
+                    'main_flow': main / 1e8 if abs(main) > 1e6 else main,
+                    'retail_flow': retail / 1e8 if abs(retail) > 1e6 else retail,
+                }
     except Exception as e:
-        logger.warning(f"fetch_money_flow 回退 demo 数据: {e}")
-        return {
-            'north_flow': 38.52,
-            'main_flow': -126.73,
-            'retail_flow': 88.21,
-        }
+        logger.debug(f"fetch_money_flow sqlite: {e}")
+
+    macro = fetch_macro_data()
+    return {
+        'north_flow': macro.get('north_flow', 38.52),
+        'main_flow': -126.73,
+        'retail_flow': 88.21,
+    }
+
 
 
 # ============== 4. Streamlit 交互式 UI ==============
@@ -1251,7 +1184,7 @@ def render_report_ui():
             if st.button(
                 f"{info['icon']} {info['name']}\n{info['desc'][:18]}...",
                 key=f'rtype_{key}',
-                width='stretch'
+                use_container_width=True
             ):
                 st.session_state.selected_report_type = key
                 st.rerun()
@@ -1283,9 +1216,9 @@ def render_report_ui():
 
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        gen_btn = st.button('📄 生成 Word 报告', type='primary', width='stretch')
+        gen_btn = st.button('📄 生成 Word 报告', type='primary', use_container_width=True)
     with col2:
-        preview_btn = st.button('👁️ 数据预览', width='stretch')
+        preview_btn = st.button('👁️ 数据预览', use_container_width=True)
 
     if gen_btn:
         with st.spinner('⏳ 正在生成报告 (数据采集 → LLM 分析 → 图表渲染 → Word 拼装)...'):
@@ -1322,7 +1255,7 @@ def render_report_ui():
                         file_name=filename,
                         mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                         type='primary',
-                        width='stretch'
+                        use_container_width=True
                     )
 
                     # 数据预览
@@ -1344,11 +1277,11 @@ def render_report_ui():
             st.json({k: str(v)[:200] if not isinstance(v, (pd.DataFrame, dict, list)) else type(v).__name__
                     for k, v in data.items()})
             if 'indices' in data:
-                st.dataframe(data['indices'], width='stretch')
+                st.dataframe(data['indices'], use_container_width=True)
             if 'top_stocks' in data:
-                st.dataframe(data['top_stocks'], width='stretch')
+                st.dataframe(data['top_stocks'], use_container_width=True)
             if 'positions' in data:
-                st.dataframe(data['positions'], width='stretch')
+                st.dataframe(data['positions'], use_container_width=True)
 
     # 使用说明
     with st.expander('📖 报告说明'):
@@ -1376,30 +1309,31 @@ def render_report_ui():
 
 
 def _get_llm_config():
-    """从 Streamlit Secrets 读取 LLM 配置 (V2.0 - Qwen3-Max 优先)"""
-    try:
-        # Qwen3-Max (PRIMARY)
-        if 'QWEN_API_KEY' in st.secrets:
+    """从 Streamlit Secrets 读取 LLM 配置（Qwen > SenseNova > StepFun）"""
+    def _pick(prefix, provider, default_model, default_url):
+        try:
+            if f"{prefix}_API_KEY" not in st.secrets:
+                return None
             return {
-                'provider': 'qwen',
-                'model': st.secrets.get('QWEN_MODEL', 'qwen3.7-max'),
-                'api_key': st.secrets['QWEN_API_KEY'],
+                'provider': provider,
+                'model': st.secrets.get(f"{prefix}_MODEL", default_model),
+                'api_key': st.secrets[f"{prefix}_API_KEY"],
+                'base_url': st.secrets.get(f"{prefix}_BASE_URL", default_url),
             }
-    except Exception:
-        pass
+        except Exception:
+            return None
 
-    try:
-        if 'DEEPSEEK_API_KEY' in st.secrets:
-            return {'provider': 'deepseek', 'model': 'deepseek-chat',
-                    'api_key': st.secrets['DEEPSEEK_API_KEY']}
-    except Exception:
-        pass
-
-    try:
-        if 'SENSENOVA_API_KEY' in st.secrets:
-            return {'provider': 'sensenova', 'model': 'sensenova-6.7-flash-lite',
-                    'api_key': st.secrets['SENSENOVA_API_KEY']}
-    except Exception:
-        pass
-
+    for args in (
+        ('QWEN', 'qwen', 'qwen3.6-plus',
+         'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions'),
+        ('SENSENOVA', 'sensenova', 'sensenova-6.7-flash-lite',
+         'https://token.sensenova.cn/v1/chat/completions'),
+        ('STEPFUN', 'stepfun', 'step-3.7-flash',
+         'https://api.stepfun.com/v1/chat/completions'),
+        ('DEEPSEEK', 'deepseek', 'deepseek-chat',
+         'https://api.deepseek.com/chat/completions'),
+    ):
+        cfg = _pick(*args)
+        if cfg:
+            return cfg
     return None

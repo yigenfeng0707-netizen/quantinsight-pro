@@ -600,7 +600,22 @@ hr {{
     background: linear-gradient(180deg, {BRAND_PURPLE} 0%, {BRAND_CYAN} 100%);
 }}
 
-/* ============ 23. 隐藏默认导航 ============ */
+/* ============ 23. 隐藏 Streamlit 品牌/footer ============ */
+footer, footer * {{
+    visibility: hidden !important;
+    height: 0 !important;
+}}
+#MainMenu {{
+    visibility: hidden;
+}}
+.stDeployButton {{
+    display: none !important;
+}}
+header[data-testid="stHeader"] {{
+    background: transparent;
+}}
+
+/* ============ 24. 隐藏默认导航 ============ */
 [data-testid="stSidebarNav"] {{
     display: none !important;
 }}
@@ -678,6 +693,210 @@ div[data-testid="stHorizontalBlock"] > div {{
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {{
     font-size: clamp(13px, 1.5vw, 15px) !important;
+}}
+
+/* ============ 26. 响应式断点 (Mobile / Tablet / Desktop) ============ */
+/* Charts: always fill container width */
+.stPlotlyChart, [data-testid="stPlotlyChart"],
+.stPyplotChart, .stAltairChart, .stVegaLiteChart,
+.js-plotly-plot, .plotly, .plot-container {{
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}}
+.js-plotly-plot .main-svg {{
+    max-width: 100% !important;
+}}
+
+/* Tables: horizontal scroll on narrow viewports */
+[data-testid="stDataFrame"] > div,
+[data-testid="stDataFrame"] [data-testid="stDataFrameResizable"],
+.stTable > div,
+.stDataFrame {{
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+}}
+
+/* Homepage feature cards */
+.feature-card {{
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}}
+
+/* Tablet: 768px – 1024px */
+@media (min-width: 768px) and (max-width: 1024px) {{
+    section.main > div {{
+        padding-top: 1.5rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }}
+    .block-container {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }}
+    h1 {{ font-size: 24px !important; }}
+    h2 {{ font-size: 20px !important; }}
+    h3 {{ font-size: 16px !important; }}
+
+    /* Multi-column rows wrap to 2-up grid */
+    div[data-testid="stHorizontalBlock"] {{
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+    }}
+    div[data-testid="stHorizontalBlock"] > div {{
+        flex: 1 1 calc(50% - 6px) !important;
+        min-width: calc(50% - 6px) !important;
+    }}
+
+    .qi-hero {{
+        padding: 28px 20px !important;
+    }}
+    .qi-hero h1 {{
+        font-size: 2rem !important;
+    }}
+    .qi-hero .qi-hero-emoji {{
+        font-size: 2rem !important;
+    }}
+
+    .qi-sidebar-brand .qi-brand-title-main {{
+        font-size: 1.25rem !important;
+    }}
+    .qi-sidebar-brand .qi-brand-title-pro {{
+        font-size: 0.82rem !important;
+    }}
+
+    [data-testid="stSidebar"] {{
+        min-width: 220px !important;
+        max-width: 280px !important;
+    }}
+}}
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {{
+    section.main > div {{
+        padding-top: 1rem !important;
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+    }}
+    .block-container {{
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        max-width: 100% !important;
+    }}
+    h1 {{
+        font-size: 20px !important;
+        padding-left: 10px !important;
+    }}
+    h2 {{ font-size: 17px !important; }}
+    h3 {{ font-size: 15px !important; }}
+    p, li, span {{ font-size: 13px !important; }}
+
+    /* Stack st.columns vertically */
+    div[data-testid="stHorizontalBlock"] {{
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+    }}
+    div[data-testid="stHorizontalBlock"] > div {{
+        width: 100% !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }}
+
+    [data-testid="stMetricValue"] {{
+        font-size: 18px !important;
+    }}
+    [data-testid="stMetricLabel"] {{
+        font-size: 12px !important;
+    }}
+
+    .stButton > button {{
+        white-space: normal !important;
+        width: 100% !important;
+        line-height: 1.35 !important;
+        padding: 0.5rem 0.75rem !important;
+    }}
+
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {{
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+    }}
+    [data-testid="stTabs"] button {{
+        white-space: normal !important;
+        flex: 1 1 auto !important;
+        min-height: 2.5rem !important;
+    }}
+
+    .qi-sidebar-brand {{
+        padding: 8px 8px !important;
+        margin-bottom: 8px !important;
+    }}
+    .qi-sidebar-brand .qi-brand-title-main {{
+        font-size: 1.15rem !important;
+    }}
+    .qi-sidebar-brand .qi-brand-title-pro {{
+        font-size: 0.78rem !important;
+    }}
+    .qi-sidebar-brand .qi-brand-subtitle {{
+        font-size: 0.68rem !important;
+    }}
+    .qi-sidebar-brand .qi-brand-project-id {{
+        font-size: 0.6rem !important;
+        word-break: break-all !important;
+    }}
+
+    .qi-hero {{
+        padding: 20px 16px !important;
+        margin-bottom: 16px !important;
+    }}
+    .qi-hero .qi-hero-title-row {{
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }}
+    .qi-hero h1 {{
+        font-size: 1.65rem !important;
+    }}
+    .qi-hero .qi-hero-emoji {{
+        font-size: 1.75rem !important;
+    }}
+    .qi-hero .qi-hero-stats {{
+        flex-direction: column !important;
+        gap: 10px !important;
+    }}
+    .qi-hero p {{
+        font-size: 0.9rem !important;
+    }}
+
+    .feature-card {{
+        padding: 16px !important;
+        margin-bottom: 8px !important;
+    }}
+
+    [data-testid="stSidebar"] {{
+        min-width: unset !important;
+        max-width: min(300px, 88vw) !important;
+    }}
+    [data-testid="stSidebar"] .stRadio > label {{
+        font-size: 14px !important;
+        padding: 10px 12px !important;
+    }}
+    [data-testid="stSidebar"] .stRadio > label:hover {{
+        transform: none !important;
+    }}
+
+    /* Plotly modebar: compact on touch */
+    .js-plotly-plot .plotly .modebar {{
+        top: 0 !important;
+        right: 0 !important;
+    }}
+}}
+
+/* Desktop: > 1024px — preserve layout, ensure charts scale */
+@media (min-width: 1025px) {{
+    div[data-testid="stHorizontalBlock"] > div {{
+        min-width: 0 !important;
+    }}
 }}
 </style>
 """

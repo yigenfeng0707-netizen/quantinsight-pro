@@ -60,7 +60,14 @@ curl -sk https://3blue1brownlab.cn/_stcore/health  # apply-domain 后
 
 将 `3blue1brownlab.cn` 和 `www.3blue1brownlab.cn` 的 **A 记录** 指向 `47.76.46.88`。
 
-## 本地开发
+## LLM 密钥（读取 `D:\自定义大模型配置.txt`）
+
+```powershell
+python scripts/sync_llm_secrets.py
+# 上传到 ECS 后: systemctl restart quantinsight
+```
+
+优先级：**QWEN (Token Plan) → SenseNova → StepFun**
 
 本机已安装 **Miniconda**（`D:\miniconda3`，Python 3.13）时，**请勿重复安装**，直接使用：
 

@@ -3,7 +3,7 @@
 > **AI 驱动的另类数据量化投研平台** ｜ 资管科技赛道
 > 业内首家把 **SHAP 可解释性** 深度集成到 A 股选股的 AI 平台
 > 项目编号：2026FINTECH-FINT-0093 ｜ 大赛：创·在上海 第一届金融科技国际创新创业大赛
-> 官方网站：https://quantinsight.cn
+> 官方网站：https://3blue1brownlab.cn
 > 版本：V3.0（2026年6月冠军冲刺版）
 
 ---
@@ -44,7 +44,7 @@
 
 ### 1. 在线访问（推荐）
 
-访问生产环境：**https://quantinsight.cn**
+访问生产环境：**https://3blue1brownlab.cn**
 
 ### 2. 本地运行（开发者）
 
@@ -335,12 +335,12 @@ python _check_syntax.py
 
 | 角色 | 姓名 | 邮箱 | 负责 |
 |------|------|------|------|
-| **CEO** | 陈思远 | ceo@quantinsight.cn | 战略+融资+品牌 |
-| **CTO** | 林志远 | cto@quantinsight.cn | 技术+架构+AI |
-| **CPO** | 王雪 | cpo@quantinsight.cn | 产品+量化+客户 |
-| **CSO** | 赵明 | cso@quantinsight.cn | 销售+客户+合作 |
+| **CEO/主讲** | 冯亦根 | ceo@3blue1brownlab.cn | 战略+融资+路演 |
+| **CTO/技术** | 王宇寒 | cto@3blue1brownlab.cn | 技术+架构+AI |
+| **产品/数据** | 官馨 | product@3blue1brownlab.cn | 产品+数据+客户研究 |
+| **量化/运营** | 梁理智 | ops@3blue1brownlab.cn | 量化策略+运营 |
 
-**官方网站**：https://quantinsight.cn
+**官方网站**：https://3blue1brownlab.cn
 
 ---
 

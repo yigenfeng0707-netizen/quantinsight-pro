@@ -26,6 +26,14 @@ import logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
+try:
+    from features.sqlite_data_layer import QIDataDB
+    _qi_db = QIDataDB()
+    HAS_SQLITE_DB = True
+except ImportError:
+    _qi_db = None
+    HAS_SQLITE_DB = False
+
 
 # ============== akshare 安全调用封装 ==============
 # ECS 服务器上东方财富接口可能封禁服务器 IP, 统一封装重试 + 降级逻辑
@@ -216,6 +224,101 @@ def safe_get_spot_df():
     return _get_demo_spot_df()
 
 
+def _normalize_spot_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Map SQLite column names to akshare-style names."""
+    col_map = {
+        'code': '代码', 'name': '名称', 'latest_price': '最新价',
+        'change_pct': '涨跌幅', 'pe_ttm': '市盈率-动态',
+        'pb': '市净率', 'total_mv': '总市值',
+        'turnover_rate': '换手率', 'amount': '成交额',
+        'change_pct_60d': '60日涨跌幅',
+    }
+    rename_map = {k: v for k, v in col_map.items() if k in df.columns}
+    if rename_map:
+        return df.rename(columns=rename_map)
+    return df
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def safe_get_spot_df_fast():
+    """UI 快速路径: 仅 SQLite → 静态演示，不触发 Baostock/akshare。"""
+    if HAS_SQLITE_DB:
+        try:
+            df = _qi_db.get_stock_spot()
+            if df is not None and len(df) > 0:
+                return _normalize_spot_columns(df)
+        except Exception:
+            pass
+    return _get_demo_spot_df()
+
+
+def lookup_stock_code_fast(stock_input: str):
+    """SQLite-only 股票代码/名称解析（UI 交互路径）。"""
+    text = (stock_input or '').strip()
+    if not text:
+        return '', ''
+
+    def _match(df):
+        if df is None or df.empty:
+            return '', ''
+        code_col = next((c for c in df.columns if c in ('代码', 'code')), None)
+        name_col = next((c for c in df.columns if c in ('名称', 'name')), None)
+        if not code_col:
+            return '', ''
+        if text.isdigit():
+            mask = df[code_col].astype(str).str.strip() == text
+            if mask.any():
+                name = df.loc[mask, name_col].iloc[0] if name_col else text
+                return str(df.loc[mask, code_col].iloc[0]), str(name)
+            return text, text
+        if name_col:
+            mask = df[name_col].astype(str).str.contains(text, na=False)
+            if mask.any():
+                return str(df.loc[mask, code_col].iloc[0]), str(df.loc[mask, name_col].iloc[0])
+        return '', text
+
+    if HAS_SQLITE_DB:
+        try:
+            code, name = _match(_qi_db.get_stock_spot())
+            if code:
+                return code, name
+        except Exception:
+            pass
+    return _match(_get_demo_spot_df())
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_northbound_flow_fast():
+    """北向资金快速读取: SQLite → 静态演示（UI 不触发网络）。"""
+    from features.market_data_hub import get_northbound_tuple_fast
+    return get_northbound_tuple_fast()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_home_market_snapshot():
+    """首页四指标批量快照（单次 SQLite 读取）。"""
+    from features.market_data_hub import get_home_market_snapshot
+    return get_home_market_snapshot()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_index(symbol):
+    """统一指数加载 — SQLite macro_indices → 静态缓存（与实时看板一致）。"""
+    from features.market_data_hub import get_index_snapshot
+    return get_index_snapshot(symbol)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_index_slow(symbol):
+    """后台/回测用指数加载（可调用 akshare）。"""
+    try:
+        df = ak.stock_zh_index_daily(symbol=symbol)
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+    except Exception:
+        return load_index(symbol)
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def safe_get_stock_info(stock_code: str) -> dict:
     """安全获取个股基本信息: SQLite → 东方财富直连 → akshare → 空 dict
@@ -337,49 +440,64 @@ def safe_page_section(page_name, render_func, *args, **kwargs):
             import traceback
             st.code(traceback.format_exc(), language='text')
 
-from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
-from data_cache import get_data_cache
-from ai.agent_orchestrator import MainAgent
-from ai.data_grounder import DataGrounder
-from ai.citation_system import CitationTracker
-from features.stock_screener import NaturalLanguageScreener
-from features.factor_scorer import MultiFactorScorer
-from features.stock_comparison import StockComparator
-from features.portfolio_manager import PortfolioManager
-from features.alert_system import SmartAlertEngine
-from features.market_dashboard import MarketDashboard
-from features.trade_simulator import TradeSimulator, RiskControlEngine, Order
-from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
-from features.sentiment_analyzer import SentimentAnalyzer
-from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
+# 重量级业务模块延后加载（首页/侧边栏不依赖）
+_HEAVY_MODULES_LOADED = False
 
-try:
-    from features.qlib_integration import AlphaFactorMiner, VectorBTEngine, FactorICTester, SignalVerifier
-    HAS_QLIB = True
-except ImportError:
-    HAS_QLIB = False
 
-try:
-    from features.multi_source_data import DataHub, SentimentVectorStore, AltDataSignalGenerator
-    HAS_MULTI_SOURCE = True
-except ImportError:
-    HAS_MULTI_SOURCE = False
+def _load_heavy_modules():
+    """按需加载回测/AI/组合等模块，避免阻塞首页首屏。"""
+    global _HEAVY_MODULES_LOADED
+    if _HEAVY_MODULES_LOADED:
+        return
+    global BacktestEngine, BacktestConfig, StrategyType, get_data_cache
+    global MainAgent, DataGrounder, CitationTracker
+    global NaturalLanguageScreener, MultiFactorScorer, StockComparator
+    global PortfolioManager, SmartAlertEngine, MarketDashboard
+    global TradeSimulator, RiskControlEngine, Order
+    global ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
+    global SentimentAnalyzer, SupplyChainTracker, INDUSTRY_CHAINS
+    global HAS_QLIB, HAS_MULTI_SOURCE, HAS_MACRO_FUSION
+    global DataCacheManager, EastMoneyChoiceSource
+    global AlphaFactorMiner, VectorBTEngine, FactorICTester, SignalVerifier
+    global DataHub, SentimentVectorStore, AltDataSignalGenerator
+    global MacroFactorModel, FactorFusionEngine, SignalVerificationData, ExabelStyleDashboard
 
-try:
-    from features.macro_factor_fusion import MacroFactorModel, FactorFusionEngine, SignalVerificationData, ExabelStyleDashboard
-    HAS_MACRO_FUSION = True
-except ImportError:
-    HAS_MACRO_FUSION = False
+    from backtest_engine import BacktestEngine, BacktestConfig, StrategyType
+    from data_cache import get_data_cache, DataCacheManager
+    from ai.agent_orchestrator import MainAgent
+    from ai.data_grounder import DataGrounder
+    from ai.citation_system import CitationTracker
+    from features.stock_screener import NaturalLanguageScreener
+    from features.factor_scorer import MultiFactorScorer
+    from features.stock_comparison import StockComparator
+    from features.portfolio_manager import PortfolioManager
+    from features.alert_system import SmartAlertEngine
+    from features.market_dashboard import MarketDashboard
+    from features.trade_simulator import TradeSimulator, RiskControlEngine, Order
+    from features.task_scheduler import ResearchTaskScheduler, AutoReportGenerator, TASK_TEMPLATES
+    from features.sentiment_analyzer import SentimentAnalyzer
+    from features.supply_chain_tracker import SupplyChainTracker, INDUSTRY_CHAINS
+    from eastmoney_source import EastMoneyChoiceSource
 
-try:
-    from features.sqlite_data_layer import QIDataDB
-    _qi_db = QIDataDB()
-    HAS_SQLITE_DB = True
-except ImportError:
-    _qi_db = None
-    HAS_SQLITE_DB = False
-from data_cache import DataCacheManager
-from eastmoney_source import EastMoneyChoiceSource
+    try:
+        from features.qlib_integration import AlphaFactorMiner, VectorBTEngine, FactorICTester, SignalVerifier
+        HAS_QLIB = True
+    except ImportError:
+        HAS_QLIB = False
+
+    try:
+        from features.multi_source_data import DataHub, SentimentVectorStore, AltDataSignalGenerator
+        HAS_MULTI_SOURCE = True
+    except ImportError:
+        HAS_MULTI_SOURCE = False
+
+    try:
+        from features.macro_factor_fusion import MacroFactorModel, FactorFusionEngine, SignalVerificationData, ExabelStyleDashboard
+        HAS_MACRO_FUSION = True
+    except ImportError:
+        HAS_MACRO_FUSION = False
+
+    _HEAVY_MODULES_LOADED = True
 
 # ============== 真实 LLM 接入 (B7) ==============
 def get_llm_config():
@@ -432,12 +550,17 @@ def get_llm_config():
                      extra_field=True):
         return config
 
-    # 2. SenseNova (BACKUP 1 - 商汤日日新, 速度快, V3.11 升级)
+    # 2. SenseNova (BACKUP 1 - 商汤日日新, 速度快)
     if _try_provider('sensenova', 'SENSENOVA', 'sensenova-6.7-flash-lite',
                      'https://token.sensenova.cn/v1/chat/completions'):
         return config
 
-    # 3. DeepSeek (BACKUP 2 - deepseek-v4-pro, 能力强, V3.11 升级)
+    # 3. StepFun (BACKUP 2 - 阶跃星辰 step-3.7-flash)
+    if _try_provider('stepfun', 'STEPFUN', 'step-3.7-flash',
+                     'https://api.stepfun.com/v1/chat/completions'):
+        return config
+
+    # 4. DeepSeek (BACKUP 3)
     if _try_provider('deepseek', 'DEEPSEEK', 'deepseek-chat',
                      'https://api.deepseek.com/chat/completions'):
         return config
@@ -463,6 +586,11 @@ def get_llm_config():
         config['api_key'] = os.environ['SENSENOVA_API_KEY']
         config['model'] = os.environ.get('SENSENOVA_MODEL', 'sensenova-6.7-flash-lite')
         config['base_url'] = os.environ.get('SENSENOVA_BASE_URL', 'https://token.sensenova.cn/v1/chat/completions')
+    elif os.environ.get('STEPFUN_API_KEY'):
+        config['provider'] = 'stepfun'
+        config['api_key'] = os.environ['STEPFUN_API_KEY']
+        config['model'] = os.environ.get('STEPFUN_MODEL', 'step-3.7-flash')
+        config['base_url'] = os.environ.get('STEPFUN_BASE_URL', 'https://api.stepfun.com/v1/chat/completions')
     elif os.environ.get('DEEPSEEK_API_KEY'):
         config['provider'] = 'deepseek'
         config['api_key'] = os.environ['DEEPSEEK_API_KEY']
@@ -561,7 +689,7 @@ def _fetch_market_context() -> str:
 
     # 2. 尝试获取 A 股行情概况 (涨幅前5 + 跌幅前5)
     try:
-        df_spot = safe_get_spot_df()
+        df_spot = safe_get_spot_df_fast()
         if df_spot is not None and len(df_spot) > 0:
             chg_col = None
             for col in ['涨跌幅', '涨跌幅(%)']:
@@ -773,16 +901,6 @@ def load_cyb():
     return load_index('sz399006')
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_index(symbol):
-    """统一指数加载 (缓存 1 小时), 替代直接 ak.stock_zh_index_daily 调用"""
-    try:
-        df = ak.stock_zh_index_daily(symbol=symbol)
-        df['date'] = pd.to_datetime(df['date'])
-        return df
-    except Exception:
-        return None
-
-@st.cache_data(ttl=3600, show_spinner=False)
 def load_industry_cons(symbol):
     """行业成分股加载 (缓存 1 小时)"""
     try:
@@ -913,6 +1031,60 @@ def load_northbound_flow():
         logger.warning(f'北向资金回退接口失败: {e}')
     return None
 
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_northbound_df_cached(days: int = 30):
+    """缓存北向资金表，避免盯盘/行业页每次 rerun 重复拉取导致表格闪烁。"""
+    df_north = None
+    if HAS_SQLITE_DB:
+        try:
+            df_north = _qi_db.get_northbound_flow(days=days)
+            if df_north is not None and len(df_north) > 0:
+                return df_north
+        except Exception as e:
+            logger.debug('northbound sqlite cache: %s', e)
+    try:
+        from features.eastmoney_direct import fetch_northbound_flow
+        df_north = fetch_northbound_flow(days=days)
+        if df_north is not None and len(df_north) > 0:
+            if HAS_SQLITE_DB:
+                try:
+                    _qi_db.upsert_northbound_flow(df_north)
+                except Exception:
+                    pass
+            return df_north
+    except Exception as e:
+        logger.debug('northbound em cache: %s', e)
+    try:
+        df_north = safe_akshare_call(ak.stock_hsgt_north_net_flow_in_em, symbol='北向')
+        if df_north is not None and len(df_north) > 0:
+            return df_north
+    except Exception as e:
+        logger.debug('northbound ak cache: %s', e)
+    return None
+
+
+def _northbound_columns(df_north: pd.DataFrame):
+    """智能识别北向资金日期列与净流入列（兼容 SQLite / akshare）。"""
+    if df_north is None or df_north.empty:
+        return None, None
+    date_col = next(
+        (c for c in df_north.columns if c in ('date', '日期') or '日期' in str(c)),
+        df_north.columns[0],
+    )
+    flow_col = next(
+        (c for c in df_north.columns if c in ('net_flow', '当日净流入', '当日资金流入')
+         or '净流入' in str(c) or '净买' in str(c)),
+        None,
+    )
+    if flow_col is None:
+        for c in df_north.columns:
+            if c != date_col and pd.api.types.is_numeric_dtype(df_north[c]):
+                flow_col = c
+                break
+    return date_col, flow_col
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def get_current_price(stock_code: str) -> float:
     """获取股票最新价（用于模拟交易市价单）"""
@@ -931,7 +1103,7 @@ def get_current_price(stock_code: str) -> float:
             logger.warning(f'SQLite 获取 {stock_code} 价格失败: {e}')
 
     try:
-        df = safe_get_spot_df()
+        df = safe_get_spot_df_fast()
         if df is not None and len(df) > 0:
             # 代码列可能带 .sh/.sz 后缀，统一处理
             normalized = str(stock_code).strip()
@@ -952,66 +1124,54 @@ def get_current_price(stock_code: str) -> float:
     return 0.0
 
 
-@st.cache_data(ttl=300)
+def _normalize_stock_pool_df(df: pd.DataFrame) -> pd.DataFrame:
+    """统一股票池列名并按成交额排序"""
+    if df is None or df.empty:
+        return df
+    if 'amount' in df.columns:
+        df = df.sort_values('amount', ascending=False)
+    col_map = {
+        'code': '代码', 'name': '名称', 'latest_price': '最新价',
+        'change_pct': '涨跌幅', 'pe_ttm': '市盈率-动态',
+        'pb': '市净率', 'total_mv': '总市值',
+        'turnover_rate': '换手率', 'amount': '成交额',
+        'change_pct_60d': '60日涨跌幅',
+    }
+    rename_map = {k: v for k, v in col_map.items() if k in df.columns}
+    if rename_map:
+        df = df.rename(columns=rename_map)
+    return df.head(200)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def load_stock_pool():
-    """加载 A 股股票池（部分代表性股票）: SQLite → 东方财富直连 → akshare → 静态列表"""
-    # 1. Try SQLite first
+    """加载 A 股股票池（交互页快速路径，避免 Baostock 逐股拉取阻塞 UI）
+
+    优先级: SQLite 缓存 → 东方财富单页(500) → 静态演示列表
+    全量刷新由 refresh_data.py 定时任务负责，不在用户点击时触发。
+    """
+    # 1. SQLite 缓存（毫秒级）
     if HAS_SQLITE_DB:
         try:
-            df = _qi_db.get_stock_spot()
+            df = _normalize_stock_pool_df(_qi_db.get_stock_spot())
             if df is not None and len(df) > 0:
-                # V3.14: 按成交额排序, 避免total_mv全NULL时返回冷门股
-                if 'amount' in df.columns:
-                    df = df.sort_values('amount', ascending=False)
-                # Map column names
-                col_map = {
-                    'code': '代码', 'name': '名称', 'latest_price': '最新价',
-                    'change_pct': '涨跌幅', 'pe_ttm': '市盈率-动态',
-                    'pb': '市净率', 'total_mv': '总市值',
-                    'turnover_rate': '换手率', 'amount': '成交额',
-                    'change_pct_60d': '60日涨跌幅',
-                }
-                rename_map = {k: v for k, v in col_map.items() if k in df.columns}
-                if rename_map:
-                    df = df.rename(columns=rename_map)
-                return df.head(200)
+                return df
         except Exception:
             pass
-    # 2. Try 东方财富直连
+    # 2. 东方财富单页快速拉取（约 5–15s，不循环分页）
     try:
         from features.eastmoney_direct import fetch_stock_spot
-        df = fetch_stock_spot()
-        if df is not None and len(df) > 0:
-            # 同时写入 SQLite 缓存
-            if HAS_SQLITE_DB:
-                try:
-                    _qi_db.upsert_stock_spot(df)
-                except Exception:
-                    pass
-            return df.head(200)
-    except Exception:
-        pass
-    # 3. Try Baostock (服务器环境可用)
-    try:
-        from features.eastmoney_direct import _baostock_fetch_spot
-        df = _baostock_fetch_spot()
+        df = fetch_stock_spot(page_size=500)
         if df is not None and len(df) > 0:
             if HAS_SQLITE_DB:
                 try:
                     _qi_db.upsert_stock_spot(df)
                 except Exception:
                     pass
-            return df.head(200)
+            return _normalize_stock_pool_df(df)
     except Exception:
         pass
-    # 4. Try akshare via safe_get_spot_df
-    try:
-        df = safe_get_spot_df()
-        if df is not None and len(df) > 0:
-            return df.head(200)  # 取前 200 只做演示
-    except Exception:
-        pass
-    # 3. Fallback: 静态列表（包含完整列以支持筛选）
+    # 3. 静态演示列表（即时返回，保证 UI 不卡死）
     return pd.DataFrame({
         '代码': ['600519', '000858', '601318', '600036', '000333',
                 '601012', '002594', '300750', '600276', '601888',
@@ -1168,9 +1328,13 @@ def ai_qa_mock(question):
         'recommendation': '建议关注：低估值高分红 + 政策受益板块 + AI 产业链'
     }
 
+from features.competition_copy import (
+    HERO_SUBTITLE, HERO_TAGLINE, DATA_SOURCE_LINE, COMPETITION_INFO,
+    PAGE_SUBTITLES, HIGHLIGHTS, PROJECT_ID, SIDEBAR_BRAND_HTML,
+)
+
 # ============== 侧边栏 ==============
-st.sidebar.title('📊 QuantInsight Pro')
-st.sidebar.markdown('**AI 驱动的另类数据量化投研平台**')
+st.sidebar.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
 
 # User info
 st.sidebar.markdown('---')
@@ -1213,12 +1377,7 @@ if page != st.session_state.get('auth_last_page', ''):
 # Sidebar: project info (collapsible)
 st.sidebar.markdown('---')
 with st.sidebar.expander('📋 项目信息'):
-    st.markdown(
-        '**项目编号**：2026FINTECH-FINT-0093\n\n'
-        '**参赛单位**：慧点资本 (InsightQuant)\n\n'
-        '**推荐单位**：杭州永字资产管理有限公司\n\n'
-        '**大赛**：Fintech@外滩 第一届金融科技国际创新创业大赛'
-    )
+    st.markdown(COMPETITION_INFO)
 
 # LLM status (compact)
 llm_config_status = get_llm_config()
@@ -1227,18 +1386,48 @@ if llm_config_status['api_key']:
 else:
     st.sidebar.markdown('🤖 AI: 🟡 Mock')
 
+# 数据源状态（默认本地快检，网络探测按需刷新）
+@st.cache_data(ttl=600, show_spinner=False)
+def _probe_sources_network_cached():
+    from features.extended_data_sources import probe_sources
+    return probe_sources()
+
+
+with st.sidebar.expander('📡 数据源状态'):
+    from features.extended_data_sources import probe_sources_fast
+    probe_refresh = st.button('🔄 网络探测', key='probe_sources_refresh', use_container_width=True)
+    if probe_refresh:
+        _probe_sources_network_cached.clear()
+        with st.spinner('探测外部数据源...'):
+            items = _probe_sources_network_cached()
+        st.session_state._probe_network_items = items
+    elif st.session_state.get('_probe_network_items'):
+        items = st.session_state._probe_network_items
+    else:
+        items = probe_sources_fast()
+    for item in items:
+        icon = '🟢' if item.get('ok') else '🔴'
+        lat = f" · {item['latency_ms']}ms" if item.get('latency_ms') is not None else ''
+        st.caption(f"{icon} **{item['name']}**: {item.get('detail', '')}{lat}")
+    if not st.session_state.get('_probe_network_items'):
+        st.caption('💡 默认仅本地快检，点击上方按钮按需网络探测')
+
 # Logout button
 st.sidebar.markdown('---')
 render_theme_toggle()
-if st.sidebar.button('🚪 退出登录', width='stretch'):
+if st.sidebar.button('🚪 退出登录', use_container_width=True, key='sidebar_logout'):
     _session_mgr.logout(st.session_state)
     st.rerun()
+
+# 非首页模块按需加载重量级依赖
+if page != '🏠 首页':
+    _load_heavy_modules()
 
 # ============== 页面：首页 ==============
 if page == '🏠 首页':
     # ========== 英雄区 Hero Section ==========
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 50%, #0F2236 100%);
+    <div class="qi-hero" style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 50%, #0F2236 100%);
                 padding: 40px 32px; border-radius: 16px; margin-bottom: 24px;
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15);
@@ -1247,19 +1436,22 @@ if page == '🏠 首页':
                     background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%);
                     border-radius: 50%;"></div>
         <div style="position: relative; z-index: 1;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <span style="font-size: 2.5rem;">⚡</span>
+            <div class="qi-hero-title-row" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <span class="qi-hero-emoji" style="font-size: 2.5rem;">⚡</span>
                 <h1 style="color: #FFFFFF; margin: 0; font-size: 2.5rem; font-weight: 800;
                            background: linear-gradient(90deg, #00D4FF, #D4AF37);
                            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                            background-clip: text;">QuantInsight Pro</h1>
             </div>
-            <p style="color: #B8C5D6; font-size: 1.15rem; margin: 0 0 16px 0; font-weight: 300;">
-                AI 驱动的另类数据量化投研平台 | 慧点资本 × 永字资管 联合打造
+            <p style="color: #B8C5D6; font-size: 1.05rem; margin: 0 0 8px 0; font-weight: 400;">
+                AFAC2026 · 金融智能创新大赛 · 项目编号 2026FINTECH-FINT-0093
             </p>
-            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
+            <p style="color: #B8C5D6; font-size: 1.0rem; margin: 0 0 16px 0; font-weight: 300;">
+                AI 另类数据量化投研 Demo · SHAP 可解释 · 多源数据融合
+            </p>
+            <div class="qi-hero-stats" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
                 <div style="color: #00D4FF; font-size: 0.9rem;">
-                    <span style="color: #8B95A5;">📊 数据点</span> <b>500万+</b>
+                    <span style="color: #8B95A5;">🏆 项目编号</span> <b>2026FINTECH-FINT-0093</b>
                 </div>
                 <div style="color: #D4AF37; font-size: 0.9rem;">
                     <span style="color: #8B95A5;">🤖 因子库</span> <b>200+</b>
@@ -1268,7 +1460,7 @@ if page == '🏠 首页':
                     <span style="color: #8B95A5;">📈 回测期</span> <b>11.4年</b>
                 </div>
                 <div style="color: #FF9F43; font-size: 0.9rem;">
-                    <span style="color: #8B95A5;">🏆 排名</span> <b>种子组 TOP 1%</b>
+                    <span style="color: #8B95A5;">🧠 亮点</span> <b>SHAP 可解释</b>
                 </div>
             </div>
         </div>
@@ -1281,39 +1473,42 @@ if page == '🏠 首页':
                 padding: 8px 16px; border-radius: 8px; margin-bottom: 16px;
                 border-left: 3px solid #00D4FF; display: flex; align-items: center; gap: 12px;">
         <span style="color: #00FF88; font-size: 0.7rem;">●</span>
-        <span style="color: #B8C5D6; font-size: 0.85rem;"><b style="color: #FFFFFF;">实时数据</b> · 数据源: akshare公开接口 · 延迟 &lt; 1s</span>
+        <span style="color: #B8C5D6; font-size: 0.85rem;"><b style="color: #FFFFFF;">缓存数据</b> · SQLite 本地缓存优先 · 后台 refresh_data 定时刷新</span>
     </div>
     """, unsafe_allow_html=True)
 
-    # 核心指标卡片
+    # 核心指标卡片（批量快照，避免重复 IO）
     col1, col2, col3, col4 = st.columns(4)
+    try:
+        snap = load_home_market_snapshot()
+        df_hs300 = snap['sh000300']
+        df_zz500 = snap['sh000905']
+        df_cyb = snap['sz399006']
+        north_data = snap['northbound']
+    except Exception:
+        df_hs300 = df_zz500 = df_cyb = None
+        north_data = None
+
     with col1:
-        try:
-            df_hs300 = load_hs300()
+        if df_hs300 is not None and len(df_hs300) > 0:
             st.metric('沪深300', f'{df_hs300["close"].iloc[-1]:.2f}', f'{df_hs300["close"].pct_change().iloc[-1]*100:+.2f}%')
-        except Exception:
-            st.metric('沪深300', '加载中', '')
+        else:
+            st.metric('沪深300', '—', '')
     with col2:
-        try:
-            df_zz500 = load_zz500()
+        if df_zz500 is not None and len(df_zz500) > 0:
             st.metric('中证500', f'{df_zz500["close"].iloc[-1]:.2f}', f'{df_zz500["close"].pct_change().iloc[-1]*100:+.2f}%')
-        except Exception:
-            st.metric('中证500', '加载中', '')
+        else:
+            st.metric('中证500', '—', '')
     with col3:
-        try:
-            df_cyb = load_cyb()
+        if df_cyb is not None and len(df_cyb) > 0:
             st.metric('创业板指', f'{df_cyb["close"].iloc[-1]:.2f}', f'{df_cyb["close"].pct_change().iloc[-1]*100:+.2f}%')
-        except Exception:
-            st.metric('创业板指', '加载中', '')
+        else:
+            st.metric('创业板指', '—', '')
     with col4:
-        try:
-            north_data = load_northbound_flow()
-            if north_data is not None:
-                net_amount, direction = north_data
-                st.metric('今日北向资金', f'{net_amount/1e8:.1f}亿', f'{direction} {abs(net_amount)/1e8:.1f}亿')
-            else:
-                st.metric('今日北向资金', '暂无数据', '')
-        except Exception:
+        if north_data is not None:
+            net_amount, direction = north_data
+            st.metric('今日北向资金', f'{net_amount/1e8:.1f}亿', f'{direction} {abs(net_amount)/1e8:.1f}亿')
+        else:
             st.metric('今日北向资金', '暂无数据', '')
 
     st.markdown('---')
@@ -1321,16 +1516,16 @@ if page == '🏠 首页':
     # 核心功能介绍 - 升级版卡片
     st.markdown("""
     <h2 style="color: #0A1628; margin-bottom: 8px;">
-        🎯 平台核心功能 <span style="color: #D4AF37; font-size: 0.6em; font-weight: 400;">— 业内领先的智能投研平台</span>
+        🎯 比赛 Demo 核心模块 <span style="color: #D4AF37; font-size: 0.6em; font-weight: 400;">— AFAC2026 金融智能创新</span>
     </h2>
-    <p style="color: #6C757D; margin-bottom: 24px;">基于开源大模型微调 + RAG + SHAP 可解释性 + 真实akshare数据</p>
+    <p style="color: #6C757D; margin-bottom: 24px;">LLM + RAG · SHAP 可解释性 · 多源另类数据 · SQLite 缓存加速</p>
     """, unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.markdown("""
-        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00D4FF; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00D4FF; box-shadow: 0 2px 8px rgba(0,0,0,0.04); min-height: auto;">
             <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">🎯 AI 智能选股</h4>
             <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 自然语言选股<br/>✅ 多因子评分体系<br/>✅ 个股深度对比</p>
             <div style="background: linear-gradient(90deg, #00D4FF22, #00D4FF11); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
@@ -1342,19 +1537,19 @@ if page == '🏠 首页':
 
     with col2:
         st.markdown("""
-        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #D4AF37; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #D4AF37; box-shadow: 0 2px 8px rgba(0,0,0,0.04); min-height: auto;">
             <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">📡 另类数据中心</h4>
             <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 宏观景气/PMI/CPI<br/>✅ 资金流向/北向追踪<br/>✅ 期货/机构调研/质押</p>
             <div style="background: linear-gradient(90deg, #D4AF3722, #D4AF3711); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
                 <small style="color: #1F4E78; font-weight: 600;">🎯 差异化：</small>
-                <code style="color: #D4AF37; font-size: 0.78rem;">Wind没有的维度</code>
+                <code style="color: #D4AF37; font-size: 0.78rem;">多源另类数据融合</code>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
         st.markdown("""
-        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #1F4E78; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #1F4E78; box-shadow: 0 2px 8px rgba(0,0,0,0.04); min-height: auto;">
             <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">📈 量化策略平台</h4>
             <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ 11.4年真实回测<br/>✅ SHAP可解释性<br/>✅ 双均线/布林/多因子</p>
             <div style="background: linear-gradient(90deg, #1F4E7822, #1F4E7811); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
@@ -1366,12 +1561,12 @@ if page == '🏠 首页':
 
     with col4:
         st.markdown("""
-        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00FF88; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 220px;">
+        <div class="feature-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%); padding: 20px; border-radius: 12px; border: 1px solid #E8ECF1; border-top: 3px solid #00FF88; box-shadow: 0 2px 8px rgba(0,0,0,0.04); min-height: auto;">
             <h4 style="color: #1F4E78; margin: 0 0 8px 0; font-size: 1.05rem;">🤖 AI 投研问答</h4>
-            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ Qwen3.7-Max推理<br/>✅ 5轮上下文记忆<br/>✅ 引用真实数据</p>
+            <p style="color: #4A5568; font-size: 0.85rem; margin: 4px 0;">✅ LLM 推理 + RAG<br/>✅ 5轮上下文记忆<br/>✅ 引用真实数据</p>
             <div style="background: linear-gradient(90deg, #00FF8822, #00FF8811); padding: 6px 10px; border-radius: 6px; margin-top: 12px;">
-                <small style="color: #1F4E78; font-weight: 600;">⚡ 升级：</small>
-                <code style="color: #D4AF37; font-size: 0.78rem;">深度思考推理</code>
+                <small style="color: #1F4E78; font-weight: 600;">⚡ 亮点：</small>
+                <code style="color: #D4AF37; font-size: 0.78rem;">数据 grounding</code>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1386,26 +1581,20 @@ if page == '🏠 首页':
                     padding: 24px; border-radius: 12px; border: 1px solid #E8ECF1;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <h3 style="color: #0A1628; margin: 0 0 16px 0; font-size: 1.15rem;">
-                🏆 合作客户 & 战略伙伴
+                🏆 参赛信息
             </h3>
-            <div style="display: flex; flex-wrap: nowrap; gap: 12px; justify-content: space-between;">
-                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
-                            color: white; padding: 16px 8px; border-radius: 8px; text-align: center;
-                            border: 1px solid #D4AF37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <div style="font-size: 1.1rem; font-weight: 700;">永字资产</div>
-                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">首年LOI已签</div>
+            <div style="display: flex; gap: 16px; justify-content: stretch;">
+                <div style="flex: 1; background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
+                            color: white; padding: 20px 16px; border-radius: 10px; text-align: center;
+                            border: 1px solid #D4AF37; min-height: 88px; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-size: 1.05rem; font-weight: 700; line-height: 1.3;">InsightQuant</div>
+                    <div style="font-size: 0.7rem; opacity: 0.85; margin-top: 6px;">参赛团队</div>
                 </div>
-                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%);
-                            color: #00D4FF; padding: 16px 8px; border-radius: 8px; text-align: center;
-                            border: 1px solid #00D4FF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <div style="font-size: 1.1rem; font-weight: 700;">慧点资本</div>
-                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">联合出品方</div>
-                </div>
-                <div style="flex: 1 1 0; min-width: 0; background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);
-                            color: #0A1628; padding: 16px 8px; border-radius: 8px; text-align: center;
-                            border: 1px solid #0A1628; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <div style="font-size: 1.1rem; font-weight: 700;">创·在上海</div>
-                    <div style="font-size: 0.65rem; opacity: 0.8; margin-top: 4px;">官方参赛项目</div>
+                <div style="flex: 1; background: linear-gradient(135deg, #1F4E78 0%, #2E86AB 100%);
+                            color: white; padding: 20px 16px; border-radius: 10px; text-align: center;
+                            border: 1px solid #D4AF37; min-height: 88px; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-size: 1.05rem; font-weight: 700; line-height: 1.3;">FINT-0093</div>
+                    <div style="font-size: 0.7rem; opacity: 0.85; margin-top: 6px;">项目编号</div>
                 </div>
             </div>
         </div>
@@ -1418,26 +1607,27 @@ if page == '🏠 首页':
                     box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <h3 style="color: #0A1628; margin: 0 0 16px 0; font-size: 1.15rem;">📰 平台动态</h3>
             <div style="border-left: 3px solid #00FF88; padding-left: 12px; margin: 8px 0;">
-                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-15</div>
-                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ 完成 SHAP 可解释性模块</div>
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-07</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ ECS 生产部署 · SQLite 缓存加速</div>
             </div>
             <div style="border-left: 3px solid #D4AF37; padding-left: 12px; margin: 8px 0;">
-                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-14</div>
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06</div>
                 <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">🏆 完成全模块回归测试</div>
             </div>
             <div style="border-left: 3px solid #00D4FF; padding-left: 12px; margin: 8px 0;">
-                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-12</div>
-                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ 永字资管 LOI 签订</div>
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-06</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">✅ SHAP 可解释性模块上线</div>
             </div>
             <div style="border-left: 3px solid #8B95A5; padding-left: 12px; margin: 8px 0;">
-                <div style="color: #6C757D; font-size: 0.75rem;">2026-06-05</div>
-                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">📊 多因子回测白皮书 V1.0</div>
+                <div style="color: #6C757D; font-size: 0.75rem;">2026-05</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">📊 AFAC2026 商业计划书 V1.0</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
 # ============== 页面：实时数据看板 ==============
 elif page == '📊 实时数据看板':
+    st.markdown(f'**{PAGE_SUBTITLES["dashboard"]}**')
     try:
         from features.dashboard_v2 import render_dashboard
         render_dashboard()
@@ -1449,7 +1639,7 @@ elif page == '📊 实时数据看板':
 # ============== 页面：AI 投研问答 ==============
 elif page == '🤖 AI 投研问答':
     st.markdown('# 🤖 AI 投研问答')
-    st.markdown('**基于开源大模型微调+RAG，支持自然语言投研分析 + 多轮对话**')
+    st.markdown(f'**{PAGE_SUBTITLES["ai_qa"]}**')
 
     st.markdown('---')
 
@@ -1464,7 +1654,7 @@ elif page == '🤖 AI 投研问答':
     with col_info:
         st.caption(f'💬 对话轮数: {len(st.session_state.chat_history) // 2} / 5 (最近 5 轮保留为上下文)')
     with col_clear:
-        if st.button('🗑️ 清空', width='stretch'):
+        if st.button('🗑️ 清空', use_container_width=True):
             st.session_state.chat_history = []
             st.session_state.question_input = ''
             st.rerun()
@@ -1506,7 +1696,7 @@ elif page == '🤖 AI 投研问答':
 
     for i, (q, col) in enumerate(zip(quick_questions, cols)):
         with col:
-            if st.button(f'📌 {q}', key=f'quick_{i}', width='stretch'):
+            if st.button(f'📌 {q}', key=f'quick_{i}', use_container_width=True):
                 st.session_state.question_input = q
                 st.rerun()
 
@@ -1522,7 +1712,7 @@ elif page == '🤖 AI 投研问答':
 
     col1, col2 = st.columns([1, 5])
     with col1:
-        analyze_btn = st.button('🚀 分析', type='primary', width='stretch')
+        analyze_btn = st.button('🚀 分析', type='primary', use_container_width=True)
 
     if analyze_btn and question:
         # 检测 LLM 配置 (B7)
@@ -1633,7 +1823,7 @@ elif page == '🤖 AI 投研问答':
 # ============== 页面：另类数据仪表盘 ==============
 elif page == '📡 另类数据仪表盘':
     st.markdown('# 📡 另类数据仪表盘')
-    st.markdown('**宏观景气 · 市场情绪 · 产业链传导 — 全量真实数据驱动**')
+    st.markdown(f'**{PAGE_SUBTITLES["alt_data"]}**')
 
     # 品牌色
     _BRAND = {'deep_blue': '#0A0E27', 'neon_cyan': '#00D4FF', 'gold': '#FFB800', 'violet': '#7B61FF'}
@@ -1642,12 +1832,15 @@ elif page == '📡 另类数据仪表盘':
 
     st.markdown('---')
 
-    tab1, tab2, tab3 = st.tabs(['📊 宏观景气', '💬 市场情绪', '🔗 产业链传导'])
+    tab1, tab2, tab3, tab4 = st.tabs(['📊 宏观景气', '💬 市场情绪', '🔗 产业链传导', '📰 舆情与另类'])
 
     # ========== Tab1: 宏观景气指标 ==========
     with tab1:
+        from features.alternative_data_enriched import render_macro_snapshot_cards
+        render_macro_snapshot_cards(st, _BRAND)
+
         st.markdown('### 📊 宏观景气领先指标')
-        st.caption('数据源：金十数据 / 国家统计局 (akshare 免费接口)')
+        st.caption('数据源：SQLite 缓存优先 · 金十 / 国家统计局 (akshare)')
 
         col1, col2 = st.columns(2)
 
@@ -1798,20 +1991,47 @@ elif page == '📡 另类数据仪表盘':
     # ========== Tab2: 市场情绪与资金流向 ==========
     with tab2:
         st.markdown('### 💬 市场情绪与资金流向')
-        st.caption('数据源：东方财富 / 雪球 (akshare 免费接口)')
+        st.caption('数据源：SQLite / 东方财富 / AKShare (宏观 · 概念 · 北向 · 龙虎榜)')
 
         col1, col2 = st.columns(2)
 
         with col1:
             # 概念板块资金流向
+            df_concept = None
+            _concept_source = ''
+            if HAS_SQLITE_DB:
+                try:
+                    df_concept = _qi_db.get_concept_board()
+                    if df_concept is not None and len(df_concept) > 0:
+                        _concept_source = 'SQLite 缓存'
+                except Exception:
+                    pass
+            if df_concept is None or len(df_concept) == 0:
+                try:
+                    from features.extended_data_sources import fetch_concept_boards
+                    res = fetch_concept_boards(top_n=15)
+                    if res.ok and res.data is not None and len(res.data) > 0:
+                        df_concept = res.data
+                        _concept_source = res.source
+                        if HAS_SQLITE_DB:
+                            try:
+                                _qi_db.upsert_concept_board(df_concept, source=res.source)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
             try:
-                df_concept = ak.stock_fund_flow_concept(symbol='即时')
+                if df_concept is None or len(df_concept) == 0:
+                    df_concept = ak.stock_fund_flow_concept(symbol='即时')
+                    _concept_source = 'akshare'
                 if df_concept is not None and len(df_concept) > 0:
                     st.markdown('#### 💰 概念板块资金流向 TOP15')
+                    if _concept_source:
+                        st.caption(f'数据源: {_concept_source}')
                     df_top = df_concept.head(15)
-                    name_col = [c for c in df_top.columns if '行业' in c or '名称' in c or '概念' in c]
+                    name_col = [c for c in df_top.columns if '行业' in c or '名称' in c or '概念' in c or 'board_name' in c]
                     flow_col = [c for c in df_top.columns if '流入' in c or '净买' in c or '主力' in c]
-                    change_col = [c for c in df_top.columns if '涨跌' in c]
+                    change_col = [c for c in df_top.columns if '涨跌' in c or 'change_pct' in c]
 
                     if name_col and change_col:
                         fig = go.Figure(layout=_DARK_LAYOUT)
@@ -1827,6 +2047,8 @@ elif page == '📡 另类数据仪表盘':
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_top, use_container_width=True, hide_index=True)
+                else:
+                    raise ValueError('概念板块无数据')
             except Exception:
                 st.warning('概念板块资金数据加载失败，使用演示数据')
                 _demo_concepts = ['AI算力', 'CPO', '机器人', '半导体', '新能源车', '白酒', '医药', '军工', '光伏', '锂电池', '房地产', '银行', '券商', '煤炭', '钢铁']
@@ -1841,13 +2063,27 @@ elif page == '📡 另类数据仪表盘':
 
         with col2:
             # 北向资金历史趋势
+            df_north = None
+            _north_source = ''
             try:
-                df_north = ak.stock_hsgt_hist_em(symbol='沪股通')
+                from features.extended_data_sources import fetch_northbound_series
+                res = fetch_northbound_series(days=30)
+                if res.ok and res.data is not None and len(res.data) > 0:
+                    df_north = res.data
+                    _north_source = res.source
+            except Exception:
+                pass
+            try:
+                if df_north is None or len(df_north) == 0:
+                    df_north = ak.stock_hsgt_hist_em(symbol='沪股通')
+                    _north_source = 'akshare'
                 if df_north is not None and len(df_north) > 0:
-                    st.markdown('#### 🌊 北向资金 (沪股通) 近30日')
+                    st.markdown('#### 🌊 北向资金 (近30日)')
+                    if _north_source:
+                        st.caption(f'数据源: {_north_source}')
                     df_north_recent = df_north.tail(30)
                     date_col = [c for c in df_north_recent.columns if '日期' in c or 'date' in c.lower()]
-                    flow_col = [c for c in df_north_recent.columns if '净买' in c or '流入' in c or '成交' in c]
+                    flow_col = [c for c in df_north_recent.columns if '净买' in c or '流入' in c or 'net_flow' in c or '成交' in c]
 
                     if date_col and flow_col:
                         fig = go.Figure(layout=_DARK_LAYOUT)
@@ -1861,11 +2097,13 @@ elif page == '📡 另类数据仪表盘':
                             fig.add_trace(go.Scatter(x=df_north_recent[date_col[0]], y=ma5,
                                                      mode='lines', name='5日均线',
                                                      line=dict(color=_BRAND['gold'], width=2)))
-                        fig.update_layout(title='沪股通净买入 (近30日)', yaxis_title='金额',
+                        fig.update_layout(title='北向资金净买入 (近30日)', yaxis_title='金额',
                                           height=480, hovermode='x unified')
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_north_recent.tail(10), use_container_width=True, hide_index=True)
+                else:
+                    raise ValueError('北向资金无数据')
             except Exception:
                 st.warning('北向资金数据加载失败，使用演示数据')
                 _demo_north_dates = pd.date_range(end=pd.Timestamp.today(), periods=30)
@@ -1885,25 +2123,63 @@ elif page == '📡 另类数据仪表盘':
 
         with col3:
             # 涨跌家数统计
+            _breadth_stats = None
+            if HAS_SQLITE_DB:
+                try:
+                    _breadth_stats = _qi_db.get_market_breadth()
+                except Exception:
+                    pass
+            if not _breadth_stats:
+                try:
+                    from features.extended_data_sources import fetch_limit_stats
+                    res = fetch_limit_stats()
+                    if res.ok and isinstance(res.data, dict):
+                        _breadth_stats = res.data
+                        if HAS_SQLITE_DB:
+                            try:
+                                _qi_db.upsert_market_breadth(res.data, source=res.source)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
             try:
-                df_spot = safe_get_spot_df()
-                if df_spot is not None and len(df_spot) > 0:
-                    chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
-                    if chg_col:
-                        chg = pd.to_numeric(df_spot[chg_col[0]], errors='coerce').dropna()
-                        up_count = (chg > 0).sum()
-                        down_count = (chg < 0).sum()
-                        flat_count = (chg == 0).sum()
-                        limit_up = (chg >= 9.9).sum()
-                        limit_down = (chg <= -9.9).sum()
-                        fig = go.Figure(layout=_DARK_LAYOUT)
-                        fig.add_trace(go.Bar(x=['涨停', '上涨', '平盘', '下跌', '跌停'],
-                                             y=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
-                                             marker_color=[_BRAND['gold'], _BRAND['neon_cyan'], '#888888', '#FF4D6A', '#8B0000'],
-                                             text=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
-                                             textposition='auto'))
-                        fig.update_layout(title='A股涨跌家数分布', yaxis_title='家数', height=350)
-                        st.plotly_chart(fig, use_container_width=True)
+                if _breadth_stats:
+                    limit_up = _breadth_stats.get('limit_up', 0)
+                    limit_down = _breadth_stats.get('limit_down', 0)
+                    up_count = _breadth_stats.get('up', _breadth_stats.get('up_count', 0))
+                    down_count = _breadth_stats.get('down', _breadth_stats.get('down_count', 0))
+                    flat_count = _breadth_stats.get('flat', _breadth_stats.get('flat_count', 0))
+                    fig = go.Figure(layout=_DARK_LAYOUT)
+                    fig.add_trace(go.Bar(x=['涨停', '上涨', '平盘', '下跌', '跌停'],
+                                         y=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                         marker_color=[_BRAND['gold'], _BRAND['neon_cyan'], '#888888', '#FF4D6A', '#8B0000'],
+                                         text=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                         textposition='auto'))
+                    fig.update_layout(title='A股涨跌家数分布', yaxis_title='家数', height=350)
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    df_spot = safe_get_spot_df_fast()
+                    if df_spot is not None and len(df_spot) > 0:
+                        chg_col = [c for c in df_spot.columns if '涨跌幅' in c or 'change_pct' in c]
+                        if chg_col:
+                            chg = pd.to_numeric(df_spot[chg_col[0]], errors='coerce').dropna()
+                            up_count = (chg > 0).sum()
+                            down_count = (chg < 0).sum()
+                            flat_count = (chg == 0).sum()
+                            limit_up = (chg >= 9.9).sum()
+                            limit_down = (chg <= -9.9).sum()
+                            fig = go.Figure(layout=_DARK_LAYOUT)
+                            fig.add_trace(go.Bar(x=['涨停', '上涨', '平盘', '下跌', '跌停'],
+                                                 y=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                                 marker_color=[_BRAND['gold'], _BRAND['neon_cyan'], '#888888', '#FF4D6A', '#8B0000'],
+                                                 text=[limit_up, up_count - limit_up, flat_count, down_count - limit_down, limit_down],
+                                                 textposition='auto'))
+                            fig.update_layout(title='A股涨跌家数分布', yaxis_title='家数', height=350)
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            raise ValueError('无涨跌幅列')
+                    else:
+                        raise ValueError('行情无数据')
             except Exception:
                 st.warning('涨跌家数加载失败，使用演示数据')
                 fig = go.Figure(layout=_DARK_LAYOUT)
@@ -1966,7 +2242,22 @@ elif page == '📡 另类数据仪表盘':
         except Exception:
             pass
 
-        st.info('💡 资金流向是另类数据的核心维度: 北向资金/概念板块资金/大单交易可捕捉主力动向')
+        # 龙虎榜
+        try:
+            from features.extended_data_sources import fetch_lhb_summary
+            lhb_res = fetch_lhb_summary()
+            if lhb_res.ok and lhb_res.data is not None and len(lhb_res.data) > 0:
+                st.markdown('#### 🐉 今日龙虎榜')
+                st.caption(f'数据源: {lhb_res.source}')
+                display_cols = [c for c in lhb_res.data.columns if any(k in str(c) for k in ['代码', '名称', '涨跌幅', '净买', '机构', '席位'])]
+                st.dataframe(
+                    lhb_res.data[display_cols].head(20) if display_cols else lhb_res.data.head(20),
+                    use_container_width=True, hide_index=True,
+                )
+        except Exception:
+            pass
+
+        st.info('💡 资金流向是另类数据的核心维度: 北向资金/概念板块资金/大单交易/龙虎榜可捕捉主力动向')
 
     # ========== Tab3: 产业链传导与机构行为 ==========
     with tab3:
@@ -2064,23 +2355,32 @@ elif page == '📡 另类数据仪表盘':
         col3, col4 = st.columns(2)
 
         with col3:
-            # 行业板块资金流向
+            # 行业板块资金流向（SQLite / extended 优先，避免 akshare 阻塞）
+            st.markdown('#### 🏢 行业板块资金流向 TOP10')
+            df_industry = None
             try:
-                df_industry = ak.stock_fund_flow_industry(symbol='即时')
+                from features.market_data_hub import get_sector_flow_top
+                df_industry = get_sector_flow_top(10)
+            except Exception:
+                pass
+            try:
+                if df_industry is None or len(df_industry) == 0:
+                    df_industry = ak.stock_fund_flow_industry(symbol='即时')
                 if df_industry is not None and len(df_industry) > 0:
-                    st.markdown('#### 🏢 行业板块资金流向 TOP10')
-                    name_col = [c for c in df_industry.columns if '行业' in c or '名称' in c or '板块' in c]
-                    flow_col = [c for c in df_industry.columns if '流入' in c or '净买' in c or '主力' in c]
+                    name_col = [c for c in df_industry.columns if '行业' in c or '名称' in c or '板块' in c or c == '名称']
+                    flow_col = [c for c in df_industry.columns if '流入' in c or '净买' in c or '主力' in c or c == '净流入']
                     if name_col and flow_col:
-                        df_ind_top = df_industry.head(10)
-                        fig = go.Figure(layout=_DARK_LAYOUT)
+                        df_ind_top = df_industry.head(10).copy()
                         y_data = pd.to_numeric(df_ind_top[flow_col[0]], errors='coerce').fillna(0)
+                        if y_data.abs().max() > 1e6:
+                            y_data = y_data / 1e8
+                        fig = go.Figure(layout=_DARK_LAYOUT)
                         colors = [_BRAND['neon_cyan'] if v >= 0 else '#FF4D6A' for v in y_data]
                         fig.add_trace(go.Bar(x=y_data, y=df_ind_top[name_col[0]], orientation='h',
                                              marker_color=colors, name='主力净流入'))
                         fig.update_layout(title='行业主力资金流向 TOP10', yaxis_title='',
                                           height=380, yaxis={'categoryorder': 'total ascending'},
-                                          xaxis_title='净流入金额')
+                                          xaxis_title='净流入(亿)')
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.dataframe(df_industry.head(10), use_container_width=True, hide_index=True)
@@ -2127,6 +2427,21 @@ elif page == '📡 另类数据仪表盘':
                 st.plotly_chart(fig, use_container_width=True)
 
         st.info('💡 产业链传导是另类数据的差异化维度: 期货价差反映供需预期, 机构调研揭示关注方向, 质押风险预警系统性风险')
+
+    # ========== Tab4: 舆情与另类数据扩展 ==========
+    with tab4:
+        st.markdown('### 📰 舆情 · 大宗 · 研报 · 卫星指数')
+        st.caption('按需加载扩展维度，含舆情新闻、大宗折溢价、机构研报与产经活动代理指数')
+
+        if st.button('🔄 加载扩展另类数据', type='primary', key='alt_extras_load_btn'):
+            st.session_state['alt_extras_loaded'] = True
+
+        if st.session_state.get('alt_extras_loaded'):
+            from features.alternative_data_enriched import render_alt_data_extras
+            with st.spinner('正在聚合舆情、大宗、研报与另类指数...'):
+                render_alt_data_extras(st, go, _BRAND, _DARK_LAYOUT)
+        else:
+            st.info('💡 点击上方按钮加载扩展另类数据模块（新闻舆情、大宗交易、研报速览、卫星/夜光产经指数）')
 
 # ============== 页面：量化策略回测 ==============
 elif page == '📈 量化策略回测':
@@ -2181,13 +2496,13 @@ elif page == '📈 量化策略回测':
 
     col_run, col_reset = st.columns([1, 5])
     with col_run:
-        run_btn = st.button('🚀 运行回测', type='primary', width='stretch')
+        run_btn = st.button('🚀 运行回测', type='primary', use_container_width=True)
 
     if run_btn:
         try:
           with st.spinner(f'正在加载 {index_choice} 数据 + 计算 {strategy_choice} 回测...'):
             symbol_map = {'沪深300': 'sh000300', '中证500': 'sh000905', '创业板指': 'sz399006'}
-            df_raw = load_index(symbol_map[index_choice])
+            df_raw = load_index_slow(symbol_map[index_choice])
             if df_raw is None or len(df_raw) == 0:
                 raise RuntimeError(f'{index_choice} 数据加载失败, 请检查网络后重试')
             bt_df = df_raw[df_raw['date'] >= pd.to_datetime(start_date)].copy()
@@ -2362,7 +2677,7 @@ elif page == '🔬 因子挖掘与IC测试':
                                         ic_data = {}
                                         for fc in factor_cols:
                                             if result_df[fc].notna().sum() > 10:
-                                                fwd_ret = result_df['close'].pct_change(5).shift(-5)
+                                                fwd_ret = result_df.groupby('stock')['close'].transform(lambda x: x.pct_change(5).shift(-5))
                                                 valid = pd.DataFrame({'factor': result_df[fc], 'return': fwd_ret}).dropna()
                                                 if len(valid) > 20:
                                                     ic_data[fc] = tester.compute_ic(valid['factor'], valid['return'])
@@ -2421,21 +2736,21 @@ elif page == '🔬 因子挖掘与IC测试':
                     with st.spinner('正在运行IC测试...'):
                         try:
                             tester = FactorICTester()
-                            # 使用演示数据计算 IC
                             from features.qlib_integration import generate_demo_data
                             demo_df = generate_demo_data(n_days=ic_period, n_stocks=10)
-                            # 构造因子值和远期收益
-                            factor_values = demo_df.pivot(index='date', columns='stock', values='close').pct_change(20).stack()
-                            factor_values.name = 'factor'
-                            forward_returns = demo_df.pivot(index='date', columns='stock', values='close').pct_change(5).shift(-5).stack()
-                            forward_returns.name = 'return'
-                            # 计算单期 IC
-                            ic_val = tester.compute_ic(factor_values, forward_returns)
-                            # 计算 IC 序列
+                            demo_df = demo_df.sort_values(['stock', 'date']).reset_index(drop=True)
+                            demo_df['factor'] = demo_df.groupby('stock')['close'].transform(
+                                lambda x: x.pct_change(20)
+                            )
+                            demo_df['return'] = demo_df.groupby('stock')['close'].transform(
+                                lambda x: x.pct_change(5).shift(-5)
+                            )
+                            merged_ic = demo_df[['date', 'factor', 'return']].dropna()
+                            ic_val = tester.compute_ic(merged_ic['factor'], merged_ic['return'])
                             ic_series = tester.compute_ic_series(
-                                factor_values.to_frame('factor'),
-                                forward_returns.to_frame('return'),
-                                periods=20
+                                merged_ic[['date', 'factor']],
+                                merged_ic[['date', 'return']],
+                                periods=20,
                             )
                             # IC 汇总统计
                             ic_stats = tester.ic_summary(ic_series)
@@ -2728,9 +3043,10 @@ elif page == '📡 信号验证中心':
                         # 生成演示信号和价格数据
                         from features.qlib_integration import generate_demo_data
                         demo_df = generate_demo_data(n_days=verify_period, n_stocks=5)
-                        # 构造信号数据 (使用动量因子作为信号)
                         signal_df = demo_df[['date', 'stock', 'close']].copy()
-                        signal_df['signal'] = demo_df.groupby('stock')['close'].pct_change(20).values
+                        signal_df['signal'] = demo_df.groupby('stock')['close'].transform(
+                            lambda x: x.pct_change(20)
+                        )
                         price_df = demo_df[['date', 'stock', 'close']].copy()
                         verify_result = verifier.verify_signal(signal_df, price_df, method='ic')
                     else:
@@ -2755,7 +3071,13 @@ elif page == '📡 信号验证中心':
                         sv_result = None
 
                     if verify_result or sv_result:
-                        result = verify_result or sv_result or {}
+                        qlib_res = verify_result or {}
+                        macro_res = sv_result or {}
+                        # 优先采用非零、更完整的验证结果
+                        if macro_res and abs(macro_res.get('ic', 0)) >= abs(qlib_res.get('ic', 0)):
+                            result = {**qlib_res, **macro_res}
+                        else:
+                            result = {**macro_res, **qlib_res}
 
                         # 验证指标
                         c1, c2, c3, c4 = st.columns(4)
@@ -2844,7 +3166,9 @@ elif page == '🔍 语义检索':
             else:
                 with st.spinner('正在语义检索...'):
                     try:
-                        vector_store = SentimentVectorStore()
+                        if 'semantic_vector_store' not in st.session_state:
+                            st.session_state.semantic_vector_store = SentimentVectorStore()
+                        vector_store = st.session_state.semantic_vector_store
                         # V3.13: 优先加载真实新闻数据, 回退到 demo 文档
                         if len(getattr(vector_store, 'documents', [])) == 0:
                             real_docs = []
@@ -2886,14 +3210,14 @@ elif page == '🔍 语义检索':
                         # V3.13: 按数据源过滤
                         results = vector_store.search(query=search_query, top_k=search_top_k * 2 if search_source else search_top_k)
 
-                        # 按数据源过滤
+                        # 按数据源过滤（保留未标注来源的结果）
                         if search_source and results:
                             filtered_results = []
                             for item in results:
                                 src = item.get('source', '') if isinstance(item, dict) else getattr(item, 'source', '')
-                                if src in search_source:
+                                if not src or src in search_source or src == 'unknown':
                                     filtered_results.append(item)
-                            results = filtered_results[:search_top_k]
+                            results = filtered_results[:search_top_k] if filtered_results else results[:search_top_k]
 
                         if results:
                             st.success(f'✅ 找到 {len(results)} 条相关结果')
@@ -3129,13 +3453,16 @@ elif page == '📊 行业分析':
     with fund_col2:
         st.markdown('#### 💰 板块资金流')
         try:
-            df_sector = ak.stock_sector_fund_flow_rank(indicator='今日', sector_type='行业资金流')
+            from features.market_data_hub import get_sector_flow_top
+            df_sector = get_sector_flow_top(3)
+            if df_sector is None or len(df_sector) == 0:
+                df_sector = ak.stock_sector_fund_flow_rank(indicator='今日', sector_type='行业资金流')
             if df_sector is not None and len(df_sector) > 0:
                 top3 = df_sector.head(3)
                 top3_html = ""
                 for _, row in top3.iterrows():
-                    name = row.get('名称', row.get('板块名称', 'N/A'))
-                    pct = row.get('今日涨跌幅', row.get('涨跌幅', 0))
+                    name = row.get('名称', row.get('板块名称', row.get('sector_name', row.get('板块', 'N/A'))))
+                    pct = row.get('今日涨跌幅', row.get('涨跌幅', row.get('change_pct', 0)))
                     if not isinstance(pct, (int, float)):
                         try:
                             pct = float(pct)
@@ -3207,57 +3534,19 @@ elif page == '📊 行业分析':
     st.markdown('#### 📈 北向资金历史趋势 (近 30 日)')
     north_chart_rendered = False
     try:
-        df_north = None
-        # Try SQLite first
-        if HAS_SQLITE_DB:
-            try:
-                df_north = _qi_db.get_northbound_flow(days=30)
-            except Exception as e:
-                logger.warning(f'北向资金 SQLite 读取失败: {e}')
-        # Try 东方财富直连
-        if df_north is None or len(df_north) == 0:
-            try:
-                from features.eastmoney_direct import fetch_northbound_flow
-                df_north = fetch_northbound_flow(days=30)
-                if df_north is not None and len(df_north) > 0 and HAS_SQLITE_DB:
-                    try:
-                        _qi_db.upsert_northbound_flow(df_north)
-                    except Exception:
-                        pass
-            except Exception as e:
-                logger.warning(f'北向资金东方财富直连失败: {e}')
-        # Fallback to akshare
-        if df_north is None or len(df_north) == 0:
-            try:
-                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-            except Exception as e:
-                logger.warning(f'北向资金 akshare 主接口失败: {e}')
+        df_north = _fetch_northbound_df_cached(days=30)
         if df_north is not None and len(df_north) > 0:
             df_north_recent = df_north.tail(30).copy()
-            # 智能识别日期列和净流入列
-            date_col = [c for c in df_north_recent.columns if '日期' in c or 'date' in c.lower()]
-            flow_col = [c for c in df_north_recent.columns if '净买' in c or '净流入' in c]
-            if not flow_col:
-                flow_col = [c for c in df_north_recent.columns if '成交' in c]
-            if not flow_col:
-                # 取最后一个数值列作为净流入
-                for c in df_north_recent.columns:
-                    if df_north_recent[c].dtype in ['float64', 'int64', 'float32', 'int32']:
-                        flow_col = [c]
-                        break
-            if not date_col:
-                # 用索引作为日期
-                df_north_recent['_date'] = df_north_recent.index.astype(str)
-                date_col = ['_date']
-            if flow_col:
-                df_north_recent[flow_col[0]] = pd.to_numeric(df_north_recent[flow_col[0]], errors='coerce')
-                flow_vals = df_north_recent[flow_col[0]].dropna()
-                # 判断单位：如果值很大(>1e6)则转为亿元
+            date_col, flow_col = _northbound_columns(df_north_recent)
+            if date_col and flow_col:
+                df_north_recent[flow_col] = pd.to_numeric(df_north_recent[flow_col], errors='coerce')
+                flow_vals = df_north_recent[flow_col].dropna()
                 flow_yi = flow_vals / 1e8 if flow_vals.abs().max() > 1e6 else flow_vals
+                x_dates = pd.to_datetime(df_north_recent[date_col], errors='coerce')
                 fig = go.Figure()
                 colors = ['#00C896' if v > 0 else '#FF4D4F' for v in flow_yi]
                 fig.add_trace(go.Bar(
-                    x=df_north_recent[date_col[0]].iloc[:len(flow_yi)],
+                    x=x_dates.iloc[:len(flow_yi)],
                     y=flow_yi,
                     name='净流入(亿)',
                     marker_color=colors,
@@ -3312,7 +3601,7 @@ elif page == '📊 行业分析':
 # ============== 页面：智能选股 ==============
 elif page == '🎯 智能选股':
     st.markdown('# 🎯 智能选股')
-    st.markdown('**自然语言选股 + 多因子评分 + 个股对比 — 专业级智能选股引擎**')
+    st.markdown(f'**{PAGE_SUBTITLES["screener"]}**')
     st.markdown('---')
 
     tab1, tab2, tab3 = st.tabs(['💬 自然语言选股', '📊 多因子评分', '⚖️ 个股对比'])
@@ -3328,65 +3617,74 @@ elif page == '🎯 智能选股':
         )
 
         if st.button('🔍 开始筛选', type='primary', key='screen_btn') and query:
-            with st.spinner('AI 解析筛选条件 + 加载数据...'):
-                try:
-                    # V3.15: 使用 get_llm_config() 获取配置 (之前从 session_state 取可能为空)
-                    llm_config = get_llm_config()
-                    screener = NaturalLanguageScreener(cache_manager=st.session_state.get('data_cache_mgr'), llm_config=llm_config)
-                    # 加载股票池
+            pool = None
+            results = None
+            try:
+                with st.spinner('加载股票池 + 解析条件（通常 5–15 秒）...'):
                     pool = load_stock_pool()
                     if pool is None or pool.empty:
-                        st.error('股票池数据加载失败')
+                        st.error('股票池数据加载失败，请稍后重试')
                     else:
-                        # V3.14: 直接传 universe 参数, 避免cache注入失败
+                        llm_config = get_llm_config()
+                        screener = NaturalLanguageScreener(
+                            cache_manager=st.session_state.get('data_cache_mgr'),
+                            llm_config=llm_config,
+                        )
                         results = screener.screen(query, top_n=20, universe=pool)
-                        if results and results.get('results') is not None and len(results['results']) > 0:
-                            st.success(f'✅ 筛选完成, 找到 {results["total_matched"]} 只符合条件的股票, 展示 Top {len(results["results"])}')
-                            # 显示解析出的筛选条件
-                            filters = results.get('filters', {})
-                            if filters:
-                                filter_tags = []
-                                for k, v in filters.items():
-                                    if k == 'keywords':
-                                        filter_tags.append(f"行业: {', '.join(v)}")
-                                    elif k == 'pe_max':
-                                        filter_tags.append(f"PE ≤ {v}")
-                                    elif k == 'pe_min':
-                                        filter_tags.append(f"PE ≥ {v}")
-                                    elif k == 'roe_min':
-                                        filter_tags.append(f"ROE ≥ {v}%")
-                                    elif k == 'price_min':
-                                        filter_tags.append(f"价格 ≥ {v}")
-                                    elif k == 'price_max':
-                                        filter_tags.append(f"价格 ≤ {v}")
-                                    elif k == 'market_cap_min':
-                                        filter_tags.append(f"市值 ≥ {v}亿")
-                                    elif k == 'market_cap_max':
-                                        filter_tags.append(f"市值 ≤ {v}亿")
-                                    elif k == 'pct_change_min':
-                                        filter_tags.append(f"涨幅 ≥ {v}%")
-                                    elif k == 'pct_change_max':
-                                        filter_tags.append(f"涨幅 ≤ {v}%")
-                                    elif k == 'revenue_growth_min':
-                                        filter_tags.append(f"营收增长 ≥ {v}%")
-                                if filter_tags:
-                                    st.markdown('**🧠 解析条件**: ' + ' | '.join(filter_tags))
-                            # 展示结果表格
-                            result_df = results['results'].copy()
-                            display_cols = [c for c in ['代码', '名称', '最新价', '涨跌幅', '换手率', '市盈率-动态', '市净率', '总市值'] if c in result_df.columns]
-                            if display_cols:
-                                st.dataframe(result_df[display_cols], use_container_width=True, hide_index=True)
-                            else:
-                                st.dataframe(result_df, use_container_width=True, hide_index=True)
-                            # 显示摘要
-                            if results.get('summary'):
-                                st.markdown(results['summary'])
-                        else:
-                            st.warning('未找到符合条件的股票, 请调整筛选条件')
-                            if results and results.get('summary'):
-                                st.markdown(results['summary'])
-                except Exception as e:
-                    st.error(f'筛选失败: {e}')
+
+                if pool is not None and not pool.empty and results:
+                    matched = results.get('total_matched', 0)
+                    result_df = results.get('results')
+                    if result_df is not None and len(result_df) > 0:
+                        st.success(
+                            f'✅ 找到 {matched} 只符合条件的股票，展示 Top {len(result_df)}'
+                        )
+                    else:
+                        st.warning('未找到完全符合条件的股票，已展示放宽建议')
+
+                    filters = results.get('filters', {})
+                    if filters:
+                        filter_tags = []
+                        for k, v in filters.items():
+                            if k == 'keywords':
+                                filter_tags.append(f"行业: {', '.join(v)}")
+                            elif k == 'pe_max':
+                                filter_tags.append(f"PE ≤ {v}")
+                            elif k == 'pe_min':
+                                filter_tags.append(f"PE ≥ {v}")
+                            elif k == 'roe_min':
+                                filter_tags.append(f"ROE ≥ {v}%")
+                            elif k == 'price_min':
+                                filter_tags.append(f"价格 ≥ {v}")
+                            elif k == 'price_max':
+                                filter_tags.append(f"价格 ≤ {v}")
+                            elif k == 'market_cap_min':
+                                filter_tags.append(f"市值 ≥ {v}亿")
+                            elif k == 'market_cap_max':
+                                filter_tags.append(f"市值 ≤ {v}亿")
+                            elif k == 'pct_change_min':
+                                filter_tags.append(f"涨幅 ≥ {v}%")
+                            elif k == 'pct_change_max':
+                                filter_tags.append(f"涨幅 ≤ {v}%")
+                            elif k == 'revenue_growth_min':
+                                filter_tags.append(f"营收增长 ≥ {v}%")
+                        if filter_tags:
+                            st.markdown('**🧠 解析条件**: ' + ' | '.join(filter_tags))
+
+                    if result_df is not None and len(result_df) > 0:
+                        display_cols = [
+                            c for c in ['代码', '名称', '最新价', '涨跌幅', '换手率', '市盈率-动态', '市净率', '总市值']
+                            if c in result_df.columns
+                        ]
+                        st.dataframe(
+                            result_df[display_cols] if display_cols else result_df,
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    if results.get('summary'):
+                        st.markdown(results['summary'])
+            except Exception as e:
+                st.error(f'筛选失败: {e}')
 
     with tab2:
         st.markdown('### 📊 多因子评分')
@@ -3467,7 +3765,7 @@ elif page == '🎯 智能选股':
 # ============== 页面：个股分析 ==============
 elif page == '🔍 个股分析':
     st.markdown('# 🔍 个股分析')
-    st.markdown('**个股基本面 · SHAP解释 · AI问答 · 报告生成 — 一站式个股深度分析**')
+    st.markdown(f'**{PAGE_SUBTITLES["individual"]}**')
     st.markdown('---')
 
     # 股票代码/名称输入
@@ -3480,7 +3778,6 @@ elif page == '🔍 个股分析':
 
     stock_input = st.text_input(
         '🔎 输入股票代码或名称',
-        value=hot_stock_clicked,
         placeholder='例如: 600519 或 贵州茅台',
         key='individual_stock_input'
     )
@@ -3489,48 +3786,26 @@ elif page == '🔍 个股分析':
     stock_code = ''
     stock_name = ''
     if stock_input.strip():
-        # 尝试从A股实时行情中匹配
-        try:
-            df_spot = safe_get_spot_df()
-            if df_spot is not None and len(df_spot) > 0:
-                code_col = [c for c in df_spot.columns if '代码' in c]
-                name_col = [c for c in df_spot.columns if '名称' in c]
-                if code_col and name_col:
-                    # 先按代码精确匹配
-                    mask = df_spot[code_col[0]].astype(str).str.strip() == stock_input.strip()
-                    if mask.any():
-                        stock_code = df_spot.loc[mask, code_col[0]].iloc[0]
-                        stock_name = df_spot.loc[mask, name_col[0]].iloc[0]
-                    else:
-                        # 按名称模糊匹配
-                        mask = df_spot[name_col[0]].astype(str).str.contains(stock_input.strip(), na=False)
-                        if mask.any():
-                            stock_code = df_spot.loc[mask, code_col[0]].iloc[0]
-                            stock_name = df_spot.loc[mask, name_col[0]].iloc[0]
-        except Exception:
-            pass
-
-        # 如果无法从实时行情获取，直接使用输入值
-        if not stock_code:
-            # 判断输入是代码还是名称
-            if stock_input.strip().isdigit():
-                stock_code = stock_input.strip()
-                stock_name = stock_input.strip()
-            else:
-                stock_code = ''
-                stock_name = stock_input.strip()
+        stock_code, stock_name = lookup_stock_code_fast(stock_input)
+        if not stock_code and stock_input.strip().isdigit():
+            stock_code = stock_input.strip()
+            stock_name = stock_input.strip()
+        elif not stock_code:
+            stock_name = stock_input.strip()
 
     if stock_code:
         st.markdown(f'### 📊 {stock_name} ({stock_code}) 深度分析')
 
-        tab_fundamental, tab_shap, tab_ai, tab_report = st.tabs([
-            '📋 基本面', '🧠 SHAP解释', '🤖 AI问答', '📄 报告生成'
-        ])
+        analysis_tab = st.radio(
+            '选择分析模块',
+            ['📋 基本面', '🧠 SHAP解释', '🤖 AI问答', '📄 报告生成'],
+            horizontal=True,
+            key='individual_analysis_tab',
+        )
 
-        # ========== Tab 1: 基本面 ==========
-        with tab_fundamental:
+        if analysis_tab == '📋 基本面':
             st.markdown('#### 📋 基本面指标')
-            st.caption('数据源: 东方财富 (akshare)')
+            st.caption('数据源: SQLite 缓存 → 东方财富直连（UI 不调用 Baostock）')
 
             # 获取个股信息
             info_dict = {}
@@ -3542,7 +3817,7 @@ elif page == '🔍 个股分析':
 
             # 2. 实时行情数据
             try:
-                df_spot = safe_get_spot_df()
+                df_spot = safe_get_spot_df_fast()
                 if df_spot is not None and len(df_spot) > 0:
                     code_col = [c for c in df_spot.columns if '代码' in c]
                     if code_col:
@@ -3554,13 +3829,11 @@ elif page == '🔍 个股分析':
             except Exception as e:
                 logger.warning(f'实时行情加载失败: {e}')
 
-            # 3. 历史K线数据: SQLite → 东方财富直连 → akshare
+            # 3. 历史K线: SQLite → 东方财富直连（UI 不调用 Baostock/akshare）
             try:
-                # 3a. Try SQLite first
                 if HAS_SQLITE_DB:
                     hist_data = _qi_db.get_stock_history(stock_code, days=365)
                     if hist_data is not None and len(hist_data) > 0:
-                        # Rename columns to Chinese
                         col_rename = {'date': '日期', 'open': '开盘', 'close': '收盘',
                                       'high': '最高', 'low': '最低', 'volume': '成交量',
                                       'amount': '成交额', 'pct_change': '涨跌幅', 'turnover': '换手率'}
@@ -3568,53 +3841,19 @@ elif page == '🔍 个股分析':
                         if '日期' in hist_data.columns:
                             hist_data['日期'] = pd.to_datetime(hist_data['日期'])
 
-                # 3b. Try 东方财富直连
                 if hist_data is None or len(hist_data) == 0:
                     try:
                         from features.eastmoney_direct import fetch_stock_history
                         end_date = datetime.now().strftime('%Y%m%d')
-                        start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+                        start_date_hist = (datetime.now() - timedelta(days=90)).strftime('%Y%m%d')
                         hist_data = fetch_stock_history(stock_code, start_date_hist, end_date)
-                        if hist_data is not None and len(hist_data) > 0:
-                            # Write to SQLite cache
-                            if HAS_SQLITE_DB:
-                                try:
-                                    _qi_db.upsert_stock_history(stock_code, hist_data)
-                                except Exception:
-                                    pass
-                    except Exception as e:
-                        logger.warning(f'东方财富直连历史K线失败: {e}')
-
-                # 3c. Try Baostock (服务器环境可用)
-                if hist_data is None or len(hist_data) == 0:
-                    try:
-                        from features.eastmoney_direct import baostock_fetch_history
-                        hist_data = baostock_fetch_history(stock_code, days=365)
-                        if hist_data is not None and len(hist_data) > 0:
-                            # Write to SQLite cache
-                            if HAS_SQLITE_DB:
-                                try:
-                                    _qi_db.upsert_stock_history(stock_code, hist_data)
-                                except Exception:
-                                    pass
-                    except Exception as e:
-                        logger.warning(f'Baostock 历史K线失败: {e}')
-
-                # 3d. Try akshare
-                if hist_data is None or len(hist_data) == 0:
-                    end_date = datetime.now().strftime('%Y%m%d')
-                    start_date_hist = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
-                    hist_data = safe_akshare_call(ak.stock_zh_a_hist, symbol=stock_code, period='daily',
-                                                    start_date=start_date_hist, end_date=end_date,
-                                                    adjust='qfq')
-                    if hist_data is not None and len(hist_data) > 0:
-                        hist_data['日期'] = pd.to_datetime(hist_data['日期'])
-                        # Write to SQLite cache
-                        if HAS_SQLITE_DB:
+                        if hist_data is not None and len(hist_data) > 0 and HAS_SQLITE_DB:
                             try:
                                 _qi_db.upsert_stock_history(stock_code, hist_data)
                             except Exception:
                                 pass
+                    except Exception as e:
+                        logger.warning(f'东方财富直连历史K线失败: {e}')
             except Exception as e:
                 logger.warning(f'历史K线加载失败: {e}')
 
@@ -3707,15 +3946,19 @@ elif page == '🔍 个股分析':
                 st.plotly_chart(fig, use_container_width=True)
                 st.plotly_chart(fig_vol, use_container_width=True)
 
-            # 财务指标 (尝试获取)
+            # 财务指标（按需加载，避免阻塞页面）
             st.markdown('##### 💰 财务指标')
             fin_data = None
-            try:
-                df_fin = ak.stock_financial_abstract_ths(symbol=stock_code)
-                if df_fin is not None and len(df_fin) > 0:
-                    fin_data = df_fin
-            except Exception:
-                pass
+            if st.button('📥 加载财务数据', key=f'load_fin_{stock_code}'):
+                with st.spinner('加载中...'):
+                    try:
+                        df_fin = ak.stock_financial_abstract_ths(symbol=stock_code)
+                        if df_fin is not None and len(df_fin) > 0:
+                            fin_data = df_fin
+                            st.session_state[f'fin_data_{stock_code}'] = df_fin
+                    except Exception:
+                        pass
+            fin_data = st.session_state.get(f'fin_data_{stock_code}')
 
             if fin_data is not None and len(fin_data) > 0:
                 display_cols = [c for c in fin_data.columns if c in ['报告期', '营业总收入', '净利润', '毛利率', '净利率', '净资产收益率', '总资产收益率']]
@@ -3725,18 +3968,19 @@ elif page == '🔍 个股分析':
                     st.dataframe(fin_data.head(8), use_container_width=True, hide_index=True)
             else:
                 st.info('💡 财务数据暂不可用，以下为演示数据')
-                demo_fin = pd.DataFrame({
-                    '报告期': ['2025Q1', '2024Q4', '2024Q3', '2024Q2'],
-                    '营业总收入': ['485亿', '1,741亿', '1,253亿', '834亿'],
-                    '净利润': ['242亿', '862亿', '608亿', '416亿'],
-                    '毛利率': ['91.8%', '91.5%', '91.3%', '91.2%'],
-                    '净利率': ['49.9%', '49.5%', '48.5%', '49.9%'],
-                    'ROE': ['9.8%', '35.2%', '24.8%', '17.0%'],
-                })
-                st.dataframe(demo_fin, use_container_width=True, hide_index=True)
+                fin_key = f'demo_fin_{stock_code}'
+                if fin_key not in st.session_state:
+                    st.session_state[fin_key] = pd.DataFrame({
+                        '报告期': ['2025Q1', '2024Q4', '2024Q3', '2024Q2'],
+                        '营业总收入': ['485亿', '1,741亿', '1,253亿', '834亿'],
+                        '净利润': ['242亿', '862亿', '608亿', '416亿'],
+                        '毛利率': ['91.8%', '91.5%', '91.3%', '91.2%'],
+                        '净利率': ['49.9%', '49.5%', '48.5%', '49.9%'],
+                        'ROE': ['9.8%', '35.2%', '24.8%', '17.0%'],
+                    })
+                st.dataframe(st.session_state[fin_key], use_container_width=True, hide_index=True)
 
-        # ========== Tab 2: SHAP解释 ==========
-        with tab_shap:
+        elif analysis_tab == '🧠 SHAP解释':
             st.markdown('#### 🧠 SHAP 可解释性分析')
             st.caption('AI选股模型对该股的因子贡献度解释')
 
@@ -3749,8 +3993,7 @@ elif page == '🔍 个股分析':
             except Exception as e:
                 st.error(f'❌ SHAP运行错误: {type(e).__name__}: {str(e)[:300]}')
 
-        # ========== Tab 3: AI问答 ==========
-        with tab_ai:
+        elif analysis_tab == '🤖 AI问答':
             st.markdown('#### 🤖 AI 投研问答')
             st.caption(f'针对 {stock_name} 的智能分析')
 
@@ -3786,7 +4029,7 @@ elif page == '🔍 个股分析':
                             pass
                     # Also get spot data for this stock
                     try:
-                        spot_df = safe_get_spot_df()
+                        spot_df = safe_get_spot_df_fast()
                         if spot_df is not None and len(spot_df) > 0:
                             code_col = [c for c in spot_df.columns if '代码' in c]
                             if code_col:
@@ -3833,8 +4076,7 @@ elif page == '🔍 个股分析':
 
             st.caption('⚠️ AI分析仅供参考，不构成投资建议')
 
-        # ========== Tab 4: 报告生成 ==========
-        with tab_report:
+        elif analysis_tab == '📄 报告生成':
             st.markdown('#### 📄 报告生成')
             st.caption(f'为 {stock_name} 生成深度投研报告')
 
@@ -3870,7 +4112,7 @@ elif page == '🔍 个股分析':
         cols = st.columns(3)
         for i, (code, name) in enumerate(hot_stocks):
             with cols[i % 3]:
-                if st.button(f'📌 {name} ({code})', key=f'hot_stock_{code}', width='stretch'):
+                if st.button(f'📌 {name} ({code})', key=f'hot_stock_{code}', use_container_width=True):
                     # Can't modify widget key after instantiation, use callback key
                     st.session_state['_hot_stock_code'] = code
                     st.rerun()
@@ -3878,7 +4120,7 @@ elif page == '🔍 个股分析':
 # ============== 页面：智能盯盘 ==============
 elif page == '📡 智能盯盘':
     st.markdown('# 📡 智能盯盘')
-    st.markdown('**7×24h 市场监控 + 智能预警 + 北向资金 — 专业级智能盯盘系统**')
+    st.markdown(f'**{PAGE_SUBTITLES["monitor"]}**')
     st.markdown('---')
 
     # 市场大盘
@@ -3964,61 +4206,38 @@ elif page == '📡 智能盯盘':
     st.markdown('### 🌐 北向资金追踪')
     north_loaded = False
     try:
-        df_north = None
-        # Try SQLite first
-        if HAS_SQLITE_DB:
-            try:
-                df_north = _qi_db.get_northbound_flow(days=30)
-            except Exception as e:
-                logger.warning(f'北向资金 SQLite 读取失败: {e}')
-        # Try 东方财富直连
-        if df_north is None or len(df_north) == 0:
-            try:
-                from features.eastmoney_direct import fetch_northbound_flow
-                df_north = fetch_northbound_flow(days=30)
-                if df_north is not None and len(df_north) > 0 and HAS_SQLITE_DB:
-                    try:
-                        _qi_db.upsert_northbound_flow(df_north)
-                    except Exception:
-                        pass
-            except Exception as e:
-                logger.warning(f'北向资金东方财富直连失败: {e}')
-        # Fallback to akshare
-        if df_north is None or len(df_north) == 0:
-            try:
-                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
-            except Exception as e:
-                logger.warning(f'北向资金 akshare 主接口失败: {e}')
+        df_north = _fetch_northbound_df_cached(days=30)
         if df_north is not None and len(df_north) > 0:
             north_loaded = True
-            # 提取最新一天数据
             latest = df_north.iloc[-1]
-            net_col = None
-            for c in ['当日净流入', '当日资金流入']:
-                if c in df_north.columns:
-                    net_col = c
-                    break
-            if net_col is None:
-                net_col = df_north.columns[-1]
-            net_val = pd.to_numeric(latest[net_col], errors='coerce')
-            if pd.notna(net_val):
+            date_col, net_col = _northbound_columns(df_north)
+            net_val = pd.to_numeric(latest[net_col], errors='coerce') if net_col else None
+            if net_col and pd.notna(net_val):
+                if abs(net_val) > 1e6:
+                    abs_yi = abs(net_val) / 1e8
+                else:
+                    abs_yi = abs(net_val)
                 direction = '净流入' if net_val >= 0 else '净流出'
-                abs_yi = abs(net_val) / 1e8
                 col_nb1, col_nb2, col_nb3 = st.columns(3)
                 with col_nb1:
                     st.metric('今日北向资金', f'{direction}', f'{abs_yi:.2f} 亿')
                 with col_nb2:
-                    # 近5日累计
-                    recent5 = df_north.tail(5)[net_col].astype(float)
-                    sum5 = recent5.sum() / 1e8
+                    recent5 = pd.to_numeric(df_north.tail(5)[net_col], errors='coerce').fillna(0)
+                    sum5 = recent5.sum() / (1e8 if recent5.abs().max() > 1e6 else 1)
                     st.metric('近5日累计', f'{sum5:+.2f} 亿')
                 with col_nb3:
-                    # 近20日累计
-                    recent20 = df_north.tail(20)[net_col].astype(float)
-                    sum20 = recent20.sum() / 1e8
+                    recent20 = pd.to_numeric(df_north.tail(20)[net_col], errors='coerce').fillna(0)
+                    sum20 = recent20.sum() / (1e8 if recent20.abs().max() > 1e6 else 1)
                     st.metric('近20日累计', f'{sum20:+.2f} 亿')
-            # 显示近期明细
-            st.dataframe(df_north.tail(10), use_container_width=True, hide_index=True)
+            display_df = df_north.tail(10).copy()
+            if date_col and net_col:
+                display_df = display_df[[date_col, net_col]].copy()
+                display_df.columns = ['日期', '净流入']
+                display_df['净流入'] = pd.to_numeric(display_df['净流入'], errors='coerce')
+                if display_df['净流入'].abs().max() > 1e6:
+                    display_df['净流入(亿元)'] = (display_df['净流入'] / 1e8).round(2)
+                    display_df = display_df.drop(columns=['净流入'])
+            st.dataframe(display_df, use_container_width=True, hide_index=True, key='monitor_northbound_table')
         else:
             north_loaded = False
     except Exception as e:
@@ -4162,15 +4381,15 @@ elif page == '📈 模拟交易':
                 created_at=datetime.now().isoformat(),
             )
             # 风控检查
-            _pv = 1000000.0
+            _pv = 1_000_000.0
             if 'portfolio_mgr' in st.session_state:
                 try:
                     _port = st.session_state.portfolio_mgr.get_portfolio('我的组合')
                     if _port and _port.total_market_value > 0:
-                        _pv = _port.total_market_value
+                        _pv = max(_port.total_market_value, 1_000_000.0)
                 except Exception:
                     pass
-            risk_check = risk.check_order(o_order, portfolio_value=_pv)
+            risk_check = risk.check_order(o_order, portfolio_value=_pv, demo_mode=True)
             if not risk_check.get('passed', False):
                 st.error(f'❌ 风控拒绝: {risk_check.get("message", "未知")}')
             else:
@@ -4264,30 +4483,23 @@ elif page == '⚡ 智能指令':
     with data_col1:
         # 北向资金
         try:
-            df_north = None
-            # Try SQLite first
-            if HAS_SQLITE_DB:
-                try:
-                    df_north = _qi_db.get_northbound_flow(days=10)
-                except Exception:
-                    pass
-            # Fallback to akshare
-            if df_north is None or len(df_north) == 0:
-                df_north = ak.stock_hsgt_north_net_flow_in_em(symbol='北向')
+            df_north = _fetch_northbound_df_cached(days=10)
             if df_north is not None and len(df_north) > 0:
-                date_col = [c for c in df_north.columns if '日期' in c or 'date' in c.lower()]
-                flow_col = [c for c in df_north.columns if '净流入' in c or '净买' in c]
+                date_col, flow_col = _northbound_columns(df_north)
                 if date_col and flow_col:
                     df_north_recent = df_north.tail(10)
-                    north_display = df_north_recent[[date_col[0], flow_col[0]]].copy()
+                    north_display = df_north_recent[[date_col, flow_col]].copy()
                     north_display.columns = ['日期', '净流入(亿元)']
                     north_display['净流入(亿元)'] = pd.to_numeric(north_display['净流入(亿元)'], errors='coerce')
+                    if north_display['净流入(亿元)'].abs().max() > 1e6:
+                        north_display['净流入(亿元)'] = (north_display['净流入(亿元)'] / 1e8).round(2)
                     st.markdown('#### 🌊 北向资金近10日')
-                    st.dataframe(north_display, use_container_width=True, hide_index=True)
+                    st.dataframe(north_display, use_container_width=True, hide_index=True, key='smart_cmd_north_df')
                 else:
-                    st.caption('北向资金列格式变化')
+                    st.caption('北向资金列格式变化，已切换演示数据')
+                    raise ValueError('column mismatch')
             else:
-                raise Exception('no data')
+                raise ValueError('no data')
         except Exception:
             st.markdown('#### 🌊 北向资金近10日 (演示)')
             _demo_north_df = pd.DataFrame({
@@ -4327,7 +4539,7 @@ elif page == '⚡ 智能指令':
     with rank_col1:
         st.markdown('#### 🔥 涨幅排行 TOP10')
         try:
-            df_spot = safe_get_spot_df()
+            df_spot = safe_get_spot_df_fast()
             if df_spot is not None and len(df_spot) > 0:
                 chg_col = [c for c in df_spot.columns if '涨跌幅' in c]
                 name_col = [c for c in df_spot.columns if '名称' in c]
@@ -4530,13 +4742,3 @@ elif page == '⚙️ 管理后台':
         st.stop()
     from admin.dashboard import render_admin_dashboard
     render_admin_dashboard(_db)
-
-# ============== 页脚 ==============
-st.markdown('---')
-st.markdown(
-    '<p style="text-align: center; color: #999; font-size: 0.85rem;">'
-    '© 2026 慧点资本 (InsightQuant) | Fintech@外滩 第一届金融科技国际创新创业大赛<br/>'
-    '项目编号：2026FINTECH-FINT-0093 | 数据来源：akshare 公开数据接口'
-    '</p>',
-    unsafe_allow_html=True
-)

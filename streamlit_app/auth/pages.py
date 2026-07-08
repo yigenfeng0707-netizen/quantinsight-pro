@@ -146,7 +146,7 @@ def render_trial_gate(session_mgr, db):
 
     # Logout option
     st.markdown('---')
-    if st.button('🚪 退出登录', use_container_width=True):
+    if st.button('🚪 退出登录', use_container_width=True, key='trial_gate_logout'):
         session_mgr.logout(st.session_state)
         st.rerun()
 
@@ -192,6 +192,6 @@ def render_profile_page(session_mgr, db):
         st.markdown(f'- **最近登录**: {stats["last_login"][:16] if stats["last_login"] else "无记录"}')
 
     st.markdown('---')
-    if st.button('🚪 退出登录', use_container_width=True):
+    if st.button('🚪 退出登录', use_container_width=True, key='profile_logout'):
         session_mgr.logout(st.session_state)
         st.rerun()

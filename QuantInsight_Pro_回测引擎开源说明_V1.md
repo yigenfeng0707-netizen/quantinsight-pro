@@ -160,7 +160,7 @@ test_backtest_engine.py::test_compare_strategies       PASSED  [100%]
 
 ```bibtex
 @software{quantinsight_pro_2026,
-  author = {冯亦根, 薛永再, 黄成选, 冯思涵},
+  author = {冯亦根, 王宇寒, 官馨, 梁理智},
   title  = {QuantInsight Pro: AI-Driven Alternative Data Quant Investment Platform},
   year   = {2026},
   url    = {https://github.com/yigenfeng0707-netizen/quantinsight-pro},

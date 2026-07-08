@@ -1,0 +1,143 @@
+{
+  "baseUrl": "https://3blue1brownlab.cn",
+  "timestamp": "2026-07-07T12:14:23.052Z",
+  "pageTests": [
+    {
+      "page": "🏠 首页",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=541"
+    },
+    {
+      "page": "🤖 AI 投研问答",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=629"
+    },
+    {
+      "page": "🎯 智能选股",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=686"
+    },
+    {
+      "page": "🔍 个股分析",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=698"
+    },
+    {
+      "page": "📊 实时数据看板",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=502"
+    },
+    {
+      "page": "📡 智能盯盘",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=478"
+    },
+    {
+      "page": "💼 我的组合",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=492"
+    },
+    {
+      "page": "📈 模拟交易",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=607"
+    },
+    {
+      "page": "⚡ 智能指令",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=606"
+    },
+    {
+      "page": "📡 另类数据仪表盘",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=1006"
+    },
+    {
+      "page": "📈 量化策略回测",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=1058"
+    },
+    {
+      "page": "🔬 因子挖掘与IC测试",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=612"
+    },
+    {
+      "page": "🔄 宏观因子融合",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=652"
+    },
+    {
+      "page": "📡 信号验证中心",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=558"
+    },
+    {
+      "page": "🔍 语义检索",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=564"
+    },
+    {
+      "page": "📊 行业分析",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=437"
+    },
+    {
+      "page": "👤 个人中心",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=1040"
+    },
+    {
+      "page": "⚙️ 管理后台",
+      "status": "PASS",
+      "error": null,
+      "notes": "chars=669"
+    }
+  ],
+  "actionTests": [
+    {
+      "action": "智能选股-多因子评分",
+      "status": "PASS",
+      "error": null
+    },
+    {
+      "action": "量化回测-运行",
+      "status": "PASS",
+      "error": null
+    },
+    {
+      "action": "AI投研问答",
+      "status": "WARN",
+      "error": null
+    },
+    {
+      "action": "个股分析",
+      "status": "PASS",
+      "error": null
+    }
+  ],
+  "summary": {
+    "pages": 18,
+    "pagePass": 18,
+    "fail": 0,
+    "overall": "PASS"
+  },
+  "login": "PASS"
+}

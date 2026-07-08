@@ -1,4 +1,6 @@
 ---
+> **⚠️ 已弃用**: 本文档为 V1 早期版本, 团队信息已过时. 请以 [QuantInsight_Pro_BP_V2.md](QuantInsight_Pro_BP_V2.md) 为准 (AFAC 平台团队: 冯亦根/王宇寒/官馨/梁理智).
+
 # QuantInsight Pro - AI驱动的另类数据量化投研平台
 ## 商业计划书
 

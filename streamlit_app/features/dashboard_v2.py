@@ -43,19 +43,17 @@ from features.robust_utils import (
 
 def render_index_cards(macro_data: Dict):
     """大盘指数卡片（渐变+颜色编码）"""
-    sh = macro_data.get('sh_index', {'value': 0, 'change_pct': 0})
-    sz = macro_data.get('sz_index', {'value': 0, 'change_pct': 0})
-    cyb = macro_data.get('cyb_index', {'value': 0, 'change_pct': 0})
-
     cols = st.columns(3)
     indices = [
-        ('上证指数', sh, '🏛️', '#1F4E78'),
-        ('深证成指', sz, '🏢', '#2E86AB'),
-        ('创业板指', cyb, '🚀', '#D4AF37'),
+        ('sh_index', macro_data.get('sh_index', {'value': 0, 'change_pct': 0}), '🏛️', '#1F4E78'),
+        ('sz_index', macro_data.get('sz_index', {'value': 0, 'change_pct': 0}), '🏢', '#2E86AB'),
+        ('cyb_index', macro_data.get('cyb_index', {'value': 0, 'change_pct': 0}), '🚀', '#D4AF37'),
     ]
+    display_names = {'sh_index': '沪深300', 'sz_index': '中证500', 'cyb_index': '创业板指'}
 
-    for col, (name, data, icon, color) in zip(cols, indices):
+    for col, (key, data, icon, color) in zip(cols, indices):
         with col:
+            name = display_names.get(key, key)
             change = data.get('change_pct', 0)
             color_class = 'green' if change > 0 else 'red' if change < 0 else 'gray'
             arrow = '▲' if change > 0 else '▼' if change < 0 else '—'
@@ -83,17 +81,40 @@ def render_index_cards(macro_data: Dict):
 # ============== 2. 北向资金热力图 ==============
 
 def render_northbound_heatmap(north_flow: float = 0.0):
-    """北向资金热力图 - 30日时间序列"""
+    """北向资金热力图 - 优先使用真实时序数据"""
     st.markdown("""
     <h3 style="color: #0A1628; margin-bottom: 8px;">
         💰 北向资金流向 <span style="color: #D4AF37; font-size: 0.7em; font-weight: 400;">— 外资态度</span>
     </h3>
     """, unsafe_allow_html=True)
 
-    # 生成30日数据（真实接口失败时使用模拟）
     dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-    np.random.seed(int(north_flow * 10) % 100)
-    flows = np.random.normal(north_flow, 30, 30).cumsum()
+    flows = None
+    data_source = "demo"
+
+    try:
+        from features.extended_data_sources import fetch_northbound_series
+        res = fetch_northbound_series(days=30)
+        if res.ok and isinstance(res.data, pd.DataFrame) and not res.data.empty:
+            df = res.data.copy()
+            data_source = res.source
+            # 兼容多种列名
+            date_col = next((c for c in df.columns if '日期' in str(c) or c.lower() == 'date'), df.columns[0])
+            flow_col = next((c for c in df.columns if '净流入' in str(c) or 'net' in str(c).lower()), df.columns[-1])
+            df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+            df = df.dropna(subset=[date_col]).sort_values(date_col).tail(30)
+            dates = df[date_col]
+            flows = pd.to_numeric(df[flow_col], errors='coerce').fillna(0).values
+    except Exception as e:
+        logger = __import__('logging').getLogger(__name__)
+        logger.debug("northbound series: %s", e)
+
+    if flows is None:
+        np.random.seed(int(north_flow * 10) % 100)
+        flows = np.random.normal(north_flow, 30, 30).cumsum()
+        st.caption("⚠️ 实时接口暂不可用，展示模拟序列")
+    else:
+        st.caption(f"数据来源: {data_source} · 近 {len(flows)} 个交易日")
 
     # 颜色：流入绿色，流出红色
     colors = [COLORS['green'] if f > 0 else COLORS['red'] for f in flows]
@@ -262,7 +283,7 @@ def render_dashboard():
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15);">
         <h2 style="color: #00D4FF; margin: 0; font-weight: 800;">📊 实时数据看板</h2>
-        <p style="color: #B8C5D6; margin: 8px 0 0 0;">大盘指数 · 资金流向 · 行业涨跌 · 涨跌停监控 · 一站式市场概览</p>
+        <p style="color: #B8C5D6; margin: 8px 0 0 0;">AFAC2026 Demo · 大盘指数 · 北向资金 · 涨跌停 · 行业排行 · SQLite 优先</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -273,7 +294,7 @@ def render_dashboard():
     money_flow = fetch_money_flow()
 
     # ---- 格式转换：将 macro['indices'] 列表转为 render_index_cards 期望的 dict 格式 ----
-    index_key_map = {'上证指数': 'sh_index', '深证成指': 'sz_index', '创业板指': 'cyb_index'}
+    index_key_map = {'沪深300': 'sh_index', '中证500': 'sz_index', '创业板指': 'cyb_index'}
     index_dict = {}
     for item in macro.get('indices', []):
         key = index_key_map.get(item.get('name', ''))

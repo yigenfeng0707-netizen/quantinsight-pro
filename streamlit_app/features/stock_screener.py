@@ -99,20 +99,34 @@ class NaturalLanguageScreener:
             "results": top_results,
             "summary": summary,
             "total_matched": len(filtered),
-            "total_universe": len(universe),
+            "total_universe": len(df_universe),
         }
 
     def _parse_query(self, query: str) -> dict:
-        """解析自然语言为过滤条件"""
-        # 尝试 LLM 解析
+        """解析自然语言为过滤条件（规则优先，LLM 短超时增强）"""
+        filters = self._rule_parse(query)
+
+        # 规则已解析出有效条件时直接返回，避免 LLM 阻塞 UI
+        meaningful_keys = {
+            "sector", "pe_max", "pe_min", "pb_max", "pb_min",
+            "market_cap_min", "market_cap_max", "pct_change_min", "pct_change_max",
+            "turnover_min", "price_min", "price_max", "keywords", "roe_min",
+            "revenue_growth_min", "dividend_yield_min",
+        }
+        if meaningful_keys.intersection(filters.keys()):
+            return filters
+
         if self.llm_config and self.llm_config.get("api_key"):
             try:
-                return self._llm_parse(query)
+                llm_filters = self._llm_parse(query)
+                if llm_filters:
+                    merged = dict(filters)
+                    merged.update({k: v for k, v in llm_filters.items() if v is not None})
+                    return merged
             except Exception as e:
                 logger.warning(f"LLM 解析失败: {e}")
 
-        # Fallback: 规则解析
-        return self._rule_parse(query)
+        return filters
 
     def _llm_parse(self, query: str) -> dict:
         """LLM 解析自然语言条件"""
@@ -146,7 +160,9 @@ class NaturalLanguageScreener:
         if 'qwen3' in model_name_lower or 'qwen-3' in model_name_lower:
             payload['enable_thinking'] = False
 
-        resp = requests.post(self.llm_config["base_url"], headers=headers, json=payload, timeout=90)  # V3.14: 30→90
+        resp = requests.post(
+            self.llm_config["base_url"], headers=headers, json=payload, timeout=(5, 20)
+        )
         resp.raise_for_status()
         msg = resp.json()["choices"][0]["message"]
         content = msg.get("content", "") or ""

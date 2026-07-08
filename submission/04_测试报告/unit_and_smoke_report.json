@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-07-07T22:21:56.396916",
+  "pytest": {
+    "status": "PASS",
+    "output": ".....................                                                    [100%]\n21 passed in 5.23s\n"
+  },
+  "imports": [
+    {
+      "module": "backtest_engine",
+      "status": "PASS"
+    },
+    {
+      "module": "data_cache",
+      "status": "PASS"
+    },
+    {
+      "module": "eastmoney_source",
+      "status": "PASS"
+    },
+    {
+      "module": "ui_themes",
+      "status": "FAIL",
+      "error": "No module named 'streamlit'"
+    },
+    {
+      "module": "features.stock_screener",
+      "status": "PASS"
+    },
+    {
+      "module": "features.shap_explainer",
+      "status": "FAIL",
+      "error": "No module named 'streamlit'"
+    },
+    {
+      "module": "features.report_generator",
+      "status": "FAIL",
+      "error": "No module named 'streamlit'"
+    },
+    {
+      "module": "features.multi_source_data",
+      "status": "PASS"
+    },
+    {
+      "module": "features.trade_simulator",
+      "status": "PASS"
+    },
+    {
+      "module": "features.sqlite_data_layer",
+      "status": "PASS"
+    },
+    {
+      "module": "features.dashboard_v2",
+      "status": "FAIL",
+      "error": "No module named 'streamlit'"
+    },
+    {
+      "module": "features.qlib_integration",
+      "status": "PASS"
+    },
+    {
+      "module": "ai.rag_engine",
+      "status": "PASS"
+    },
+    {
+      "module": "auth.database",
+      "status": "PASS"
+    },
+    {
+      "module": "admin.bootstrap_admin",
+      "status": "PASS"
+    }
+  ],
+  "health": [
+    {
+      "url": "https://3blue1brownlab.cn/_stcore/health",
+      "status": "PASS",
+      "body": "ok"
+    },
+    {
+      "url": "http://47.76.46.88/_stcore/health",
+      "status": "FAIL",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: IP address mismatch, certificate is not valid for '47.76.46.88'. (_ssl.c:1016)>"
+    }
+  ],
+  "summary": {
+    "pytest": "PASS",
+    "imports_pass": 11,
+    "imports_fail": 4,
+    "health_pass": 1
+  }
+}

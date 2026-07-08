@@ -1,0 +1,20 @@
+import { chromium } from "playwright";
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+await page.goto("http://127.0.0.1:8501", { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(3000);
+await page.waitForSelector("text=用户登录", { timeout: 60000 });
+await page.getByRole("textbox", { name: "用户名" }).fill("admin");
+await page.getByRole("textbox", { name: "密码" }).fill("18969081266*");
+await page.getByRole("button", { name: "登录" }).click();
+await page.waitForTimeout(8000);
+await page.getByText("🎯 智能选股").click();
+await page.waitForTimeout(5000);
+await page.getByRole("tab", { name: "📊 多因子评分" }).click();
+await page.waitForTimeout(3000);
+await page.getByText("📊 计算评分").click();
+await page.waitForTimeout(15000);
+await page.screenshot({ path: "../demo-output/debug_stock.png" });
+console.log("done");
+await browser.close();

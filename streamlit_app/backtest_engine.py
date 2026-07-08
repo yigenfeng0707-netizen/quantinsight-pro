@@ -51,7 +51,7 @@ QuantInsight Pro - 回测引擎 (Backtest Engine)
 ---------
 如果您在学术研究中使用本引擎, 请引用:
 
-    冯亦根, 薛永再, 黄成选, 冯思涵 (2026).
+    冯亦根, 王宇寒, 官馨, 梁理智 (2026).
     "QuantInsight Pro: AI 驱动的另类数据量化投研平台".
     工作论文, 慧点资本 (InsightQuant).
 

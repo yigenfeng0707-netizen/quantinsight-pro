@@ -67,6 +67,13 @@ rsync -a --delete \
   --exclude '__pycache__' --exclude '.pytest_cache' --exclude '*.pyc' \
   "$REPO_DIR/streamlit_app/" "$APP_DIR/"
 cp -f "$REPO_DIR/deploy/requirements-prod.txt" "$APP_DIR/requirements-prod.txt"
+if [ -f "$REPO_DIR/streamlit_app/.streamlit/config.toml" ]; then
+  cp -f "$REPO_DIR/streamlit_app/.streamlit/config.toml" "$APP_DIR/.streamlit/config.toml"
+fi
+if [ ! -f "$APP_DIR/.streamlit/secrets.toml" ]; then
+  echo "    提示: 未找到 secrets.toml，AI 功能需手动配置:"
+  echo "    cp deploy/secrets.toml.example -> /opt/quantinsight/.streamlit/secrets.toml"
+fi
 
 echo "==> [5/9] 安装 Python 依赖（pip wheel，约 5-8 分钟）..."
 PIP="$CONDA/bin/pip"
@@ -78,7 +85,8 @@ PIP="$CONDA/bin/pip"
 "$PIP" install -q streamlit==1.28.2 plotly==5.18.0 openpyxl requests bcrypt jieba
 "$PIP" install -q xgboost==2.0.3
 "$PIP" install -q shap==0.44.1
-"$PIP" install -q akshare snownlp
+"$PIP" install -q akshare snownlp python-docx baostock
+"$PIP" install -q 'python-docx>=1.1.0' reportlab
 
 echo "==> [6/9] 初始化管理员..."
 cd "$APP_DIR"

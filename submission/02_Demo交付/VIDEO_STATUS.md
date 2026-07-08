@@ -1,16 +1,29 @@
 # 视频状态说明
 
 **目标文件**：`QuantInsight_Pro_Demo_3min.mp4`  
-**状态**：⏹️ **自动录制任务已取消**（脚本就绪，MP4 未生成）
+**状态**：✅ **已自动生成**（2026-07-07）
 
-## 自动任务记录
+| 项目 | 值 |
+|------|-----|
+| 分辨率 | 1920×1080 (16:9) |
+| 时长 | ~273 秒（约 4:33，含完整操作录屏；可二次裁剪至 180s） |
+| 旁白 | edge-tts `zh-CN-YunxiNeural` |
+| 字幕 | `QuantInsight_Pro_Demo_3min.srt`（已烧录至 MP4） |
+| 生成方式 | demo-video-factory · Playwright record + ffmpeg |
 
-| 任务 | 状态 | 说明 |
-|------|------|------|
-| Record 3min demo (Playwright/ffmpeg) | ⏹️ 已停止 | 子任务启动后无产出，疑似卡死 |
-| Hyperframes + Remotion 管线 | ⏹️ 已停止 | 未实际执行，用户请求取消 |
+## 重新生成
 
-> 2026-07-07：用户确认停止长时间无结果的自动录制任务。
+```powershell
+cd quantinsight-deploy
+powershell -File scripts/run_quantinsight_demo_video.ps1 -Target production -Mode record
+```
+
+## 历史记录
+
+| 任务 | 状态 |
+|------|------|
+| Record 3min demo (Playwright/ffmpeg) | ✅ 2026-07-07 成功 |
+| 早期自动任务 | ⏹️ 已停止（子任务无产出） |
 
 ## 原因
 

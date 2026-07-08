@@ -58,6 +58,7 @@ _tts_text.txt
 # Streamlit 密钥 (安全)
 secrets.toml
 **/secrets.toml
+deploy/secrets.toml.local
 
 # 临时数据 (akshare 可重新下载)
 _data_*
