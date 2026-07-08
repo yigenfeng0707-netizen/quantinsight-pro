@@ -294,14 +294,14 @@ def main():
     # Slide 9: 团队 30s（嵌入 07_team_structure.png）
     # ========================================
     s = prs.slides.add_slide(blank)
-    page_title(s, '团队 | 4 创始 + 5 顾问 + 5 校 MOU',
-               '期权池 35%  ·  顾问委员会 5 位  ·  5 校人才 MOU')
+    page_title(s, '团队 | 4 创始 + 战略合作',
+               '期权池 35%  ·  行业专家网络  ·  永字资管战略合作')
     img_path = os.path.join(ASSETS, '07_team_structure.png')
     pic = safe_image(s, img_path, Inches(0.5), Inches(1.1), width=Inches(12.3))
     if pic is None:
         missing.append(img_path)
     add_text(s, Inches(0.5), Inches(6.7), Inches(12.3), Inches(0.4),
-             '冯亦根 / 王宇寒 / 官馨 / 梁理智  ·  复旦 / 清华 / 交大 / 上财 / 浙大',
+             '冯亦根 / 王宇寒 / 官馨 / 梁理智  ·  永字资管战略合作',
              font_size=14, color=GRAY, align=PP_ALIGN.CENTER)
 
     # ========================================
@@ -315,7 +315,7 @@ def main():
         '② 数据合规：另类数据来源 → 已签 5 家授权，使用前 100% 脱敏',
         '③ 技术风险：开源回测引擎被 fork → MIT License + 专利 + 软著 + 持续创新',
         '④ 市场风险：竞品（Wind AI） → 差异化 SHAP + 中小私募长尾 + 2.4 万/年低价',
-        '⑤ 团队风险：4 人创业稳定性 → 期权池 35% + 顾问委员会 5 位 + 5 校 MOU',
+        '⑤ 团队风险：4 人创业稳定性 → 期权池 35% + 行业专家网络 + 永字资管战略合作',
     ], font_size=18)
 
     # ========================================

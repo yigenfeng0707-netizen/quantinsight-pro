@@ -60,7 +60,7 @@ def chart_01_business_model_canvas():
             '• 永字资管（POC 试点）',
             '• 5 校学术 MOU',
             '• 蚂蚁云 / 阿里云',
-            '• 复旦 / 上财量化组'], COLOR_LIGHT),
+            '• 行业专家网络'], COLOR_LIGHT),
         (3.5, 5.5, 2.5, 2.3, '关键业务\n(Key Activities)', [
             '• SHAP 可解释 AI',
             '• 多因子建模',
@@ -378,9 +378,9 @@ def chart_07_team_structure():
 
     # 中层：CTO / CFO / CMO
     founders = [
-        (1.5, 3.8, '王宇寒', 'CTO', '复旦软工\n期权 25%', COLOR_PRIMARY),
-        (5.5, 3.8, '官馨', 'CFO', '上财金融\n期权 20%', COLOR_SUCCESS),
-        (9.5, 3.8, '梁理智', 'CMO', '上财营销\n期权 20%', COLOR_WARNING),
+        (1.5, 3.8, '王宇寒', 'CTO', '杭电软工\n期权 25%', COLOR_PRIMARY),
+        (5.5, 3.8, '官馨', 'CFO', '陕师大人工智能\n期权 20%', COLOR_SUCCESS),
+        (9.5, 3.8, '梁理智', 'CMO', '河科大 AI\n期权 20%', COLOR_WARNING),
     ]
     for x, y, name, role, desc, color in founders:
         box = FancyBboxPatch((x, y), 2, 1.3, boxstyle="round,pad=0.1",

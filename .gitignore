@@ -183,3 +183,19 @@ delivery/07_视频/
 submission/02_Demo交付/*.mp4
 # 隐私敏感文档（2026-07-08 起不入库）
 QuantInsight_Pro_Team_Compliance_DR_V1.md
+
+# 视频/音频文件（GitHub 不入大文件）
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+*.flv
+*.wav
+*.mp3
+*.flac
+
+# V2.4 清理脚本（执行完即归档）
+scripts/_github_cleanup_3.py
+scripts/_github_cleanup_5schools.py
+scripts/_github_cleanup_5schools_2.py

@@ -57,7 +57,7 @@ export const SCENES: SceneDef[] = [
     bullets: [
       "T35 修正后：HS300 8.56% / ZZ500 24.48% / CYB 11.55%",
       "Y3 ARR 4.35 亿元 · Y5 ARR 5.85 亿元",
-      "5 校学术 MOU · 17 因子库 · MIT 开源回测引擎",
+      "17 因子库 · MIT 开源回测引擎 · 永字资管战略合作",
     ],
     audio: "intro.mp3",
   },
@@ -151,7 +151,7 @@ export const SCENES: SceneDef[] = [
       "Y1 30 客户 / 1.98 亿 → Y5 620 客户 / 5.85 亿",
       "客户 CAGR 113% · ARR CAGR 31%",
       "4 创始人 + 5 顾问 · 期权池 35%",
-      "复旦/上财量化组学术背书 · 永字资管战略合作",
+      "行业专家网络 · 永字资管战略合作",
     ],
     chartImage: "05_client_growth.png",
     screenshot: "h5_team.png",
