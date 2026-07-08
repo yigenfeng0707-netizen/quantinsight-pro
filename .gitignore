@@ -178,3 +178,8 @@ scripts/_team_consistency_cleanup.py
 scripts/_extract_docx.py
 "AFAC2026：初创组 QA文档.pdf"
 'AFAC2026：初创组 QA文档.pdf'
+
+delivery/07_视频/
+submission/02_Demo交付/*.mp4
+# 隐私敏感文档（2026-07-08 起不入库）
+QuantInsight_Pro_Team_Compliance_DR_V1.md
