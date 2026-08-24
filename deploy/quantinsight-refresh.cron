@@ -1,0 +1,17 @@
+# QuantInsight Pro - 数据缓存定时刷新 (CentOS cron.d)
+# 安装: bash deploy/install-refresh-cron.sh
+#
+# 快速模式 ~3-4 分钟: 行情/资金流/宏观/市场宽度
+# 完整模式 ~5-10 分钟: 含 Top100 个股历史 K 线
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# 工作日交易时段每 30 分钟快速刷新 (09:00-15:30)
+*/30 9-15 * * 1-5 root flock -n /tmp/quantinsight-refresh.lock -c 'cd /opt/quantinsight && /opt/miniconda3/bin/python refresh_data.py >> /opt/quantinsight/logs/refresh.log 2>&1'
+
+# 工作日 16:00 收盘后完整刷新 (含历史 K 线)
+0 16 * * 1-5 root flock -n /tmp/quantinsight-refresh-full.lock -c 'cd /opt/quantinsight && /opt/miniconda3/bin/python refresh_data.py --full >> /opt/quantinsight/logs/refresh.log 2>&1'
+
+# 周末 10:00 轻量刷新 (保持宏观/北向等演示数据不过期)
+0 10 * * 6,0 root flock -n /tmp/quantinsight-refresh.lock -c 'cd /opt/quantinsight && /opt/miniconda3/bin/python refresh_data.py >> /opt/quantinsight/logs/refresh.log 2>&1'

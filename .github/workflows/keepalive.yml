@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   keepalive:
+    # 仓库守卫：仅部署源仓库执行（保活 cron 只需单仓库运行）
+    if: github.repository == 'yigenfeng0707-netizen/quantinsight-pro-afac2026'
     runs-on: ubuntu-latest
     steps:
       - name: Check status and keep alive

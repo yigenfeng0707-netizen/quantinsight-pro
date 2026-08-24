@@ -24,6 +24,8 @@ concurrency:
 
 jobs:
   deploy:
+    # 仓库守卫：仅部署源仓库执行（镜像仓库 origin 无 secrets，跳过避免失败红叉）
+    if: github.repository == 'yigenfeng0707-netizen/quantinsight-pro-afac2026'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
