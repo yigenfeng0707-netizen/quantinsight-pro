@@ -237,7 +237,6 @@ def gen_submission_master(charts: dict):
             ["T30 回测报告", "多因子年化 19.22% 引擎 bug", "❌ 废弃；统一 T35 → 8.56%"],
             ["QuantInsight_Pro_答辩话术_V3", "内容冗长", "✅ 精华并入 04_评委FAQ"],
             ["Technical_Whitepaper_V1", "19 页完整版", "✅ 精炼为 06_技术方案白皮书"],
-            ["FinAgent 旧项目", "无关历史", "❌ 已归档 _archive/"],
             ["03_正式文档_WORD/", "此前未生成", "✅ 本次一键生成 9 份 DOCX"],
         ],
         [5, 5, 6],

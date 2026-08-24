@@ -245,7 +245,6 @@ AFAC 标准八章节结构：
 - [x] POC 数据包完整
 - [x] **Word 文档包 7 份**（`03_正式文档_WORD/`）
 - [x] **生产级测试 21/21 通过**
-- [x] **FinAgent 旧项目已归档**（`_archive/`）
 - [x] **3 分钟 MP4 视频（V1 终版）** — `02_Demo交付/QuantInsight_Pro_Demo_3min.mp4`（180s，~9.3 MB）
 - [ ] BP PDF（可选：HTML 或 Word 另存为 PDF）
 - [x] **HTTPS Demo**（https://3blue1brownlab.cn，复用旧域名 SSL）

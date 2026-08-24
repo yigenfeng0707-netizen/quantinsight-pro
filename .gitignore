@@ -59,6 +59,7 @@ _tts_text.txt
 secrets.toml
 **/secrets.toml
 deploy/secrets.toml.local
+deploy/ecs.local.env
 
 # 临时数据 (akshare 可重新下载)
 _data_*
@@ -199,3 +200,11 @@ QuantInsight_Pro_Team_Compliance_DR_V1.md
 scripts/_github_cleanup_3.py
 scripts/_github_cleanup_5schools.py
 scripts/_github_cleanup_5schools_2.py
+scripts/_find_cyan_line.py
+scripts/_remove_cyan_line.py
+scripts/_build_filling_guide_docx.py
+scripts/_build_team_intro_docx.py
+scripts/_build_team_intro_simple_docx.py
+scripts/_build_solution_docx.py
+scripts/_build_market_competition_docx.py
+scripts/_build_flowcharts_png.py
