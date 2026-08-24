@@ -179,8 +179,11 @@ class UserDB:
             ).fetchone()['t']
             return {'login_count': logins, 'action_count': actions, 'last_login': last_login}
 
-    def check_registration_rate(self, ip: str, max_per_day: int = 3) -> bool:
-        """Returns True if registration is allowed"""
+    def check_registration_rate(self, ip: str, max_per_day: int = 20) -> bool:
+        """Returns True if registration is allowed (per IP / session id)."""
+        # Never treat the old shared placeholder as a real bucket
+        if not ip or ip in ('0.0.0.0', '127.0.0.1', 'unknown'):
+            return True
         cutoff = (datetime.now() - timedelta(days=1)).isoformat()
         with self._conn() as conn:
             count = conn.execute(

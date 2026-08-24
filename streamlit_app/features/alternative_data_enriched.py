@@ -45,6 +45,7 @@ def render_macro_snapshot_cards(st, brand: Dict[str, str]) -> None:
 
     res = fetch_macro_from_sqlite()
     if not res.ok:
+        st.caption('宏观缓存暂无，下方图表将尝试限时拉取或使用演示数据')
         return
 
     metrics = []

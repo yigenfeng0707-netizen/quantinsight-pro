@@ -218,9 +218,6 @@ def fetch_market_news(limit: int = 25) -> FetchResult:
         df = _ak_call(ak.stock_news_em, symbol=sym, timeout=8)
         if df is not None and not df.empty:
             return FetchResult(True, "akshare", df.head(limit))
-    df = _ak_call(ak.stock_info_global_em, timeout=8)
-    if df is not None and not df.empty:
-        return FetchResult(True, "akshare_global", df.head(limit))
     demo = pd.DataFrame({
         "标题": [
             "北向资金连续净流入，外资加码A股核心资产",

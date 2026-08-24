@@ -16,7 +16,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
 
 
 def render_admin_dashboard(db):
@@ -66,13 +65,16 @@ def _render_user_analytics(db):
     if trend:
         df = pd.DataFrame(trend)
         df['day'] = pd.to_datetime(df['day'])
+        idx = pd.date_range(end=pd.Timestamp.now().normalize(), periods=30, freq='D')
+        df = df.set_index('day').reindex(idx, fill_value=0).reset_index()
+        df.columns = ['day', 'cnt']
         fig = px.bar(df, x='day', y='cnt', title='近 30 天注册趋势',
                      labels={'day': '日期', 'cnt': '注册数'},
                      color_discrete_sequence=['#2E86AB'])
-        fig.update_layout(bargap=0.2)
+        fig.update_layout(bargap=0.2, xaxis_tickformat='%m-%d')
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info('暂无注册数据')
+        st.info('暂无注册数据（新用户注册后将在此展示）')
 
     st.markdown('---')
     st.markdown('### 👥 用户列表')
@@ -80,10 +82,18 @@ def _render_user_analytics(db):
     users = db.get_all_users()
     if users:
         df_users = pd.DataFrame(users)
-        df_users.columns = ['ID', '用户名', '邮箱', '注册时间', '管理员', '体验已用', '状态']
-        df_users['管理员'] = df_users['管理员'].map({1: '是', 0: '否'})
-        df_users['体验已用'] = df_users['体验已用'].map({1: '是', 0: '否'})
-        df_users['状态'] = df_users['状态'].map({1: '活跃', 0: '禁用'})
+        rename_map = {
+            'id': 'ID', 'username': '用户名', 'email': '邮箱',
+            'created_at': '注册时间', 'is_admin': '管理员',
+            'trial_used': '体验已用', 'is_active': '状态',
+        }
+        df_users = df_users.rename(columns={k: v for k, v in rename_map.items() if k in df_users.columns})
+        if '管理员' in df_users.columns:
+            df_users['管理员'] = df_users['管理员'].apply(lambda x: '是' if x else '否')
+        if '体验已用' in df_users.columns:
+            df_users['体验已用'] = df_users['体验已用'].apply(lambda x: '是' if x else '否')
+        if '状态' in df_users.columns:
+            df_users['状态'] = df_users['状态'].apply(lambda x: '活跃' if x else '禁用')
         st.dataframe(df_users, use_container_width=True, hide_index=True)
     else:
         st.info('暂无用户')

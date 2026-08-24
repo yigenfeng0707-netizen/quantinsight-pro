@@ -30,6 +30,40 @@ from data_pipeline import DataSource, DataSourceError, NetworkError, DataValidat
 __version__ = "2.0.0"
 logger = logging.getLogger(__name__)
 
+ASHARE_SYSTEM_GUARD = (
+    "仅分析中国 A 股市场，禁止引用美股/欧股/日经/费城半导体等海外指标；"
+    "宏观数据须用中国 PMI/CPI/社融等，新闻须来自 A 股/国内财经来源。"
+)
+
+
+def _extract_macro_value(df, value_hints, valid_range=None):
+    """从 akshare 宏观表提取最新有效数值（避免误取日期/索引列）。"""
+    if df is None or len(df) == 0:
+        return None
+    row = df.iloc[-1]
+    skip_cols = ("日期", "月份", "时间", "商品", "date", "month")
+    for col in df.columns:
+        cs = str(col)
+        if any(s in cs for s in skip_cols):
+            continue
+        if any(h in cs for h in value_hints):
+            v = pd.to_numeric(row[col], errors="coerce")
+            if pd.notna(v):
+                if valid_range and not (valid_range[0] <= float(v) <= valid_range[1]):
+                    continue
+                return f"{float(v):.2f}".rstrip("0").rstrip(".")
+    for col in df.columns:
+        cs = str(col)
+        if any(s in cs for s in skip_cols):
+            continue
+        v = pd.to_numeric(row[col], errors="coerce")
+        if pd.notna(v):
+            fv = float(v)
+            if valid_range and not (valid_range[0] <= fv <= valid_range[1]):
+                continue
+            return f"{fv:.2f}".rstrip("0").rstrip(".")
+    return None
+
 
 class EastMoneyChoiceSource(DataSource):
     """
@@ -427,6 +461,8 @@ class EastMoneyChoiceSource(DataSource):
             logger.warning(f"拉取货币供应量数据失败: {e}")
             return pd.DataFrame()
 
+            return pd.DataFrame()
+
     def fetch_macro_summary(self) -> dict:
         """
         拉取宏观经济摘要 (GDP/CPI/PMI/M2 最新值)
@@ -437,26 +473,25 @@ class EastMoneyChoiceSource(DataSource):
         result = {}
         try:
             gdp = self.fetch_macro_gdp()
-            if len(gdp) > 0:
-                latest = gdp.iloc[-1]
-                result["gdp"] = str(latest.iloc[-1]) if len(latest) > 0 else "N/A"
-                result["gdp_date"] = str(latest.iloc[0]) if len(latest) > 0 else ""
+            val = _extract_macro_value(gdp, ("今值", "同比", "GDP"), valid_range=(0, 30))
+            if val:
+                result["gdp"] = val
         except Exception:
             result["gdp"] = "N/A"
 
         try:
             cpi = self.fetch_macro_cpi()
-            if len(cpi) > 0:
-                latest = cpi.iloc[-1]
-                result["cpi"] = str(latest.iloc[-1]) if len(latest) > 0 else "N/A"
+            val = _extract_macro_value(cpi, ("今值", "同比", "CPI"), valid_range=(-10, 15))
+            if val:
+                result["cpi"] = val
         except Exception:
             result["cpi"] = "N/A"
 
         try:
             pmi = self.fetch_macro_pmi()
-            if len(pmi) > 0:
-                latest = pmi.iloc[-1]
-                result["pmi"] = str(latest.iloc[-1]) if len(latest) > 0 else "N/A"
+            val = _extract_macro_value(pmi, ("制造业", "指数", "PMI", "今值"), valid_range=(30, 70))
+            if val:
+                result["pmi"] = val
         except Exception:
             result["pmi"] = "N/A"
 

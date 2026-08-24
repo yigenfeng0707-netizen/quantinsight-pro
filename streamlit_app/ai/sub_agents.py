@@ -434,6 +434,7 @@ class AnalysisAgent:
             system_prompt = (
                 "你是 QuantInsight Pro 的深度分析助手. "
                 "基于提供的市场数据和专业知识, 进行深度投资分析.\n"
+                "仅分析中国 A 股市场；禁止引用美股/欧股/日经/费城半导体等海外指标。\n"
                 "回答时请引用提供的实时数据并标注来源.\n"
                 "输出结构化JSON:\n"
                 '{"title": "分析标题", "summary": "Markdown格式分析(引用数据并标注来源)", '

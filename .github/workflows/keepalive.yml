@@ -1,0 +1,62 @@
+# 魔搭创空间保活：每 5 分钟探测一次
+# - Running → 带浏览器 UA 健康探测（CDN 拦截 curl 默认 UA）
+# - 非 Running → 自动调 OpenAPI deploy 自愈
+# - 自清理 1 天前的 keepalive run（288 run/天，不清理会刷爆 Actions 列表）
+
+name: ModelScope Keepalive
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status and keep alive
+        env:
+          MS_TOKEN: ${{ secrets.MODELSCOPE_API_KEY }}
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          status=$(curl -s -H "Authorization: Bearer $MS_TOKEN" -A "Mozilla/5.0" \
+            "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO" \
+            | jq -r '.data.status // empty')
+          echo "Studio status: $status"
+
+          if [ "$status" = "Running" ]; then
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+              "https://${MS_OWNER}-${MS_REPO}.ms.show/")
+            echo "Health probe -> HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "Instance unhealthy, triggering redeploy..."
+              curl -s -X POST "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO/deploy" \
+                -H "Authorization: Bearer $MS_TOKEN" -A "Mozilla/5.0"
+            fi
+          else
+            echo "Not running (status=$status), self-healing via deploy..."
+            curl -s -X POST "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO/deploy" \
+              -H "Authorization: Bearer $MS_TOKEN" -A "Mozilla/5.0"
+          fi
+
+      - name: Cleanup old keepalive runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          one_day_ago=$(date -u -d '1 day ago' '+%Y-%m-%dT%H:%M:%SZ')
+          run_ids=$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/keepalive.yml/runs" \
+            --jq ".workflow_runs[] | select(.created_at < \"${one_day_ago}\") | .id" || true)
+          count=$(echo "$run_ids" | grep -c . || true)
+          echo "Cleaning up $count old run(s)..."
+          for id in $run_ids; do
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/runs/$id" \
+              && echo "Deleted run $id" || echo "Skip run $id"
+          done

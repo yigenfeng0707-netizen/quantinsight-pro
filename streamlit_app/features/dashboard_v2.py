@@ -275,6 +275,12 @@ def render_limit_monitor(macro: Dict):
 
 # ============== 5. 主入口 ==============
 
+@st.cache_data(ttl=120, show_spinner=False)
+def _load_dashboard_bundle():
+    from features.report_generator import fetch_macro_data, fetch_industry_data, fetch_money_flow
+    return fetch_macro_data(), fetch_industry_data(top_n=10), fetch_money_flow()
+
+
 def render_dashboard():
     """数据看板主入口"""
     st.markdown("""
@@ -287,11 +293,8 @@ def render_dashboard():
     </div>
     """, unsafe_allow_html=True)
 
-    # 拉取数据
-    from features.report_generator import fetch_macro_data, fetch_industry_data, fetch_money_flow
-    macro = fetch_macro_data()
-    industries = fetch_industry_data(top_n=10)
-    money_flow = fetch_money_flow()
+    # 拉取数据（缓存 120s，避免每次 rerun 阻塞网络）
+    macro, industries, money_flow = _load_dashboard_bundle()
 
     # ---- 格式转换：将 macro['indices'] 列表转为 render_index_cards 期望的 dict 格式 ----
     index_key_map = {'沪深300': 'sh_index', '中证500': 'sz_index', '创业板指': 'cyb_index'}

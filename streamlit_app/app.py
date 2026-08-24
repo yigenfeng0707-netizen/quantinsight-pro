@@ -752,6 +752,7 @@ def ai_qa_real(question, config, timeout=90, history=None):  # V3.14: 30→90秒
     system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由慧点资本 (InsightQuant) 联合杭州永字资管打造.
 请基于提供的实时市场数据和金融专业知识, 用结构化方式回答用户的投研问题.
 回答时务必引用提供的实时数据, 并标注数据来源.
+仅分析中国 A 股市场；禁止引用美股/欧股/日经/费城半导体等海外指标；勿使用环球财经中的海外市场新闻作为 A 股结论依据.
 
 回答格式 (严格 JSON, 不要 markdown 代码块):
 {
@@ -1242,14 +1243,14 @@ def ai_qa_mock(question):
             'recommendation': '建议关注：储能 > 锂电材料 > 光伏新技术 > 风电海风'
         },
         '半导体': {
-            'title': '半导体行业投资分析',
-            'summary': '半导体板块分化加剧：\n\n1. **AI 算力链**：HBM/CoWoS 封装/光模块 持续景气\n2. **国产替代**：设备/材料/EDA 加速突破，国产化率提升至 25%\n3. **消费电子链**：库存出清，但终端需求温和复苏',
+            'title': 'A股半导体行业投资分析',
+            'summary': 'A股半导体板块分化加剧：\n\n1. **AI 算力链**：HBM/先进封装/光模块 持续景气，中芯国际、北方华创等龙头订单饱满\n2. **国产替代**：设备/材料/EDA 加速突破，申万半导体国产化率提升至 25%+\n3. **消费电子链**：库存出清，终端需求温和复苏，关注韦尔股份、兆易创新',
             'data': {
-                '费城半导体指数': '5,250 (+3.2% YTD)',
-                '申万半导体 PE': '85x (高位)',
-                '存储芯片价格': 'DDR4 8Gb +12% QoQ',
+                '申万半导体 PE': '85x (近5年高位)',
+                '中证全指半导体': '+2.1% (近5日)',
+                '北向持仓变化': '近5日净流入 12.3 亿',
             },
-            'recommendation': '优选：AI 算力链 + 国产替代 + 设备材料'
+            'recommendation': '优选：AI 算力链 + 国产替代 + 设备材料（A股标的）'
         },
         '消费': {
             'title': '消费板块投资机会',
@@ -1893,8 +1894,9 @@ elif page == '📡 另类数据仪表盘':
 
         with col1:
             # PMI
+            from features.extended_data_sources import _ak_call
             try:
-                df_pmi = ak.macro_china_pmi()
+                df_pmi = _ak_call(ak.macro_china_pmi, timeout=10)
                 if df_pmi is not None and len(df_pmi) > 0:
                     df_pmi_recent = df_pmi.tail(24).copy()
                     date_col = [c for c in df_pmi_recent.columns if '月份' in c or '日期' in c or '月' in c]
@@ -1940,7 +1942,7 @@ elif page == '📡 另类数据仪表盘':
         with col2:
             # CPI + PPI
             try:
-                df_cpi = ak.macro_china_cpi_yearly()
+                df_cpi = _ak_call(ak.macro_china_cpi_yearly, timeout=10)
                 if df_cpi is not None and len(df_cpi) > 0:
                     df_cpi_recent = df_cpi.tail(24).copy()
                     date_col = [c for c in df_cpi_recent.columns if '日期' in c or '月份' in c or '商品' in c]
@@ -2478,9 +2480,12 @@ elif page == '📡 另类数据仪表盘':
     # ========== Tab4: 舆情与另类数据扩展 ==========
     with tab4:
         st.markdown('### 📰 舆情 · 大宗 · 研报 · 卫星指数')
-        st.caption('按需加载扩展维度，含舆情新闻、大宗折溢价、机构研报与产经活动代理指数')
+        st.caption('自动加载扩展维度，含舆情新闻、大宗折溢价、机构研报与产经活动代理指数')
 
-        if st.button('🔄 加载扩展另类数据', type='primary', key='alt_extras_load_btn'):
+        if 'alt_extras_loaded' not in st.session_state:
+            st.session_state['alt_extras_loaded'] = True
+
+        if st.button('🔄 重新加载扩展另类数据', type='secondary', key='alt_extras_load_btn'):
             st.session_state['alt_extras_loaded'] = True
 
         if st.session_state.get('alt_extras_loaded'):
@@ -2488,7 +2493,7 @@ elif page == '📡 另类数据仪表盘':
             with st.spinner('正在聚合舆情、大宗、研报与另类指数...'):
                 render_alt_data_extras(st, go, _BRAND, _DARK_LAYOUT)
         else:
-            st.info('💡 点击上方按钮加载扩展另类数据模块（新闻舆情、大宗交易、研报速览、卫星/夜光产经指数）')
+            st.info('扩展另类数据加载中…')
 
 # ============== 页面：量化策略回测 ==============
 elif page == '📈 量化策略回测':
@@ -3356,78 +3361,54 @@ elif page == '📊 行业分析':
 
     df_industry = None
     data_source = ''
+    industry_name = selected_industry.split(' ')[0]
 
-    # 尝试方式1: 东方财富板块成分股
-    try:
-        with st.spinner('加载行业数据...'):
-            df_industry = load_industry_cons(industry_code)
-        if df_industry is not None and len(df_industry) > 0:
-            data_source = '东方财富板块数据'
-    except Exception:
-        pass
-
-    # 尝试方式2: 申万行业指数 (如果方式1失败)
-    if df_industry is None or len(df_industry) == 0:
+    # 方式1: SQLite stock_spot 关键词（最快，800 只本地库）
+    if HAS_SQLITE_DB:
         try:
-            with st.spinner('尝试备用数据源...'):
-                sw_map = {
-                    '半导体 (BK0438)': '801081', '新能源车 (BK0900)': '801730',
-                    '医药 (BK0465)': '801150', '白酒 (BK0896)': '801153',
-                    '银行 (BK0475)': '801780', '证券 (BK0473)': '801193',
-                    '房地产 (BK0451)': '801180', '军工 (BK0490)': '801740',
-                }
-                sw_code = sw_map.get(selected_industry, '801081')
-                df_sw_daily = ak.index_stock_info()
-                if df_sw_daily is not None and len(df_sw_daily) > 0:
-                    # 从指数列表中筛选行业相关
-                    industry_name = selected_industry.split(' ')[0]
-                    df_industry = df_sw_daily[df_sw_daily['名称'].str.contains(industry_name, na=False)].head(30)
-                    if len(df_industry) > 0:
-                        data_source = '申万行业指数'
+            industry_keywords = {
+                '半导体': ['半导体', '芯片', '集成电路', '微电子', '中芯', '华虹', '韦尔', '兆易', '北方华创', '中微', '紫光', '长电', '通富', '华天', '晶晨', '卓胜', '圣邦', '澜起', '汇顶', '兆易'],
+                '新能源车': ['新能源', '电池', '锂电', '宁德', '比亚迪', '蔚来', '理想', '小鹏', '长城', '吉利', '长安', '广汽', '上汽', '一汽', '东风', '北汽', '江淮', '海马', '众泰'],
+                '医药': ['医药', '生物', '制药', '医疗', '药业', '恒瑞', '药明', '迈瑞', '爱尔', '通策', '华兰', '智飞', '沃森', '康泰', '复星', '白云山', '云南白药', '同仁堂', '片仔癀'],
+                '白酒': ['茅台', '五粮液', '洋河', '泸州', '汾酒', '古井', '今世缘', '水井坊', '舍得', '酒鬼', '顺鑫', '老白干', '迎驾', '口子窖', '金种子'],
+                '银行': ['银行', '工商', '建设', '农业', '中国银行', '交通', '招商', '兴业', '浦发', '民生', '光大', '华夏', '平安', '中信', '邮储', '北京', '上海', '宁波', '南京', '杭州'],
+                '证券': ['证券', '中信证券', '海通', '国泰', '华泰', '广发', '招商证券', '申万', '东方', '兴业证券', '长江', '国信', '东方财富', '同花顺', '大智慧'],
+                '房地产': ['地产', '万科', '保利', '恒大', '碧桂园', '融创', '龙湖', '华润', '招商蛇口', '金地', '绿地', '华夏幸福', '世茂', '泰禾', '阳光城'],
+                '军工': ['军工', '航空', '航天', '兵器', '中航', '中国卫星', '中国船舶', '中国重工', '中兵', '北方', '内蒙一机', '中航沈飞', '中航西飞', '航发'],
+            }
+            keywords = industry_keywords.get(industry_name, [industry_name])
+            df_spot = _qi_db.get_stock_spot()
+            if df_spot is None or df_spot.empty:
+                df_spot = _qi_db.get_spot_from_history_latest()
+            if df_spot is not None and not df_spot.empty:
+                name_col = 'name' if 'name' in df_spot.columns else ('名称' if '名称' in df_spot.columns else None)
+                if name_col:
+                    mask = df_spot[name_col].astype(str).str.contains('|'.join(keywords), na=False)
+                    df_filtered = df_spot[mask].head(30)
+                    if not df_filtered.empty:
+                        df_industry = pd.DataFrame({
+                            '代码': df_filtered.get('code', df_filtered.get('代码', '')).astype(str),
+                            '名称': df_filtered[name_col].astype(str),
+                            '最新价': pd.to_numeric(df_filtered.get('latest_price', df_filtered.get('close', df_filtered.get('最新价', 0))), errors='coerce'),
+                            '涨跌幅': pd.to_numeric(df_filtered.get('change_pct', df_filtered.get('涨跌幅', 0)), errors='coerce'),
+                        })
+                        data_source = 'SQLite 本地库 (800只)'
         except Exception:
             pass
 
-    # 尝试方式3: V3.13 从 SQLite stock_spot 表按行业关键词过滤
-    if (df_industry is None or len(df_industry) == 0) and HAS_SQLITE_DB:
-        try:
-            with st.spinner('从本地数据库加载行业数据...'):
-                industry_name = selected_industry.split(' ')[0]
-                # 行业关键词映射 (股票名称中包含这些词的视为该行业成分股)
-                industry_keywords = {
-                    '半导体': ['半导体', '芯片', '集成电路', '微电子', '中芯', '华虹', '韦尔', '兆易', '北方华创', '中微', '紫光', '长电', '通富', '华天', '晶晨', '卓胜', '圣邦', '澜起', '汇顶', '兆易'],
-                    '新能源车': ['新能源', '电池', '锂电', '宁德', '比亚迪', '蔚来', '理想', '小鹏', '长城', '吉利', '长安', '广汽', '上汽', '一汽', '东风', '长安', '北汽', '江淮', '海马', '众泰'],
-                    '医药': ['医药', '生物', '制药', '医疗', '药业', '恒瑞', '药明', '迈瑞', '爱尔', '通策', '华兰', '智飞', '沃森', '康泰', '复星', '白云山', '云南白药', '同仁堂', '片仔癀'],
-                    '白酒': ['茅台', '五粮液', '洋河', '泸州', '汾酒', '古井', '今世缘', '水井坊', '舍得', '酒鬼', '顺鑫', '老白干', '迎驾', '口子窖', '金种子'],
-                    '银行': ['银行', '工商', '建设', '农业', '中国银行', '交通', '招商', '兴业', '浦发', '民生', '光大', '华夏', '平安', '中信', '邮储', '北京', '上海', '宁波', '南京', '杭州'],
-                    '证券': ['证券', '中信证券', '海通', '国泰', '华泰', '广发', '招商证券', '申万', '东方', '兴业证券', '长江', '国信', '东方财富', '同花顺', '大智慧'],
-                    '房地产': ['地产', '万科', '保利', '恒大', '碧桂园', '融创', '龙湖', '华润', '招商蛇口', '金地', '绿地', '华夏幸福', '世茂', '泰禾', '阳光城'],
-                    '军工': ['军工', '航空', '航天', '兵器', '中航', '中国卫星', '中国船舶', '中国重工', '中兵', '北方', '内蒙一机', '中航沈飞', '中航西飞', '航发'],
-                }
-                keywords = industry_keywords.get(industry_name, [industry_name])
-                df_spot = _qi_db.get_stock_spot()
-                if df_spot is not None and not df_spot.empty:
-                    # 按名称关键词过滤
-                    mask = df_spot['name'].astype(str).str.contains('|'.join(keywords), case=False, na=False)
-                    df_filtered = df_spot[mask].copy()
-                    if len(df_filtered) > 0:
-                        # 重命名列以匹配前端期望
-                        df_industry = pd.DataFrame({
-                            '代码': df_filtered['code'].astype(str),
-                            '名称': df_filtered['name'].astype(str),
-                            '最新价': df_filtered.get('latest_price', 0),
-                            '涨跌幅': df_filtered.get('change_pct', 0),
-                            '换手率': df_filtered.get('turnover_rate', 0),
-                            '市盈率-动态': df_filtered.get('pe_ttm', None),
-                            '市净率': df_filtered.get('pb', None),
-                            '总市值': df_filtered.get('total_mv', None),
-                        })
-                        data_source = f'SQLite 本地缓存 ({len(df_industry)} 只)'
-        except Exception as e:
-            logger.warning(f'SQLite 行业成分股查询失败: {e}')
-
-    # 尝试方式4: 静态 fallback 数据
+    # 方式2: 东方财富板块成分股（限时）
     if df_industry is None or len(df_industry) == 0:
-        st.info(f'💡 实时行业数据暂时不可用, 展示示例数据')
+        try:
+            from features.extended_data_sources import _ak_call
+            df_industry = load_industry_cons(industry_code)
+            if df_industry is not None and len(df_industry) > 0:
+                data_source = '东方财富板块数据'
+        except Exception:
+            pass
+
+    # 方式3: 演示数据兜底
+    if df_industry is None or len(df_industry) == 0:
+        st.info('💡 实时行业数据暂时不可用, 展示示例数据')
         industry_name = selected_industry.split(' ')[0]
         np.random.seed(hash(industry_name) % 2**31)
         n_stocks = 20

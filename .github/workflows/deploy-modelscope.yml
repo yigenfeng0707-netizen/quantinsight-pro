@@ -1,0 +1,155 @@
+# QuantInsight Pro → 魔搭 ModelScope 创空间自动部署
+# 流程：push → 创建创空间(若不存在) → 组装 payload → git 推送魔搭 → OpenAPI 触发部署 → 监控至 Running
+# 公网地址：https://gsym236998-quantinsight-pro.ms.show
+#
+# 所需配置（GitHub → Settings）：
+#   Secrets: MODELSCOPE_API_KEY   = 魔搭访问令牌（m_session_id, ms- 开头, 用于 OpenAPI Bearer）
+#            MODELSCOPE_GIT_TOKEN = 魔搭 git 令牌（用于 oauth2 推送鉴权）
+#   Variables: MS_OWNER = gsym236998, MS_REPO_NAME = quantinsight-pro
+
+name: Deploy to ModelScope Studio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'streamlit_app/**'
+      - 'deploy/modelscope/**'
+      - '.github/workflows/deploy-modelscope.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: modelscope-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Studio if not exists
+        env:
+          MS_TOKEN: ${{ secrets.MODELSCOPE_API_KEY }}
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          code=$(curl -s -o /tmp/studio.json -w "%{http_code}" \
+            -H "Authorization: Bearer $MS_TOKEN" \
+            -A "Mozilla/5.0" \
+            "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO")
+          echo "GET studio -> HTTP $code"
+          if [ "$code" = "404" ]; then
+            echo "Studio not found, creating..."
+            curl -s -f -X POST "https://modelscope.cn/openapi/v1/studios" \
+              -H "Authorization: Bearer $MS_TOKEN" \
+              -A "Mozilla/5.0" \
+              -H "Content-Type: application/json" \
+              -d "{\"owner\":\"$MS_OWNER\",\"repo_name\":\"$MS_REPO\",\"sdk_type\":\"docker\",\"visibility\":\"public\"}"
+            echo "Created, waiting 20s for propagation..."
+            sleep 20
+          elif [ "$code" = "200" ]; then
+            echo "Studio exists: $(jq -r '.data.status' /tmp/studio.json)"
+          else
+            echo "Unexpected HTTP $code"; cat /tmp/studio.json; exit 1
+          fi
+
+      - name: Assemble payload
+        run: |
+          set -e
+          mkdir -p studio
+          # 复制 Streamlit 应用（排除虚拟环境/缓存/调试文件）
+          rsync -a \
+            --exclude='.venv' \
+            --exclude='node_modules' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='_test_*.mjs' \
+            --exclude='_bt.mjs' \
+            streamlit_app/ studio/
+          # 部署配置（Dockerfile / ms_deploy.json）
+          cp deploy/modelscope/* studio/
+          echo "--- payload ---"
+          du -sh studio/
+
+      - name: Push to ModelScope
+        env:
+          MS_GIT_TOKEN: ${{ secrets.MODELSCOPE_GIT_TOKEN }}
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          cd studio
+          git init -b master
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "deploy: ${GITHUB_SHA::7} from quantinsight-pro-afac2026"
+          git remote add modelscope "https://oauth2:${MS_GIT_TOKEN}@www.modelscope.cn/studios/${MS_OWNER}/${MS_REPO}.git"
+          # 强推前先 fetch+merge 保留远端历史
+          git fetch modelscope master || true
+          if git rev-parse --verify modelscope/master >/dev/null 2>&1; then
+            git merge --allow-unrelated-histories -X ours modelscope/master -m "merge remote history" || {
+              git checkout --ours . ; git add -A ; git commit -m "merge remote history (ours)"
+            }
+          fi
+          git push -f modelscope HEAD:master
+          echo "Pushed to modelscope master"
+
+      - name: Trigger deploy (push alone does NOT rebuild)
+        env:
+          MS_TOKEN: ${{ secrets.MODELSCOPE_API_KEY }}
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          resp=$(curl -s -X POST "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO/deploy" \
+            -H "Authorization: Bearer $MS_TOKEN" \
+            -A "Mozilla/5.0" \
+            -H "Content-Type: application/json")
+          echo "Deploy response: $resp"
+          status=$(echo "$resp" | jq -r '.data.status // .Status // empty')
+          if echo "$resp" | grep -qi '"Code":110\|error\|Error' && [ -z "$status" ]; then
+            echo "Deploy trigger may have failed"; exit 1
+          fi
+          echo "Deploy triggered, status: $status"
+
+      - name: Monitor build status
+        env:
+          MS_TOKEN: ${{ secrets.MODELSCOPE_API_KEY }}
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          sleep 30
+          for i in $(seq 1 30); do
+            status=$(curl -s -H "Authorization: Bearer $MS_TOKEN" -A "Mozilla/5.0" \
+              "https://modelscope.cn/openapi/v1/studios/$MS_OWNER/$MS_REPO" \
+              | jq -r '.data.status // empty')
+            echo "[attempt $i/30] status: $status"
+            case "$status" in
+              Running)
+                echo "=== Studio is RUNNING ==="; exit 0 ;;
+              Failed|Error)
+                echo "=== Build FAILED ==="; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "Timed out waiting for Running"; exit 1
+
+      - name: Verify public URL
+        env:
+          MS_OWNER: ${{ vars.MS_OWNER }}
+          MS_REPO: ${{ vars.MS_REPO_NAME }}
+        run: |
+          set -e
+          sleep 20
+          # CDN 拦截 curl 默认 UA，必须带浏览器 UA
+          code=$(curl -s -o /tmp/page.html -w "%{http_code}" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            "https://${MS_OWNER}-${MS_REPO}.ms.show/")
+          echo "Public URL -> HTTP $code"
+          grep -o "Streamlit" /tmp/page.html | head -1 || true
+          [ "$code" = "200" ] && echo "=== VERIFIED: https://${MS_OWNER}-${MS_REPO}.ms.show ===" || exit 1

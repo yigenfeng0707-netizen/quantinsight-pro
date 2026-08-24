@@ -664,7 +664,8 @@ class QIDataDB:
         # Baostock / 直连 API 英文列名兼容
         for src_col, dst_col in {
             "code": "code", "name": "name", "close": "latest_price",
-            "change_pct": "change_pct", "pctChg": "change_pct",
+            "latest_price": "latest_price", "change_pct": "change_pct",
+            "pctChg": "change_pct",
             "turnover_rate": "turnover_rate", "turn": "turnover_rate",
             "amount": "amount", "total_mv": "total_mv",
         }.items():
@@ -736,7 +737,8 @@ class QIDataDB:
 
         for src_col, dst_col in {
             "code": "code", "name": "name", "close": "latest_price",
-            "change_pct": "change_pct", "turnover_rate": "turnover_rate",
+            "latest_price": "latest_price", "change_pct": "change_pct",
+            "turnover_rate": "turnover_rate",
             "amount": "amount", "total_mv": "total_mv",
         }.items():
             if src_col in df.columns:

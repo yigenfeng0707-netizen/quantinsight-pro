@@ -370,7 +370,8 @@ class MainAgent:
 1. 保留各Agent的核心观点和数据
 2. 消除重复内容
 3. 突出关键结论和投资建议
-4. 标注数据来源"""
+4. 标注数据来源
+5. 仅分析中国 A 股市场，禁止引用美股/欧股/日经/费城半导体等海外指标"""
             try:
                 llm_summary = _call_llm(
                     [{"role": "user", "content": synthesize_prompt}],

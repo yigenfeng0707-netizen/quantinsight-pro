@@ -121,6 +121,9 @@ def refresh_all(full: bool = False) -> bool:
     except Exception as e:
         logger.warning("扩展数据源刷新失败: %s", e)
 
+    # stock_spot 仍为空时，用历史 K 线最新价回填 (演示/离线兜底)
+    _ensure_stock_spot_from_history(results)
+
     # 汇总
     elapsed = time.time() - start_time
     success = sum(1 for v in results.values() if v)
@@ -135,6 +138,32 @@ def refresh_all(full: bool = False) -> bool:
     print(f"{'='*60}\n")
 
     return all_ok
+
+
+def _ensure_stock_spot_from_history(results: dict) -> None:
+    """实时行情 API 失败或清洗后无数据时，用 stock_history 最新 K 线回填 stock_spot"""
+    db = QIDataDB()
+    try:
+        count = db._get_conn().execute("SELECT COUNT(*) FROM stock_spot").fetchone()[0]
+    except Exception:
+        count = 0
+    if count > 0:
+        return
+
+    spot = db.get_spot_from_history_latest()
+    if spot is None or spot.empty:
+        logger.warning("stock_spot 为空且 history 无数据，无法回填")
+        results["stock_spot"] = False
+        return
+
+    db.upsert_stock_spot_rows(spot, source="history_latest")
+    count = db._get_conn().execute("SELECT COUNT(*) FROM stock_spot").fetchone()[0]
+    if count > 0:
+        results["stock_spot"] = True
+        print(f"  ✅ stock_spot (history 回填): {count} rows")
+    else:
+        results["stock_spot"] = False
+        print("  ❌ stock_spot: history 回填失败")
 
 
 def _refresh_qveris_fallback(results: dict, full: bool = False) -> None:

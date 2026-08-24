@@ -1095,6 +1095,29 @@ class SentimentVectorStore:
         # numpy 余弦相似度降级
         return self._numpy_search(query_emb[0], top_k)
 
+    def _tokenize_query_cn(self, text: str) -> list:
+        """中文查询分词（支持无空格短语）。"""
+        text = (text or "").strip().replace("，", " ").replace("、", " ")
+        tokens = [w for w in text.split() if len(w) >= 2]
+        try:
+            import jieba
+            tokens.extend(w for w in jieba.cut(text) if len(w.strip()) >= 2)
+        except ImportError:
+            compact = text.replace(" ", "")
+            tokens.extend(compact[i:i + 2] for i in range(max(0, len(compact) - 1)))
+            tokens.extend(compact[i:i + 3] for i in range(max(0, len(compact) - 2)))
+        # 领域同义词
+        if "新能源车" in text or "新能源" in text:
+            tokens.extend(["新能源", "汽车", "销量", "比亚迪", "宁德时代", "锂电"])
+        if "半导体" in text or "芯片" in text:
+            tokens.extend(["半导体", "芯片", "国产替代", "中芯"])
+        seen, out = set(), []
+        for t in tokens:
+            if t not in seen:
+                seen.add(t)
+                out.append(t)
+        return out
+
     def _llm_keyword_search(self, query: str, top_k: int) -> List[Dict]:
         """V3.13: LLM 关键词语义匹配 (token-plan API 不支持 embedding 的替代方案)
 
@@ -1132,8 +1155,10 @@ class SentimentVectorStore:
             logger.info(f"LLM 提取关键词: {query_keywords}")
         except Exception as e:
             logger.warning(f"LLM 关键词提取失败: {e}, 降级到简单分词")
-            # 降级: 简单分词
-            query_keywords = [w for w in query.replace("，", " ").replace("、", " ").split() if len(w) > 1]
+            query_keywords = self._tokenize_query_cn(query)
+
+        if not query_keywords:
+            query_keywords = self._tokenize_query_cn(query)
 
         # 2. 计算每个文档与查询的关键词匹配分数
         scored_docs = []
@@ -1166,22 +1191,32 @@ class SentimentVectorStore:
                 score += 0.2
             scored_docs.append((i, min(score, 1.0)))
 
-        # 3. 按分数排序, 取 top_k（保留 score>0 的结果）
+        # 3. 按分数排序, 取 top_k（低分也返回，避免中文短语零命中）
         scored_docs.sort(key=lambda x: x[1], reverse=True)
         results = []
         for idx, score in scored_docs:
-            if score <= 0:
+            if score <= 0 and len(results) >= top_k:
                 continue
             doc = self.documents[idx]
             results.append({
                 "text": doc["text"],
                 "date": doc["date"],
                 "source": doc["source"],
-                "score": float(score),
-                "distance": float(1 - score),
+                "score": float(max(score, 0.01)),
+                "distance": float(1 - max(score, 0.01)),
             })
             if len(results) >= top_k:
                 break
+        if not results and scored_docs:
+            idx, score = scored_docs[0]
+            doc = self.documents[idx]
+            results.append({
+                "text": doc["text"],
+                "date": doc["date"],
+                "source": doc["source"],
+                "score": float(max(score, 0.01)),
+                "distance": float(1 - max(score, 0.01)),
+            })
         return results
 
     def _numpy_search(self, query_vec: np.ndarray, top_k: int) -> List[Dict]:

@@ -8,6 +8,26 @@ License: MIT
 """
 
 import streamlit as st
+import uuid
+
+
+def _client_ip() -> str:
+    """Best-effort client IP behind nginx; never collapse all users to 0.0.0.0."""
+    try:
+        headers = getattr(st, 'context', None) and st.context.headers
+        if headers:
+            xff = (headers.get('X-Forwarded-For') or headers.get('x-forwarded-for') or '').strip()
+            if xff:
+                return xff.split(',')[0].strip()
+            real = (headers.get('X-Real-IP') or headers.get('x-real-ip') or '').strip()
+            if real:
+                return real
+    except Exception:
+        pass
+    # Per-browser fallback so rate limit is not global
+    if 'reg_client_id' not in st.session_state:
+        st.session_state.reg_client_id = str(uuid.uuid4())
+    return f"session:{st.session_state.reg_client_id}"
 
 
 def render_login_page(session_mgr):
@@ -79,9 +99,9 @@ def render_register_page(session_mgr, db):
                 for e in errors:
                     st.error(f'❌ {e}')
             else:
-                # Rate limit check (use placeholder IP for now)
-                ip = '0.0.0.0'
-                if not db.check_registration_rate(ip):
+                # Prefer real client IP (nginx X-Forwarded-For); fall back per-browser session
+                ip = _client_ip()
+                if not db.check_registration_rate(ip, max_per_day=20):
                     st.error('❌ 注册频率过高, 请明天再试')
                 else:
                     result = db.create_user(username, password, email)

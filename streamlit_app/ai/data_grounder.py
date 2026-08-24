@@ -196,17 +196,42 @@ class DataGrounder:
             except Exception as e:
                 logger.warning(f"接地新闻数据失败: {e}")
 
-        # 5. 宏观数据
-        if self.cache is not None:
+        # 5. 宏观数据 — SQLite 优先，避免 akshare 原始列误解析
+        try:
+            from features.extended_data_sources import fetch_macro_from_sqlite
+            res = fetch_macro_from_sqlite()
+            if res.ok and isinstance(res.data, dict):
+                snap = res.data.get("snapshot") or res.data
+                parts = []
+                if isinstance(snap, dict):
+                    for key, records in snap.items():
+                        if isinstance(records, list) and records:
+                            last = records[-1]
+                            if isinstance(last, dict):
+                                val = last.get("value") or last.get("今值")
+                                if val is not None:
+                                    parts.append(f"{key.upper()}: {val}")
+                if parts:
+                    result["macro"] = snap
+                    context_parts.append(
+                        f"🌍 **宏观数据(A股)**: {', '.join(parts[:6])} [来源: {res.source}]"
+                    )
+        except Exception as e:
+            logger.warning(f"接地宏观数据失败: {e}")
+
+        if "macro" not in result and self.cache is not None:
             try:
                 macro = self.cache.get_macro_summary()
                 if macro:
                     result["macro"] = macro
-                    macro_text = ", ".join(f"{k}: {v}" for k, v in macro.items() if v != "N/A")
+                    macro_text = ", ".join(
+                        f"{k}: {v}" for k, v in macro.items()
+                        if v != "N/A" and k.endswith(("_date",)) is False
+                    )
                     if macro_text:
-                        context_parts.append(f"🌍 **宏观数据**: {macro_text}")
+                        context_parts.append(f"🌍 **宏观数据**: {macro_text} [来源: 宏观数据]")
             except Exception as e:
-                logger.warning(f"接地宏观数据失败: {e}")
+                logger.warning(f"接地宏观缓存失败: {e}")
 
         # 6. 组装上下文
         if context_parts:
@@ -296,7 +321,7 @@ class DataGrounder:
         return "\n".join(lines) if lines else "资金流向数据暂无"
 
     def _summarize_news(self, df: pd.DataFrame) -> str:
-        """摘要化新闻"""
+        """摘要化新闻（优先 A 股/国内财经，过滤海外市场快讯）"""
         lines = []
         title_col = None
         for col in ["标题", "title", "新闻标题"]:
@@ -304,13 +329,21 @@ class DataGrounder:
                 title_col = col
                 break
 
+        global_kw = (
+            "纽约", "道琼斯", "纳斯达克", "标普500", "标普", "日经", "恒生",
+            "美联储", "欧股", "德股", "法国下调", "环球财经", "美股",
+        )
         if title_col:
-            for _, row in df.head(8).iterrows():
-                title = row.get(title_col, "")
-                if title:
-                    lines.append(f"  • {title}")
+            for _, row in df.head(15).iterrows():
+                title = str(row.get(title_col, "")).strip()
+                if not title or any(k in title for k in global_kw):
+                    continue
+                src = str(row.get("来源", row.get("source", ""))).strip()
+                if src and any(k in src for k in ("环球", "global")):
+                    continue
+                lines.append(f"  • {title}" + (f" [{src}]" if src else ""))
 
-        return "\n".join(lines) if lines else "最新新闻暂无"
+        return "\n".join(lines[:8]) if lines else "最新 A 股财经新闻暂无"
 
     def _summarize_sector_flow(self, df: pd.DataFrame) -> str:
         """V3.11: 摘要化板块资金流"""
