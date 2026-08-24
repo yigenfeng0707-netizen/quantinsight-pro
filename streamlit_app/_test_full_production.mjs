@@ -8,7 +8,7 @@ import path from "path";
 
 const BASE = process.argv[2] || "https://3blue1brownlab.cn";
 const USER = "admin";
-const PASS = "18969081266*";
+const PASS = process.env.TEST_ADMIN_PASS;
 const OUT = path.join("..", "submission", "04_测试报告");
 fs.mkdirSync(OUT, { recursive: true });
 

@@ -4,7 +4,7 @@ async function login(page) {
   await page.goto("http://127.0.0.1:8501", { waitUntil: "domcontentloaded" });
   await page.waitForSelector("text=用户登录", { timeout: 60000 });
   await page.getByRole("textbox", { name: "用户名" }).fill("admin");
-  await page.getByRole("textbox", { name: "密码" }).fill("18969081266*");
+  await page.getByRole("textbox", { name: "密码" }).fill(process.env.TEST_ADMIN_PASS);
   await page.getByRole("button", { name: "登录" }).click();
   await page.waitForTimeout(8000);
 }

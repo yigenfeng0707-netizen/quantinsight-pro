@@ -6,7 +6,7 @@ await page.goto("http://127.0.0.1:8501", { waitUntil: "load" });
 await page.waitForTimeout(25000);
 
 await page.locator('input[type="text"]').first().fill("admin");
-await page.locator('input[type="password"]').first().fill("18969081266*");
+await page.locator('input[type="password"]').first().fill(process.env.TEST_ADMIN_PASS);
 await page.getByRole("button", { name: "登录" }).click();
 await page.waitForTimeout(10000);
 const text = await page.locator("body").innerText();
