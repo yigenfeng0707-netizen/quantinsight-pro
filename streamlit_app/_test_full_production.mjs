@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";
 
-const BASE = process.argv[2] || "https://3blue1brownlab.cn";
+const BASE = process.argv[2] || "http://121.196.102.54";
 const USER = "admin";
 const PASS = process.env.TEST_ADMIN_PASS;
 const OUT = path.join("..", "submission", "04_测试报告");

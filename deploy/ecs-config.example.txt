@@ -2,8 +2,7 @@
 # 完整配置见工作区上级目录：阿里云域名和服务器配置.txt
 
 1. 域名（当前使用旧域名，SSL 已就绪）
-3blue1brownlab.cn
-www.3blue1brownlab.cn
+121.196.102.54（Windows Server 2022 新机）
 
 （quantinsight.cn 待 DNS/证书就绪后再切换）
 
@@ -20,7 +19,7 @@ root + 密码（单独保管，设置环境变量 ALIYUN_ECS_PASSWORD）
 22 / 80 / 443
 
 6. Demo URL
-https://3blue1brownlab.cn/
+http://121.196.102.54/
 
 7. GitHub（含 QVeris + 800 股历史库）
 https://github.com/yigenfeng0707-netizen/quantinsight-pro-afac2026
