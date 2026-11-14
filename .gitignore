@@ -213,3 +213,9 @@ scripts/_build_flowcharts_png.py
 register_trials.mjs
 admin_visibility_check*.mjs
 admin_login_history_check.mjs
+
+# 本地散文件不入仓
+ deploy/_pwd.txt
+_local_shots/
+*.db-shm
+*.db-wal
