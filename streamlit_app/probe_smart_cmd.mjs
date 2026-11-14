@@ -1,0 +1,30 @@
+// 探测智能指令页结构
+import { chromium } from "playwright";
+const BASE = "http://121.196.102.54";
+const b = await chromium.launch({ headless: true });
+const ctx = await b.newContext({ viewport: { width: 1600, height: 900 } });
+const page = await ctx.newPage();
+page.setDefaultTimeout(60000);
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+await page.goto(BASE, { waitUntil: "load" });
+await wait(10000);
+await page.locator('input[placeholder="请输入用户名"]').fill("admin");
+await page.locator('input[placeholder="请输入密码"]').fill("QIyrd2026demo");
+await page.getByRole("button", { name: /登录/ }).last().click();
+await wait(12000);
+await page.locator('label:has-text("⚡ 智能指令")').first().click();
+await wait(10000);
+// 列出所有 tab 和按钮文本
+const tabLoc = page.getByRole("tab");
+const nTabs = await tabLoc.count();
+const tabs = [];
+for (let i = 0; i < nTabs; i++) tabs.push(await tabLoc.nth(i).innerText().catch(() => ""));
+console.log("TABS:", JSON.stringify(tabs));
+const btnLoc = page.getByRole("button");
+const nBtns = await btnLoc.count();
+const btns = [];
+for (let i = 0; i < Math.min(nBtns, 40); i++) btns.push((await btnLoc.nth(i).innerText().catch(() => "")).trim());
+console.log("BTNS:", JSON.stringify(btns.filter(x => x)));
+await page.screenshot({ path: "../_local_shots/smart_cmd_probe.png" });
+await b.close();
+console.log("PROBE_DONE");

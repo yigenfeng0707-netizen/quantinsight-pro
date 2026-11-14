@@ -640,7 +640,7 @@ def create_word_report(data: Dict, report_type: str = 'morning') -> bytes:
         set_font(r, size, bold, color)
         return p
 
-    def add_h1(text, color=RGBColor(0x0A, 0x0E, 0x27)):
+    def add_h1(text, color=None):
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(18)
         p.paragraph_format.space_after = Pt(8)
@@ -703,7 +703,7 @@ def create_word_report(data: Dict, report_type: str = 'morning') -> bytes:
         except Exception as e:
             logger.warning(f'add_image failed: {e}')
 
-    def add_table(headers, rows, header_color=RGBColor(0x0A, 0x0E, 0x27)):
+    def add_table(headers, rows, header_color=None):
         table = doc.add_table(rows=len(rows) + 1, cols=len(headers))
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
         # 表头
