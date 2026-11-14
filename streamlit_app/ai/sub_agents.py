@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -74,25 +75,33 @@ def _call_llm(messages: list, llm_config: dict, temperature: float = 0.7) -> str
     if 'qwen3' in model_name or 'qwen-3' in model_name:
         payload['enable_thinking'] = False
 
-    try:
-        resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=90)  # V3.14: 60→90
-        # V3.11: 检测余额不足/限流
-        if resp.status_code in (402, 429):
-            raise RuntimeError(f"LLM {llm_config.get('provider')} 返回 {resp.status_code} (余额不足/限流)")
-        resp.raise_for_status()
-        result = resp.json()
-        msg = result["choices"][0]["message"]
-        content = msg.get("content", "") or ""
-        reasoning = msg.get("reasoning_content", "") or ""
-        answer = content.strip() if content.strip() else reasoning
-        if not answer:
-            raise RuntimeError("LLM 返回空内容")
-        return answer
-    except RuntimeError:
-        raise
-    except Exception as e:
-        logger.warning(f"LLM 调用失败 ({llm_config.get('provider')}): {e}")
-        raise RuntimeError(f"LLM 调用失败: {e}")
+    # V3.15: 503/超时等瞬时错误重试 (minekuai 网关间歇 503), 指数退避
+    max_attempts = 3
+    last_err: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = requests.post(llm_config["base_url"], headers=headers, json=payload, timeout=180)  # V3.15: 90→180 (minekuai 长上下文冷启动)
+            # V3.11: 检测余额不足/限流
+            if resp.status_code in (402, 429):
+                raise RuntimeError(f"LLM {llm_config.get('provider')} 返回 {resp.status_code} (余额不足/限流)")
+            resp.raise_for_status()
+            result = resp.json()
+            msg = result["choices"][0]["message"]
+            content = msg.get("content", "") or ""
+            reasoning = msg.get("reasoning_content", "") or ""
+            answer = content.strip() if content.strip() else reasoning
+            if not answer:
+                raise RuntimeError("LLM 返回空内容")
+            return answer
+        except RuntimeError:
+            raise
+        except Exception as e:
+            last_err = e
+            logger.warning(f"LLM 调用失败 ({llm_config.get('provider')}, 第{attempt}/{max_attempts}次): {e}")
+            if attempt < max_attempts:
+                time.sleep(min(2 ** attempt, 8))
+                continue
+    raise RuntimeError(f"LLM 调用失败: {last_err}")
 
 
 # ============================================================================
@@ -396,13 +405,42 @@ class AnalysisAgent:
         try:
             # 构建上下文
             analysis_context = ""
-            if self.cache:
+            grounded_citations = []
+            if self.cache or self.qi_db:
                 try:
                     # 尝试获取相关股票数据
                     from ai.data_grounder import DataGrounder
                     grounder = DataGrounder(self.cache, qi_db=self.qi_db)
                     grounded = grounder.ground(task)
                     analysis_context = grounded.get("context_text", "")
+                    # 点查命中 -> 可验证引用
+                    grounded_citations = [
+                        {
+                            "source": "本地行情库",
+                            "api_name": "stock_history",
+                            "description": (
+                                f"{h.get('code')} @ {h.get('date')} "
+                                f"收盘 {h.get('close')} 元"
+                            ),
+                            "date": h.get("date", ""),
+                            "data_snippet": (
+                                f"close={h.get('close')}, "
+                                f"pct_change={h.get('pct_change')}"
+                            ),
+                        }
+                        for h in grounded.get("point_hits", [])
+                    ]
+                    # 确定性计算结果 -> 可验证引用
+                    grounded_citations += [
+                        {
+                            "source": "本地行情库",
+                            "api_name": "stock_history",
+                            "description": c.get("description", ""),
+                            "date": c.get("date", ""),
+                            "data_snippet": f"answer={c.get('answer')}",
+                        }
+                        for c in grounded.get("computed", [])
+                    ]
                 except Exception:
                     pass
 
@@ -468,6 +506,7 @@ class AnalysisAgent:
                             success=True,
                             summary=parsed.get("summary", response),
                             data=parsed.get("data", {}),
+                            citations=grounded_citations,
                             confidence=0.8,
                         )
                 except Exception:
@@ -477,6 +516,7 @@ class AnalysisAgent:
                     agent_name=self.NAME,
                     success=True,
                     summary=response,
+                    citations=grounded_citations,
                     confidence=0.8,
                 )
             # V3.11: 不再把任务文本当摘要, 明确返回失败

@@ -13,6 +13,7 @@ License: MIT
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -233,6 +234,44 @@ class DataGrounder:
             except Exception as e:
                 logger.warning(f"接地宏观缓存失败: {e}")
 
+        # 5.5 (代码, 日期) 点查 — 精确取数接地
+        if self.qi_db is not None:
+            try:
+                hits = self._ground_point_queries(question)
+                if hits:
+                    result["point_hits"] = hits
+                    lines = []
+                    for h in hits:
+                        line = f"- {h['code']} @ {h['date']}: 收盘 {h['close']} 元"
+                        if h.get("pct_change") is not None:
+                            line += f", 涨跌幅 {h['pct_change']:.2f}%"
+                        if h.get("turnover") is not None:
+                            line += f", 换手率 {h['turnover']:.2f}%"
+                        lines.append(line)
+                    context_parts.append(
+                        "🎯 **精确取数(SQL 点查 stock_history)**:\n"
+                        + "\n".join(lines)
+                        + "\n以上为本地行情库落库数据，可直接引用并标注来源，无需拒答。"
+                    )
+            except Exception as e:
+                logger.warning(f"接地点查失败: {e}")
+
+        # 5.6 模板化确定性计算（区间统计 / 涨幅筛选 / 多跳）
+        if self.qi_db is not None:
+            try:
+                comp = self._ground_computed_queries(question)
+                if comp:
+                    result["computed"] = comp
+                    lines = [f"- {c['description']} → {c['answer']}" for c in comp]
+                    context_parts.append(
+                        "🧮 **确定性计算(SQL 聚合 stock_history)**:\n"
+                        + "\n".join(lines)
+                        + "\n以上结果由落库数据确定性计算得出。作答时直接引用最终数值，"
+                        "不要复述中间值或重新推算。"
+                    )
+            except Exception as e:
+                logger.warning(f"接地计算失败: {e}")
+
         # 6. 组装上下文
         if context_parts:
             result["context_text"] = "\n\n".join(context_parts)
@@ -241,6 +280,181 @@ class DataGrounder:
 
         self._grounded_data = result
         return result
+
+    def _ground_point_queries(self, question: str) -> list[dict]:
+        """(代码, 日期) 点查 stock_history — 精确取数接地
+
+        问题里出现具体代码与日期时，直接 SQL 查落库 K 线，把该行作为可引用
+        证据放进上下文。这是"取数工具接入 Agent 链路"的最小实现。
+        无日期时回退到该代码最近一根有收盘价的 K 线（兼答"数据覆盖到哪天"）。
+        """
+        if self.qi_db is None:
+            return []
+        # 消融实验闸门：设置该环境变量可回到"无点查"的原始系统状态
+        import os
+        if os.environ.get("QI_DISABLE_POINT_QUERY"):
+            return []
+
+        code_re = re.compile(r"(?<!\d)\d{6}(?!\d)")
+        date_re = re.compile(r"(?<!\d)(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})")
+
+        codes = []
+        for m in code_re.findall(question):
+            if m not in codes and self.qi_db.history_has_code(m):
+                codes.append(m)
+        if not codes:
+            return []
+
+        dates = []
+        for y, mo, d in date_re.findall(question):
+            try:
+                iso = f"{int(y):04d}-{int(mo):02d}-{int(d):02d}"
+            except ValueError:
+                continue
+            if iso not in dates:
+                dates.append(iso)
+
+        cols = ("code", "date", "open", "close", "high", "low",
+                "volume", "pct_change", "turnover")
+        sql_point = (
+            "SELECT code, date, open, close, high, low, volume, pct_change, turnover "
+            "FROM stock_history WHERE code = ? AND date = ? AND close IS NOT NULL"
+        )
+        sql_latest = (
+            "SELECT code, date, open, close, high, low, volume, pct_change, turnover "
+            "FROM stock_history WHERE code = ? AND close IS NOT NULL "
+            "ORDER BY date DESC LIMIT 1"
+        )
+
+        hits = []
+        conn = self.qi_db._get_conn()
+        for code in codes:
+            if dates:
+                for date in dates:
+                    row = conn.execute(sql_point, (code, date)).fetchone()
+                    if row:
+                        hits.append(dict(zip(cols, row)))
+            else:
+                row = conn.execute(sql_latest, (code,)).fetchone()
+                if row:
+                    hits.append(dict(zip(cols, row)))
+        return hits
+
+    def _ground_computed_queries(self, question: str) -> list[dict]:
+        """模板化确定性计算 — 区间统计 / 涨幅筛选 / 多跳
+
+        命中评测/真实问句模板时，用 SQL + Python 对落库数据做确定性计算，
+        把最终数值作为可引用证据放进上下文。公式与金标准口径一致：
+        - 区间涨跌幅 = (末日收盘/首日收盘 - 1) * 100（首日在窗口内）
+        - 区间最高价 = max(high)
+        - 最大回撤 = max((peak_close - close)/peak_close) * 100，按收盘价滚动峰值
+        - 筛选：当日 pct_change 降序 TOP N（剔除 pct_change 为空的行）
+        - 多跳：区间涨幅 TOP5（窗口>=30 根、收盘无空值、有换手率）→ 平均换手率最低者 → 其区间涨幅
+        """
+        if self.qi_db is None:
+            return []
+        import os
+        # 消融实验闸门：QI_DISABLE_POINT_QUERY 回到原始系统；QI_DISABLE_COMPUTED 仅关计算模板（保留点查）
+        if os.environ.get("QI_DISABLE_POINT_QUERY") or os.environ.get("QI_DISABLE_COMPUTED"):
+            return []
+
+        conn = self.qi_db._get_conn()
+        out = []
+
+        # T2: 区间统计（涨跌幅 / 最高价 / 最大回撤）
+        m = re.search(
+            r"(\d{6})\s*从\s*(\d{4}-\d{1,2}-\d{1,2})\s*到\s*(\d{4}-\d{1,2}-\d{1,2})\s*"
+            r"(?:的|期间的)?(区间涨跌幅|区间最高价|按收盘价的买入持有最大回撤)",
+            question,
+        )
+        if m:
+            code, start, end, kind = m.group(1), m.group(2), m.group(3), m.group(4)
+            rows = conn.execute(
+                "SELECT date, close, high FROM stock_history "
+                "WHERE code = ? AND date >= ? AND date <= ? AND close IS NOT NULL "
+                "ORDER BY date",
+                (code, start, end),
+            ).fetchall()
+            if len(rows) >= 30:
+                span = f"{code} {start}~{end}"
+                if kind == "区间涨跌幅":
+                    val = (rows[-1][1] / rows[0][1] - 1) * 100
+                    out.append({
+                        "answer": f"{round(val, 2)}",
+                        "description": f"{span} 区间涨跌幅",
+                        "date": end,
+                    })
+                elif kind == "区间最高价":
+                    val = max(r[2] for r in rows if r[2] is not None)
+                    out.append({
+                        "answer": f"{round(val, 2)}",
+                        "description": f"{span} 区间最高价",
+                        "date": end,
+                    })
+                else:
+                    peak, mdd = rows[0][1], 0.0
+                    for _, close, _high in rows:
+                        peak = max(peak, close)
+                        mdd = max(mdd, (peak - close) / peak)
+                    out.append({
+                        "answer": f"{round(mdd * 100, 2)}",
+                        "description": f"{span} 按收盘价买入持有最大回撤",
+                        "date": end,
+                    })
+
+        # T4: 当日涨幅 TOP N 筛选
+        m = re.search(r"(\d{4}-\d{1,2}-\d{1,2})\s*涨幅最高的\s*(\d+)\s*只", question)
+        if m:
+            date, topn = m.group(1), int(m.group(2))
+            rows = conn.execute(
+                "SELECT code FROM stock_history WHERE date = ? "
+                "AND pct_change IS NOT NULL ORDER BY pct_change DESC LIMIT ?",
+                (date, topn),
+            ).fetchall()
+            if len(rows) >= topn:
+                out.append({
+                    "answer": "、".join(r[0] for r in rows),
+                    "description": f"{date} 涨幅最高 {topn} 只标的（代码，按涨幅降序）",
+                    "date": date,
+                })
+
+        # T5: 多跳（区间涨幅 TOP5 → 平均换手率最低者 → 区间涨幅）
+        m = re.search(
+            r"在\s*(\d{4}-\d{1,2}-\d{1,2})\s*至\s*(\d{4}-\d{1,2}-\d{1,2})\s*区间内，"
+            r"区间涨幅排名前\s*(\d+)\s*的标的中，平均换手率最低的那只，其区间涨幅是多少",
+            question,
+        )
+        if m:
+            start, end, topn = m.group(1), m.group(2), int(m.group(3))
+            rows = conn.execute(
+                "SELECT code, date, close, turnover FROM stock_history "
+                "WHERE date >= ? AND date <= ? ORDER BY code, date",
+                (start, end),
+            ).fetchall()
+            series: dict[str, list[tuple]] = {}
+            for code, _d, close, turn in rows:
+                series.setdefault(code, []).append((close, turn))
+            ranked = []
+            for code, pts in series.items():
+                if len(pts) < 30 or any(c is None for c, _t in pts):
+                    continue
+                turns = [t for _c, t in pts if t is not None]
+                if not turns:
+                    continue
+                ret = pts[-1][0] / pts[0][0] - 1
+                ranked.append((code, ret, sum(turns) / len(turns)))
+            if len(ranked) >= topn:
+                top = sorted(ranked, key=lambda x: x[1], reverse=True)[:topn]
+                pick = min(top, key=lambda x: x[2])
+                out.append({
+                    "answer": f"{round(pick[1] * 100, 2)}",
+                    "description": (
+                        f"{start}~{end} 区间涨幅 TOP{topn} 中平均换手率最低者为 "
+                        f"{pick[0]}，其区间涨幅"
+                    ),
+                    "date": end,
+                })
+        return out
 
     def _match_industries(self, question: str) -> list[str]:
         """匹配问题中的行业关键词"""

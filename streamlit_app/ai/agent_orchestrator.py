@@ -19,11 +19,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Optional
+
+from ai.citation_filter import filter_citations, is_enabled as citation_filter_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -94,18 +97,21 @@ class MainAgent:
 
     MAX_REFLECTION_CYCLES = 2  # 最大反思次数
 
-    def __init__(self, cache_manager=None, llm_config: dict = None, rag_engine=None, qi_db=None):
+    def __init__(self, cache_manager=None, llm_config: dict = None, rag_engine=None, qi_db=None,
+                 time_context: str = ""):
         """
         Args:
             cache_manager: DataCacheManager 实例
             llm_config: LLM 配置 dict
             rag_engine: FinancialRAG 实例 (可选)
             qi_db: QIDataDB 实例 (可选, V3.11 新增)
+            time_context: 时间接地文本 (当前日期 + 数据截止日, 空=关闭)
         """
         self.cache = cache_manager
         self.llm_config = llm_config or {}
         self.rag = rag_engine
         self.qi_db = qi_db  # V3.11: SQLite 数据库实例
+        self.time_context = time_context or ""
 
     def process_query(self, question: str, history: list = None) -> OrchestratorResult:
         """
@@ -175,11 +181,12 @@ class MainAgent:
         if not matched_agents:
             plan["agents"] = ["analysis", "market_monitor"]
 
-        # 构造子任务
+        # 构造子任务 (时间接地开启时, 随任务文本注入各子 Agent)
         for agent_name in plan["agents"]:
+            task = f"{question}\n\n{self.time_context}" if self.time_context else question
             plan["sub_tasks"].append({
                 "agent": agent_name,
-                "task": question,
+                "task": task,
             })
 
         logger.info(f"Plan: intent={plan['intent']}, agents={plan['agents']}")
@@ -365,7 +372,7 @@ class MainAgent:
 
 实时数据上下文:
 {sqlite_context}
-
+{self.time_context}
 请输出合成后的摘要 (Markdown格式), 要求:
 1. 保留各Agent的核心观点和数据
 2. 消除重复内容
@@ -399,6 +406,20 @@ class MainAgent:
         for r in success_results.values():
             if r.citations:
                 all_citations.extend(r.citations)
+
+        # 引用相关性过滤（默认开启，QI_DISABLE_CITATION_FILTER=1 关闭）：
+        # 剔除"计算中间量引用"（如区间起点日期的点查引用）与问题无关的引用，
+        # 同步收缩各子 Agent 结果里的引用，保证 top-level 与 agent_results 一致。
+        if citation_filter_enabled():
+            kept_ids = {id(c) for c in filter_citations(question, all_citations)}
+            if len(kept_ids) != len(all_citations):
+                logger.info(
+                    f"引用相关性过滤: {len(all_citations)} -> {len(kept_ids)} 条"
+                )
+                all_citations = [c for c in all_citations if id(c) in kept_ids]
+                for r in all_results:
+                    if r.citations:
+                        r.citations = [c for c in r.citations if id(c) in kept_ids]
 
         # 构建推理链
         reasoning_chain = []
