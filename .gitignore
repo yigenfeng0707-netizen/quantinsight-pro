@@ -208,3 +208,8 @@ scripts/_build_team_intro_simple_docx.py
 scripts/_build_solution_docx.py
 scripts/_build_market_competition_docx.py
 scripts/_build_flowcharts_png.py
+
+# 试用账号管理脚本（含派生密码，仅本地）
+register_trials.mjs
+admin_visibility_check*.mjs
+admin_login_history_check.mjs
