@@ -179,5 +179,5 @@ def render_alt_data_extras(st, go_module, brand: Dict[str, str], dark_layout) ->
     else:
         st.info("暂无大宗交易数据")
 
-    with st.expander("📚 另类数据源清单（AFAC2026 差异化维度）", expanded=False):
+    with st.expander("📚 另类数据源清单（差异化数据维度）", expanded=False):
         st.markdown(render_source_catalog_markdown())

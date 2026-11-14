@@ -52,6 +52,9 @@ plt.rcParams.update({
     'grid.color': '#2A3441',  # V3.14: rgba格式新版matplotlib不接受, 改用hex
     'savefig.facecolor': _DARK_BG,
     'savefig.edgecolor': _DARK_BG,
+    # CJK 字体：Windows 下用微软雅黑渲染图表标题，避免中文变豆腐块
+    'font.sans-serif': ['Microsoft YaHei', 'SimHei', 'DejaVu Sans'],
+    'axes.unicode_minus': False,
 })
 
 # 量化配色（与平台一致）

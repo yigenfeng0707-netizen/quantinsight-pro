@@ -289,7 +289,7 @@ def render_dashboard():
                 border: 1px solid rgba(0, 212, 255, 0.3);
                 box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15);">
         <h2 style="color: #00D4FF; margin: 0; font-weight: 800;">📊 实时数据看板</h2>
-        <p style="color: #B8C5D6; margin: 8px 0 0 0;">AFAC2026 Demo · 大盘指数 · 北向资金 · 涨跌停 · 行业排行 · SQLite 优先</p>
+        <p style="color: #B8C5D6; margin: 8px 0 0 0;">QuantInsight Pro · 大盘指数 · 北向资金 · 涨跌停 · 行业排行 · SQLite 优先</p>
     </div>
     """, unsafe_allow_html=True)
 

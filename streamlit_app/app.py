@@ -749,7 +749,7 @@ def ai_qa_real(question, config, timeout=90, history=None):  # V3.14: 30→90秒
     Returns:
         dict: {'title': str, 'summary': str, 'data': dict, 'recommendation': str, 'reasoning': str}
     """
-    system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由慧点资本 (InsightQuant) 联合杭州永字资管打造.
+    system_prompt = """你是 QuantInsight Pro 的 AI 投研助手, 由中国电信股份有限公司杭州分公司申报、项目负责人冯亦根独立研发.
 请基于提供的实时市场数据和金融专业知识, 用结构化方式回答用户的投研问题.
 回答时务必引用提供的实时数据, 并标注数据来源.
 仅分析中国 A 股市场；禁止引用美股/欧股/日经/费城半导体等海外指标；勿使用环球财经中的海外市场新闻作为 A 股结论依据.
@@ -1481,14 +1481,14 @@ if page == '🏠 首页':
                            background-clip: text;">QuantInsight Pro</h1>
             </div>
             <p style="color: #B8C5D6; font-size: 1.05rem; margin: 0 0 8px 0; font-weight: 400;">
-                AFAC2026 · 金融智能创新大赛 · 项目编号 2026FINTECH-FINT-0093
+                第七届长三角金融科技创新与应用大赛 · 科技企业报名
             </p>
             <p style="color: #B8C5D6; font-size: 1.0rem; margin: 0 0 16px 0; font-weight: 300;">
                 AI 另类数据量化投研 Demo · SHAP 可解释 · 多源数据融合
             </p>
             <div class="qi-hero-stats" style="display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px;">
                 <div style="color: #00D4FF; font-size: 0.9rem;">
-                    <span style="color: #8B95A5;">🏆 项目编号</span> <b>2026FINTECH-FINT-0093</b>
+                    <span style="color: #8B95A5;">🎯 申报方向</span> <b>智能投研 · 智能投顾 · 量化投资</b>
                 </div>
                 <div style="color: #D4AF37; font-size: 0.9rem;">
                     <span style="color: #8B95A5;">🤖 因子库</span> <b>200+</b>
@@ -1564,7 +1564,7 @@ if page == '🏠 首页':
     # 核心功能介绍 - 升级版卡片
     st.markdown("""
     <h2 style="color: #0A1628; margin-bottom: 8px;">
-        🎯 比赛 Demo 核心模块 <span style="color: #D4AF37; font-size: 0.6em; font-weight: 400;">— AFAC2026 金融智能创新</span>
+        🎯 比赛 Demo 核心模块 <span style="color: #D4AF37; font-size: 0.6em; font-weight: 400;">— 第七届长三角金融科技创新与应用大赛</span>
     </h2>
     <p style="color: #6C757D; margin-bottom: 24px;">LLM + RAG · SHAP 可解释性 · 多源另类数据 · SQLite 缓存加速</p>
     """, unsafe_allow_html=True)
@@ -1668,7 +1668,7 @@ if page == '🏠 首页':
             </div>
             <div style="border-left: 3px solid #8B95A5; padding-left: 12px; margin: 8px 0;">
                 <div style="color: #6C757D; font-size: 0.75rem;">2026-05</div>
-                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">📊 AFAC2026 商业计划书 V1.0</div>
+                <div style="color: #0A1628; font-size: 0.9rem; font-weight: 500;">📊 项目商业计划书 V1.0</div>
             </div>
         </div>
         """, unsafe_allow_html=True)

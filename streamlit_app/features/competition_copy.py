@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-"""AFAC2026 金融智能创新大赛 — 统一品牌文案与页面副标题。"""
+"""第七届长三角金融科技创新与应用大赛 — 统一品牌文案与页面副标题。"""
 
-PROJECT_ID = "2026FINTECH-FINT-0093"
-COMPETITION_SHORT = "AFAC2026 · 金融智能创新大赛"
-TEAM = "InsightQuant（慧点资本）"
-RECOMMENDER = "杭州永字资产管理有限公司"
+PROJECT_ID = "科技企业报名 · 智能投研、智能投顾、量化投资"
+COMPETITION_SHORT = "第七届长三角金融科技创新与应用大赛"
+TEAM = "冯亦根（项目负责人 · 核心成员 1 人）"
+RECOMMENDER = ""
 
 HERO_TITLE = "QuantInsight Pro"
-HERO_SUBTITLE = f"{COMPETITION_SHORT} · 项目编号 {PROJECT_ID}"
+HERO_SUBTITLE = f"{COMPETITION_SHORT} · 科技企业报名"
 SIDEBAR_BRAND_HTML = (
     '<div class="qi-sidebar-brand" style="padding:12px 10px; margin:-0.25rem -0.25rem 10px -0.25rem;'
     'background:linear-gradient(145deg,#071525 0%,#123a5c 48%,#0a2840 100%);'
@@ -25,8 +25,8 @@ SIDEBAR_BRAND_HTML = (
     '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;">'
     '<span class="qi-brand-badge" style="font-size:0.66rem;font-weight:700;letter-spacing:0.06em;color:#041018;'
     'background:linear-gradient(90deg,#00D4FF,#00FF88);padding:3px 9px;border-radius:999px;'
-    'box-shadow:0 2px 8px rgba(0,255,136,0.25);">AFAC2026</span>'
-    '<span class="qi-brand-subtitle" style="font-size:0.72rem;font-weight:600;color:#C5E4F7;">金融智能创新大赛</span>'
+    'box-shadow:0 2px 8px rgba(0,255,136,0.25);">第七届</span>'
+    '<span class="qi-brand-subtitle" style="font-size:0.72rem;font-weight:600;color:#C5E4F7;">长三角金融科技创新与应用大赛</span>'
     '</div>'
     f'<div class="qi-brand-project-id" style="font-size:0.67rem;color:#7EB8D8;font-family:ui-monospace,monospace;'
     f'letter-spacing:0.03em;padding:4px 8px;border-radius:6px;'
@@ -44,8 +44,8 @@ DATA_SOURCE_LINE = (
 )
 
 PAGE_SUBTITLES = {
-    "home": "AFAC2026 参赛 Demo · 另类数据 + AI 投研 + 量化回测一体化展示",
-    "ai_qa": "自然语言投研问答 · 多源数据 grounding · AFAC2026 项目 0093",
+    "home": "第七届长三角金融科技创新与应用大赛 · 另类数据 + AI 投研 + 量化回测一体化展示",
+    "ai_qa": "自然语言投研问答 · 多源数据 grounding · 引用可追溯",
     "screener": "自然语言选股 · 多因子评分 · 个股对比 · 可解释 AI 辅助决策",
     "individual": "个股基本面 · SHAP 可解释 · AI 问答 · 报告导出（按需加载）",
     "dashboard": "大盘指数 · 北向资金 · 涨跌停 · 行业排行 · SQLite 优先快速加载",
@@ -70,8 +70,8 @@ HIGHLIGHTS = [
 ]
 
 COMPETITION_INFO = (
-    f"**项目编号**：{PROJECT_ID}\n\n"
     f"**大赛**：{COMPETITION_SHORT}\n\n"
-    f"**参赛团队**：{TEAM}\n\n"
-    f"**推荐单位**：{RECOMMENDER}"
+    f"**申报单位**：中国电信股份有限公司杭州分公司\n\n"
+    f"**申报人**：冯亦根（项目负责人 · 核心成员 1 人）\n\n"
+    f"**申报方向**：智能投研、智能投顾、量化投资"
 )
