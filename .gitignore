@@ -215,7 +215,10 @@ admin_visibility_check*.mjs
 admin_login_history_check.mjs
 
 # 本地散文件不入仓
- deploy/_pwd.txt
+_pwd*.txt
+_pwd*.key
+deploy/_pwd.txt
 _local_shots/
+_healthcheck/
 *.db-shm
 *.db-wal
