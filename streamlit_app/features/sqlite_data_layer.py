@@ -163,6 +163,21 @@ CREATE TABLE IF NOT EXISTS macro_snapshot (
     updated_at  TEXT
 );
 
+-- 财务指标（语义层 financials 绑定表）
+-- 指标 key 与 semantic/metrics.ttl 的 bindingColumn 对应：
+-- revenue(营业收入) / net_profit_parent(归母净利润) / net_profit(净利润) / gross_margin(毛利率)
+CREATE TABLE IF NOT EXISTS financials (
+    code        TEXT NOT NULL,
+    period      TEXT NOT NULL,          -- 报告期，如 2025-12-31（年报）
+    metric_key  TEXT NOT NULL,
+    value       REAL,
+    unit        TEXT DEFAULT '元',
+    source      TEXT DEFAULT 'akshare.stock_financial_abstract',
+    updated_at  TEXT,
+    PRIMARY KEY (code, period, metric_key)
+);
+CREATE INDEX IF NOT EXISTS idx_financials_code ON financials(code);
+
 -- 数据元信息
 CREATE TABLE IF NOT EXISTS data_meta (
     table_name  TEXT PRIMARY KEY,
@@ -886,6 +901,80 @@ class QIDataDB:
             conn.rollback()
             logger.error("upsert_stock_profile 失败 (%s): %s", code, e)
             raise
+
+    # ==================================================================
+    # 财务指标（语义层 financials 绑定表）
+    # ==================================================================
+
+    def upsert_financials(self, rows: list[dict]):
+        """批量写入财务指标行（主键冲突即覆盖）
+
+        Args:
+            rows: [{code, period, metric_key, value, unit?, source?}, ...]
+        """
+        if not rows:
+            return
+        now = self._now_iso()
+        conn = self._get_conn()
+        try:
+            conn.executemany(
+                """INSERT INTO financials (code, period, metric_key, value, unit, source, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(code, period, metric_key) DO UPDATE SET
+                       value=excluded.value, unit=excluded.unit,
+                       source=excluded.source, updated_at=excluded.updated_at
+                """,
+                [
+                    (
+                        r["code"], r["period"], r["metric_key"], r["value"],
+                        r.get("unit", "元"),
+                        r.get("source", "akshare.stock_financial_abstract"),
+                        now,
+                    )
+                    for r in rows
+                ],
+            )
+            conn.commit()
+            logger.info("upsert_financials: 写入 %d 行", len(rows))
+        except Exception as e:
+            conn.rollback()
+            logger.error("upsert_financials 失败: %s", e)
+            raise
+
+    def get_financials(
+        self, code: str, metric_keys: Optional[list[str]] = None, limit: int = 8
+    ) -> Optional[pd.DataFrame]:
+        """读取个股财务指标（按报告期倒序）
+
+        Args:
+            code: 股票代码
+            metric_keys: 指标 key 过滤（revenue / net_profit_parent / ...）
+            limit: 每个指标最多返回的期间数
+        """
+        conn = self._get_conn()
+        try:
+            if metric_keys:
+                marks = ",".join("?" * len(metric_keys))
+                df = pd.read_sql(
+                    f"""SELECT * FROM financials
+                        WHERE code = ? AND metric_key IN ({marks})
+                        ORDER BY metric_key, period DESC""",
+                    conn, params=[code] + list(metric_keys),
+                )
+            else:
+                df = pd.read_sql(
+                    """SELECT * FROM financials
+                       WHERE code = ? ORDER BY metric_key, period DESC""",
+                    conn, params=(code,),
+                )
+        except Exception as e:
+            logger.warning("读取 financials 失败 (%s): %s", code, e)
+            return None
+        if df.empty:
+            return None
+        # 每个指标只保留最近 N 期
+        df = df.groupby("metric_key", group_keys=False).head(limit)
+        return df
 
     def upsert_northbound_flow(self, df: pd.DataFrame):
         """追加写入北向资金数据 (跳过重复日期)

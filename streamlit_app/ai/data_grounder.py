@@ -262,6 +262,17 @@ class DataGrounder:
                 comp = self._ground_computed_queries(question)
                 if comp:
                     result["computed"] = comp
+                    # V4.0 语义层：把指标口径注入命中描述（引用链可展示"怎么算出来的"）
+                    try:
+                        from semantic.layer import get_parser
+                        cal_map = {m.name: m.caliber
+                                   for m in get_parser().parse(question) if m.caliber}
+                        for c in comp:
+                            for name, cal in cal_map.items():
+                                if name in c["description"] and "口径" not in c["description"]:
+                                    c["description"] += f"｜口径: {cal}"
+                    except Exception:
+                        pass  # 语义层不可用不影响既有计算路径
                     lines = [f"- {c['description']} → {c['answer']}" for c in comp]
                     context_parts.append(
                         "🧮 **确定性计算(SQL 聚合 stock_history)**:\n"
@@ -271,6 +282,21 @@ class DataGrounder:
                     )
             except Exception as e:
                 logger.warning(f"接地计算失败: {e}")
+
+        # 5.7 财务指标接地（语义层：实体链接 + 指标解析 → financials 表）
+        if self.qi_db is not None:
+            try:
+                fin = self._ground_financial_queries(question)
+                if fin:
+                    result["financial_hits"] = fin
+                    lines = [f"- {c['description']} → {c['answer']}" for c in fin]
+                    context_parts.append(
+                        "💰 **财务指标接地(financials 表)**:\n"
+                        + "\n".join(lines)
+                        + "\n以上为落库财报数据，作答时直接引用数值，注明报告期与口径。"
+                    )
+            except Exception as e:
+                logger.warning(f"接地财务指标失败: {e}")
 
         # 6. 组装上下文
         if context_parts:
@@ -302,6 +328,15 @@ class DataGrounder:
         for m in code_re.findall(question):
             if m not in codes and self.qi_db.history_has_code(m):
                 codes.append(m)
+        # V4.0 语义层：实体链接补码（"茅台" → 600519），与正则代码合并去重
+        try:
+            from semantic.layer import get_linker
+            for ent in get_linker().link(question):
+                if ent.kind == "Stock" and ent.code and ent.code not in codes \
+                        and self.qi_db.history_has_code(ent.code):
+                    codes.append(ent.code)
+        except Exception:
+            pass  # 语义层缺失时回到纯代码匹配
         if not codes:
             return []
 
@@ -453,6 +488,54 @@ class DataGrounder:
                         f"{pick[0]}，其区间涨幅"
                     ),
                     "date": end,
+                })
+        return out
+
+    def _ground_financial_queries(self, question: str) -> list[dict]:
+        """财务指标接地（V4.0 语义层）
+
+        语义层解析问题中的实体（如"茅台"→600519）与财务指标（如"营业收入"
+        →revenue + 口径），从 financials 表确定性取数，作为可引用证据。
+        无实体或无财务指标命中时返回空——回到原有问答路径。
+        """
+        if self.qi_db is None:
+            return []
+        try:
+            from semantic.layer import get_linker, get_parser
+            entities = [e for e in get_linker().link(question)
+                        if e.kind == "Stock" and e.code]
+            metrics = [m for m in get_parser().parse(question)
+                       if m.binding_table == "financials"]
+        except Exception:
+            return []
+        if not entities or not metrics:
+            return []
+
+        col_map = {m.binding_column: m for m in metrics}
+        out = []
+        for ent in entities:
+            df = self.qi_db.get_financials(ent.code, list(col_map))
+            if df is None or df.empty:
+                continue
+            # 每个指标只取最新报告期（get_financials 已按 period 倒序）
+            seen_keys = set()
+            for _, row in df.iterrows():
+                m = col_map.get(row["metric_key"])
+                if m is None or row["metric_key"] in seen_keys:
+                    continue
+                seen_keys.add(row["metric_key"])
+                try:
+                    value = float(row["value"])
+                except (TypeError, ValueError):
+                    continue
+                name = ent.name or ent.code
+                out.append({
+                    "answer": f"{value:,.2f}",
+                    "description": (
+                        f"{name} {m.name}（{row['period']} 年报，单位：{row.get('unit', '元')}）"
+                        f"｜口径: {m.caliber}"
+                    ),
+                    "date": row["period"],
                 })
         return out
 
