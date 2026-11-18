@@ -1,0 +1,6095 @@
+@prefix qi: <http://quantinsight.pro/ontology/> .
+
+qi:idx_sh000001 a qi:Index ;
+    qi:alias "上海证券交易所综合指数" ;
+    qi:caliber "上海证券交易所 编制的 上海证券交易所综合指数" ;
+    qi:code "sh000001" ;
+    qi:name "上证综指" .
+
+qi:idx_sh000852 a qi:Index ;
+    qi:alias "中证 1000 指数" ;
+    qi:caliber "上海证券交易所 编制的 中证 1000 指数" ;
+    qi:code "sh000852" ;
+    qi:name "中证1000" .
+
+qi:idx_sz399001 a qi:Index ;
+    qi:alias "深圳证券交易所成份指数" ;
+    qi:caliber "深圳证券交易所 编制的 深圳证券交易所成份指数" ;
+    qi:code "sz399001" ;
+    qi:name "深证成指" .
+
+qi:idx_sz399006 a qi:Index ;
+    qi:alias "创业板指数" ;
+    qi:caliber "深圳证券交易所 编制的 创业板指数" ;
+    qi:code "sz399006" ;
+    qi:name "创业板指" .
+
+qi:ind_A a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "A" ;
+    qi:name "农林牧渔业" .
+
+qi:ind_B a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "B" ;
+    qi:name "采矿业" .
+
+qi:ind_C a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "C" ;
+    qi:name "制造业" .
+
+qi:ind_D a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "D" ;
+    qi:name "电力热力燃气及水生产供应业" .
+
+qi:ind_E a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "E" ;
+    qi:name "建筑业" .
+
+qi:ind_F a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "F" ;
+    qi:name "批发和零售业" .
+
+qi:ind_G a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "G" ;
+    qi:name "交通运输仓储邮政业" .
+
+qi:ind_H a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "H" ;
+    qi:name "住宿和餐饮业" .
+
+qi:ind_I a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "I" ;
+    qi:name "信息传输软件信息技术服务业" .
+
+qi:ind_J a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "J" ;
+    qi:name "金融业" .
+
+qi:ind_K a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "K" ;
+    qi:name "房地产业" .
+
+qi:ind_L a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "L" ;
+    qi:name "租赁和商务服务业" .
+
+qi:ind_M a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "M" ;
+    qi:name "科学技术服务业" .
+
+qi:ind_N a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "N" ;
+    qi:name "水利环境公共设施管理业" .
+
+qi:ind_O a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "O" ;
+    qi:name "居民服务修理服务业" .
+
+qi:ind_P a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "P" ;
+    qi:name "教育" .
+
+qi:ind_Q a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "Q" ;
+    qi:name "卫生社会工作" .
+
+qi:ind_R a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "R" ;
+    qi:name "文化体育娱乐业" .
+
+qi:ind_S a qi:Industry ;
+    qi:caliber "证监会行业分类（一级，GB/T 4754 类似)" ;
+    qi:code "S" ;
+    qi:name "综合" .
+
+qi:stk_000002 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000002" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000009 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000009" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000021 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000021" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000027 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000027" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000032 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000032" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000034 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000034" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000039 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000039" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000050 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000050" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000060 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000060" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000062 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000062" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000063 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000063" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000088 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000088" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000100 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000100" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000155 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000155" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000157 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000157" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000166 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000166" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000301 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000301" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000338 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000338" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000400 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000400" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000408 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000408" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000415 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000415" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000423 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000423" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000425 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000425" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000429 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000429" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000513 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000513" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000519 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000519" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000528 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000528" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000537 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000537" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000539 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000539" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000559 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000559" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000582 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000582" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000591 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000591" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000596 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000596" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000598 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000598" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000617 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000617" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000623 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000623" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000625 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000625" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000629 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000629" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000630 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000630" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000657 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000657" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000661 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000661" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000683 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000683" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000703 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000703" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000708 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000708" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000709 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000709" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000723 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000723" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000728 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000728" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000729 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000729" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000733 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000733" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000737 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000737" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000738 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000738" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000739 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000739" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000750 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000750" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000768 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000768" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000776 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000776" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000783 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000783" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000785 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000785" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000786 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000786" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000792 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000792" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000800 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000800" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000807 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000807" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000825 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000825" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000830 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000830" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000831 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000831" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000878 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000878" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000883 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000883" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000887 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000887" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000893 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000893" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000895 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000895" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000898 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000898" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000921 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000921" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000932 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000932" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000937 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000937" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000938 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000938" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000951 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000951" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000959 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000959" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000960 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000960" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000963 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000963" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000967 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000967" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000975 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000975" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000977 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000977" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000983 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000983" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000987 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000987" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000988 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000988" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000997 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000997" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000999 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000999" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001203 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001203" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001221 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001221" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001280 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001280" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001286 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001286" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001309 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001309" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001386 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001386" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001389 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001389" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001391 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001391" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001696 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001696" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001965 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001965" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_001979 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "001979" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002001 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002001" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002007 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002007" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002008 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002008" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002025 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002025" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002027 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002027" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002028 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002028" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002032 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002032" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002044 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002044" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002049 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002049" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002050 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002050" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002056 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002056" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002064 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002064" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002065 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002065" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002074 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002074" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002078 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002078" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002085 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002085" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002120 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002120" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002126 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002126" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002130 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002130" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002131 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002131" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002138 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002138" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002142 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002142" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002152 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002152" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002153 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002153" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002155 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002155" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002157 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002157" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002179 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002179" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002185 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002185" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002195 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002195" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002202 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002202" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002203 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002203" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002223 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002223" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002236 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002236" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002244 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002244" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002252 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002252" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002261 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002261" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002262 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002262" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002265 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002265" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002266 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002266" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002271 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002271" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002273 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002273" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002281 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002281" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002294 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002294" ;
+    qi:memberOf qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002299 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002299" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002311 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002311" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002312 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002312" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002318 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002318" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002335 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002335" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002340 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002340" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002352 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002352" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002353 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002353" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002371 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002371" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002384 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002384" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002402 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002402" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002407 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002407" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002409 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002409" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002410 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002410" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002414 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002414" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002422 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002422" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002423 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002423" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002429 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002429" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002430 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002430" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002432 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002432" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002436 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002436" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002444 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002444" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002460 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002460" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002461 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002461" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002463 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002463" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002465 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002465" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002466 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002466" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002472 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002472" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002487 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002487" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002493 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002493" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002500 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002500" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002508 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002508" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002517 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002517" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002532 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002532" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002558 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002558" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002568 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002568" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002583 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002583" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002600 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002600" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002601 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002601" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002602 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002602" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002603 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002603" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002608 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002608" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002624 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002624" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002625 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002625" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002648 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002648" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002670 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002670" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002673 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002673" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002683 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002683" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002709 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002709" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002736 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002736" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002738 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002738" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002739 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002739" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002756 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002756" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002773 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002773" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002797 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002797" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002812 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002812" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002821 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002821" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002831 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002831" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002837 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002837" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002841 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002841" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002850 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002850" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002851 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002851" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002916 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002916" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002920 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002920" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002926 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002926" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002938 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002938" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002939 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002939" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002945 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002945" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002966 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002966" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002984 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002984" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_003021 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "003021" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_003022 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "003022" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_003031 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "003031" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_003035 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "003035" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_003816 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "003816" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300001 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300001" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300002 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300002" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300003 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300003" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300012 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300012" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300014 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300014" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300015 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300015" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300017 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300017" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300024 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300024" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300033 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300033" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300037 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300037" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300054 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300054" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300058 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300058" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300073 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300073" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300100 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300100" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300115 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300115" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300122 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300122" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300136 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300136" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300140 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300140" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300142 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300142" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300144 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300144" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300146 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300146" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300207 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300207" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300223 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300223" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300251 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300251" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300285 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300285" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300308 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300308" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300316 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300316" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300339 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300339" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300346 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300346" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300373 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300373" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300383 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300383" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300390 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300390" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300394 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300394" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300395 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300395" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300408 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300408" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300413 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300413" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300418 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300418" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300432 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300432" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300433 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300433" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300442 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300442" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300450 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300450" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300454 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300454" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300458 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300458" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300474 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300474" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300475 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300475" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300476 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300476" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300487 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300487" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300496 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300496" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300502 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300502" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300548 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300548" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300558 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300558" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300567 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300567" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300570 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300570" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300604 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300604" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300620 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300620" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300623 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300623" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300627 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300627" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300628 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300628" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300661 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300661" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300666 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300666" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300676 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300676" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300677 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300677" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300679 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300679" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300699 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300699" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300718 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300718" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300724 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300724" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300735 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300735" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300748 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300748" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300751 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300751" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300757 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300757" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300759 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300759" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300760 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300760" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300763 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300763" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300803 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300803" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300832 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300832" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300857 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300857" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300866 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300866" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300888 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300888" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300896 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300896" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300919 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300919" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300953 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300953" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300957 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300957" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300972 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300972" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300999 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300999" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301165 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301165" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301200 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301200" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301236 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301236" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301269 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301269" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301297 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301297" ;
+    qi:memberOf qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301301 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301301" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301308 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301308" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301358 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301358" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301377 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301377" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301498 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301498" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301526 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301526" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301536 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301536" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301606 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301606" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_301611 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "301611" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_302132 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "302132" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600004 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600004" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600008 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600008" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600009 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600009" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600010 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600010" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600011 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600011" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600015 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600015" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600018 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600018" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600019 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600019" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600021 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600021" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600023 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600023" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600025 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600025" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600026 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600026" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600027 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600027" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600029 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600029" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600031 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600031" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600032 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600032" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600038 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600038" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600039 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600039" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600048 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600048" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600050 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600050" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600060 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600060" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600061 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600061" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600062 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600062" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600066 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600066" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600085 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600085" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600095 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600095" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600098 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600098" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600100 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600100" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600105 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600105" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600109 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600109" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600111 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600111" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600115 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600115" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600118 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600118" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600126 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600126" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600131 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600131" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600132 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600132" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600141 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600141" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600143 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600143" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600150 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600150" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600153 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600153" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600157 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600157" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600160 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600160" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600161 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600161" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600166 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600166" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600170 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600170" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600171 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600171" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600176 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600176" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600177 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600177" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600183 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600183" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600188 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600188" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600208 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600208" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600219 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600219" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600221 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600221" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600233 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600233" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600256 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600256" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600282 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600282" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600292 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600292" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600295 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600295" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600298 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600298" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600299 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600299" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600309 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600309" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600312 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600312" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600316 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600316" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600329 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600329" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600332 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600332" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600339 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600339" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600346 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600346" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600348 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600348" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600350 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600350" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600352 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600352" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600362 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600362" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600369 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600369" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600372 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600372" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600377 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600377" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600378 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600378" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600380 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600380" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600390 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600390" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600392 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600392" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600398 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600398" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600415 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600415" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600426 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600426" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600435 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600435" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600438 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600438" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600460 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600460" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600482 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600482" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600483 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600483" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600486 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600486" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600489 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600489" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600497 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600497" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600498 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600498" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600499 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600499" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600511 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600511" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600515 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600515" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600516 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600516" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600517 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600517" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600521 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600521" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600522 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600522" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600535 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600535" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600536 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600536" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600546 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600546" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600547 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600547" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600549 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600549" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600562 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600562" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600563 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600563" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600566 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600566" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600570 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600570" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600578 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600578" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600582 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600582" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600583 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600583" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600584 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600584" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600588 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600588" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600595 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600595" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600598 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600598" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600600 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600600" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600601 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600601" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600602 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600602" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600606 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600606" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600637 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600637" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600642 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600642" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600655 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600655" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600660 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600660" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600663 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600663" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600674 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600674" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600685 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600685" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600688 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600688" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600699 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600699" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600704 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600704" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600707 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600707" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600711 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600711" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600737 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600737" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600741 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600741" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600754 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600754" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600760 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600760" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600763 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600763" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600764 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600764" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600765 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600765" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600795 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600795" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600801 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600801" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600803 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600803" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600808 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600808" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600816 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600816" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600820 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600820" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600845 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600845" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600848 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600848" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600862 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600862" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600863 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600863" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600871 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600871" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600873 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600873" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600875 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600875" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600879 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600879" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600884 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600884" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600885 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600885" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600886 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600886" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600893 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600893" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600900 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600900" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600901 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600901" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600905 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600905" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600906 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600906" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600909 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600909" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600918 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600918" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600926 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600926" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600927 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600927" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600930 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600930" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600938 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600938" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600958 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600958" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600967 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600967" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600968 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600968" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600970 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600970" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600977 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600977" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600985 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600985" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600988 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600988" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600989 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600989" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600995 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600995" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600998 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600998" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600999 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600999" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601000 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601000" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601001 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601001" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601009 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601009" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601016 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601016" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601018 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601018" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601019 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601019" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601021 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601021" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601058 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601058" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601066 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601066" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601077 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601077" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601088 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601088" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601098 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601098" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601099 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601099" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601100 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601100" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601106 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601106" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601108 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601108" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601111 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601111" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601112 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601112" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601117 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601117" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601118 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601118" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601127 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601127" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601128 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601128" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601136 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601136" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601138 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601138" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601139 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601139" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601155 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601155" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601156 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601156" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601162 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601162" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601169 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601169" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601179 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601179" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601186 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601186" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601211 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601211" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601212 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601212" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601216 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601216" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601225 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601225" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601228 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601228" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601229 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601229" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601233 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601233" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601236 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601236" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601238 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601238" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601298 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601298" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601319 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601319" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601328 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601328" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601336 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601336" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601360 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601360" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601377 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601377" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601390 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601390" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601399 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601399" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601456 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601456" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601555 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601555" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601567 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601567" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601577 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601577" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601598 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601598" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601600 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601600" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601607 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601607" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601608 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601608" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601611 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601611" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601615 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601615" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601618 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601618" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601633 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601633" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601658 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601658" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601665 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601665" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601666 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601666" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601668 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601668" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601669 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601669" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601688 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601688" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601689 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601689" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601696 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601696" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601698 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601698" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601699 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601699" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601717 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601717" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601727 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601727" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601728 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601728" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601766 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601766" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601788 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601788" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601799 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601799" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601800 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601800" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601808 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601808" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601816 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601816" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601818 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601818" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601825 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601825" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601838 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601838" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601865 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601865" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601866 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601866" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601868 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601868" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601869 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601869" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601872 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601872" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601877 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601877" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601878 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601878" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601880 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601880" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601881 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601881" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601898 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601898" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601901 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601901" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601916 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601916" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601928 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601928" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601939 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601939" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601958 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601958" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601966 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601966" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601985 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601985" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601988 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601988" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601990 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601990" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601991 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601991" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601995 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601995" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601997 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601997" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601998 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601998" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603000 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603000" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603019 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603019" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603049 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603049" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603077 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603077" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603083 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603083" ;
+    qi:memberOf qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603087 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603087" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603092 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603092" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603119 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603119" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603129 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603129" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603156 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603156" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603160 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603160" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603175 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603175" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603179 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603179" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603225 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603225" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603233 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603233" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603256 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603256" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603260 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603260" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603288 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603288" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603290 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603290" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603296 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603296" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603298 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603298" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603308 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603308" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603338 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603338" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603341 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603341" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603345 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603345" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603369 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603369" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603379 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603379" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603392 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603392" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603444 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603444" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603486 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603486" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603529 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603529" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603565 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603565" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603568 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603568" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603589 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603589" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603596 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603596" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603605 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603605" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603606 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603606" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603650 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603650" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603658 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603658" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603659 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603659" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603688 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603688" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603699 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603699" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603728 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603728" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603737 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603737" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603766 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603766" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603786 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603786" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603799 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603799" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603806 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603806" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603816 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603816" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603833 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603833" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603858 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603858" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603885 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603885" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603893 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603893" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603899 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603899" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603920 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603920" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603939 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603939" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603979 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603979" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603986 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603986" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603993 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603993" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_605117 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "605117" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_605358 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "605358" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_605499 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "605499" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_605589 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "605589" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688002 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688002" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688008 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688008" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688009 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688009" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688012 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688012" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688017 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688017" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688018 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688018" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688019 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688019" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688027 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688027" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688036 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688036" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688037 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688037" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688041 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688041" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688047 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688047" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688052 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688052" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688065 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688065" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688072 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688072" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688082 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688082" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688099 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688099" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688111 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688111" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688114 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688114" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688120 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688120" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688122 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688122" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688126 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688126" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688166 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688166" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688169 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688169" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688172 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688172" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688180 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688180" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688183 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688183" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688187 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688187" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688188 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688188" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688192 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688192" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688200 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688200" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688213 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688213" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688220 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688220" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688223 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688223" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688234 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688234" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688235 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688235" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688248 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688248" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688256 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688256" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688266 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688266" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688271 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688271" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688278 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688278" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688281 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688281" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688295 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688295" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688297 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688297" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688301 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688301" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688303 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688303" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688313 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688313" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688318 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688318" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688322 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688322" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688331 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688331" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688336 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688336" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688343 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688343" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688347 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688347" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688349 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688349" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688361 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688361" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688363 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688363" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688375 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688375" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688385 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688385" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688387 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688387" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688396 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688396" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688411 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688411" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688425 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688425" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688469 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688469" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688472 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688472" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688475 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688475" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688498 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688498" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688506 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688506" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688520 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688520" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688521 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688521" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688538 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688538" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688561 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688561" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688563 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688563" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688568 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688568" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688578 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688578" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688582 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688582" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688599 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688599" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688608 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688608" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688615 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688615" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688617 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688617" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688629 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688629" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688676 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688676" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688692 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688692" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688702 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688702" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688708 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688708" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688709 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688709" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688728 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688728" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688772 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688772" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688777 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688777" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688778 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688778" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688819 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688819" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_688981 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "688981" ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_689009 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "689009" ;
+    qi:memberOf qi:idx_sh000905,
+        qi:idx_sh000906 ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:corp_000001 a qi:Corporation ;
+    qi:code "000001" ;
+    qi:name "平安银行" ;
+    qi:tradedAs qi:stk_000001 .
+
+qi:corp_000333 a qi:Corporation ;
+    qi:code "000333" ;
+    qi:name "美的集团" ;
+    qi:tradedAs qi:stk_000333 .
+
+qi:corp_000538 a qi:Corporation ;
+    qi:code "000538" ;
+    qi:name "云南白药" ;
+    qi:tradedAs qi:stk_000538 .
+
+qi:corp_000568 a qi:Corporation ;
+    qi:code "000568" ;
+    qi:name "泸州老窖" ;
+    qi:tradedAs qi:stk_000568 .
+
+qi:corp_000651 a qi:Corporation ;
+    qi:code "000651" ;
+    qi:name "格力电器" ;
+    qi:tradedAs qi:stk_000651 .
+
+qi:corp_000725 a qi:Corporation ;
+    qi:code "000725" ;
+    qi:name "京东方A" ;
+    qi:tradedAs qi:stk_000725 .
+
+qi:corp_000858 a qi:Corporation ;
+    qi:code "000858" ;
+    qi:name "五粮液" ;
+    qi:tradedAs qi:stk_000858 .
+
+qi:corp_002230 a qi:Corporation ;
+    qi:code "002230" ;
+    qi:name "科大讯飞" ;
+    qi:tradedAs qi:stk_002230 .
+
+qi:corp_002241 a qi:Corporation ;
+    qi:code "002241" ;
+    qi:name "歌尔股份" ;
+    qi:tradedAs qi:stk_002241 .
+
+qi:corp_002304 a qi:Corporation ;
+    qi:code "002304" ;
+    qi:name "洋河股份" ;
+    qi:tradedAs qi:stk_002304 .
+
+qi:corp_002415 a qi:Corporation ;
+    qi:code "002415" ;
+    qi:name "海康威视" ;
+    qi:tradedAs qi:stk_002415 .
+
+qi:corp_002475 a qi:Corporation ;
+    qi:code "002475" ;
+    qi:name "立讯精密" ;
+    qi:tradedAs qi:stk_002475 .
+
+qi:corp_002594 a qi:Corporation ;
+    qi:code "002594" ;
+    qi:name "比亚迪" ;
+    qi:tradedAs qi:stk_002594 .
+
+qi:corp_002714 a qi:Corporation ;
+    qi:code "002714" ;
+    qi:name "牧原股份" ;
+    qi:tradedAs qi:stk_002714 .
+
+qi:corp_300059 a qi:Corporation ;
+    qi:code "300059" ;
+    qi:name "东方财富" ;
+    qi:tradedAs qi:stk_300059 .
+
+qi:corp_300124 a qi:Corporation ;
+    qi:code "300124" ;
+    qi:name "汇川技术" ;
+    qi:tradedAs qi:stk_300124 .
+
+qi:corp_300274 a qi:Corporation ;
+    qi:code "300274" ;
+    qi:name "阳光电源" ;
+    qi:tradedAs qi:stk_300274 .
+
+qi:corp_300498 a qi:Corporation ;
+    qi:code "300498" ;
+    qi:name "温氏股份" ;
+    qi:tradedAs qi:stk_300498 .
+
+qi:corp_300750 a qi:Corporation ;
+    qi:code "300750" ;
+    qi:name "宁德时代" ;
+    qi:tradedAs qi:stk_300750 .
+
+qi:corp_600000 a qi:Corporation ;
+    qi:code "600000" ;
+    qi:name "浦发银行" ;
+    qi:tradedAs qi:stk_600000 .
+
+qi:corp_600016 a qi:Corporation ;
+    qi:code "600016" ;
+    qi:name "民生银行" ;
+    qi:tradedAs qi:stk_600016 .
+
+qi:corp_600028 a qi:Corporation ;
+    qi:code "600028" ;
+    qi:name "中国石化" ;
+    qi:tradedAs qi:stk_600028 .
+
+qi:corp_600030 a qi:Corporation ;
+    qi:code "600030" ;
+    qi:name "中信证券" ;
+    qi:tradedAs qi:stk_600030 .
+
+qi:corp_600036 a qi:Corporation ;
+    qi:code "600036" ;
+    qi:name "招商银行" ;
+    qi:tradedAs qi:stk_600036 .
+
+qi:corp_600089 a qi:Corporation ;
+    qi:code "600089" ;
+    qi:name "特变电工" ;
+    qi:tradedAs qi:stk_600089 .
+
+qi:corp_600104 a qi:Corporation ;
+    qi:code "600104" ;
+    qi:name "上汽集团" ;
+    qi:tradedAs qi:stk_600104 .
+
+qi:corp_600196 a qi:Corporation ;
+    qi:code "600196" ;
+    qi:name "复星医药" ;
+    qi:tradedAs qi:stk_600196 .
+
+qi:corp_600276 a qi:Corporation ;
+    qi:code "600276" ;
+    qi:name "恒瑞医药" ;
+    qi:tradedAs qi:stk_600276 .
+
+qi:corp_600406 a qi:Corporation ;
+    qi:code "600406" ;
+    qi:name "国电南瑞" ;
+    qi:tradedAs qi:stk_600406 .
+
+qi:corp_600436 a qi:Corporation ;
+    qi:code "600436" ;
+    qi:name "片仔癀" ;
+    qi:tradedAs qi:stk_600436 .
+
+qi:corp_600519 a qi:Corporation ;
+    qi:code "600519" ;
+    qi:name "贵州茅台" ;
+    qi:tradedAs qi:stk_600519 .
+
+qi:corp_600585 a qi:Corporation ;
+    qi:code "600585" ;
+    qi:name "海螺水泥" ;
+    qi:tradedAs qi:stk_600585 .
+
+qi:corp_600690 a qi:Corporation ;
+    qi:code "600690" ;
+    qi:name "海尔智家" ;
+    qi:tradedAs qi:stk_600690 .
+
+qi:corp_600809 a qi:Corporation ;
+    qi:code "600809" ;
+    qi:name "山西汾酒" ;
+    qi:tradedAs qi:stk_600809 .
+
+qi:corp_600887 a qi:Corporation ;
+    qi:code "600887" ;
+    qi:name "伊利股份" ;
+    qi:tradedAs qi:stk_600887 .
+
+qi:corp_600919 a qi:Corporation ;
+    qi:code "600919" ;
+    qi:name "江苏银行" ;
+    qi:tradedAs qi:stk_600919 .
+
+qi:corp_600941 a qi:Corporation ;
+    qi:code "600941" ;
+    qi:name "中国移动" ;
+    qi:tradedAs qi:stk_600941 .
+
+qi:corp_601006 a qi:Corporation ;
+    qi:code "601006" ;
+    qi:name "大秦铁路" ;
+    qi:tradedAs qi:stk_601006 .
+
+qi:corp_601012 a qi:Corporation ;
+    qi:code "601012" ;
+    qi:name "隆基绿能" ;
+    qi:tradedAs qi:stk_601012 .
+
+qi:corp_601166 a qi:Corporation ;
+    qi:code "601166" ;
+    qi:name "兴业银行" ;
+    qi:tradedAs qi:stk_601166 .
+
+qi:corp_601288 a qi:Corporation ;
+    qi:code "601288" ;
+    qi:name "农业银行" ;
+    qi:tradedAs qi:stk_601288 .
+
+qi:corp_601318 a qi:Corporation ;
+    qi:code "601318" ;
+    qi:name "中国平安" ;
+    qi:tradedAs qi:stk_601318 .
+
+qi:corp_601398 a qi:Corporation ;
+    qi:code "601398" ;
+    qi:name "工商银行" ;
+    qi:tradedAs qi:stk_601398 .
+
+qi:corp_601601 a qi:Corporation ;
+    qi:code "601601" ;
+    qi:name "中国太保" ;
+    qi:tradedAs qi:stk_601601 .
+
+qi:corp_601628 a qi:Corporation ;
+    qi:code "601628" ;
+    qi:name "中国人寿" ;
+    qi:tradedAs qi:stk_601628 .
+
+qi:corp_601857 a qi:Corporation ;
+    qi:code "601857" ;
+    qi:name "中国石油" ;
+    qi:tradedAs qi:stk_601857 .
+
+qi:corp_601888 a qi:Corporation ;
+    qi:code "601888" ;
+    qi:name "中国中免" ;
+    qi:tradedAs qi:stk_601888 .
+
+qi:corp_601899 a qi:Corporation ;
+    qi:code "601899" ;
+    qi:name "紫金矿业" ;
+    qi:tradedAs qi:stk_601899 .
+
+qi:corp_601919 a qi:Corporation ;
+    qi:code "601919" ;
+    qi:name "中远海控" ;
+    qi:tradedAs qi:stk_601919 .
+
+qi:corp_603259 a qi:Corporation ;
+    qi:code "603259" ;
+    qi:name "药明康德" ;
+    qi:tradedAs qi:stk_603259 .
+
+qi:corp_603501 a qi:Corporation ;
+    qi:code "603501" ;
+    qi:name "韦尔股份" ;
+    qi:tradedAs qi:stk_603501 .
+
+qi:stk_000001 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000001" ;
+    qi:listedBy qi:corp_000001 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "平安银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000333 a qi:Stock ;
+    qi:alias "美的" ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000333" ;
+    qi:listedBy qi:corp_000333 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "美的集团" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000538 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000538" ;
+    qi:listedBy qi:corp_000538 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "云南白药" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000568 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000568" ;
+    qi:listedBy qi:corp_000568 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "泸州老窖" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000651 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000651" ;
+    qi:listedBy qi:corp_000651 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "格力电器" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000725 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000725" ;
+    qi:listedBy qi:corp_000725 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "京东方A" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_000858 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "000858" ;
+    qi:listedBy qi:corp_000858 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "五粮液" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002230 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002230" ;
+    qi:listedBy qi:corp_002230 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "科大讯飞" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002241 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002241" ;
+    qi:listedBy qi:corp_002241 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "歌尔股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002304 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002304" ;
+    qi:listedBy qi:corp_002304 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "洋河股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002415 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002415" ;
+    qi:listedBy qi:corp_002415 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "海康威视" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002475 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002475" ;
+    qi:listedBy qi:corp_002475 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "立讯精密" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002594 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002594" ;
+    qi:listedBy qi:corp_002594 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "比亚迪" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_002714 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "002714" ;
+    qi:listedBy qi:corp_002714 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "牧原股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300059 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300059" ;
+    qi:listedBy qi:corp_300059 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "东方财富" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300124 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300124" ;
+    qi:listedBy qi:corp_300124 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "汇川技术" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300274 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300274" ;
+    qi:listedBy qi:corp_300274 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "阳光电源" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300498 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300498" ;
+    qi:listedBy qi:corp_300498 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "温氏股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_300750 a qi:Stock ;
+    qi:caliber "深圳证券交易所 上市 A 股标的" ;
+    qi:code "300750" ;
+    qi:listedBy qi:corp_300750 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "宁德时代" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600000 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600000" ;
+    qi:listedBy qi:corp_600000 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "浦发银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600016 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600016" ;
+    qi:listedBy qi:corp_600016 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "民生银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600028 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600028" ;
+    qi:listedBy qi:corp_600028 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国石化" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600030 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600030" ;
+    qi:listedBy qi:corp_600030 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中信证券" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600036 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600036" ;
+    qi:listedBy qi:corp_600036 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "招商银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600089 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600089" ;
+    qi:listedBy qi:corp_600089 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "特变电工" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600104 a qi:Stock ;
+    qi:alias "上汽" ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600104" ;
+    qi:listedBy qi:corp_600104 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "上汽集团" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600196 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600196" ;
+    qi:listedBy qi:corp_600196 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "复星医药" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600276 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600276" ;
+    qi:listedBy qi:corp_600276 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "恒瑞医药" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600406 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600406" ;
+    qi:listedBy qi:corp_600406 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "国电南瑞" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600436 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600436" ;
+    qi:listedBy qi:corp_600436 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "片仔癀" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600519 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600519" ;
+    qi:listedBy qi:corp_600519 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "贵州茅台" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600585 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600585" ;
+    qi:listedBy qi:corp_600585 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "海螺水泥" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600690 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600690" ;
+    qi:listedBy qi:corp_600690 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "海尔智家" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600809 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600809" ;
+    qi:listedBy qi:corp_600809 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "山西汾酒" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600887 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600887" ;
+    qi:listedBy qi:corp_600887 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "伊利股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600919 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600919" ;
+    qi:listedBy qi:corp_600919 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "江苏银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_600941 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "600941" ;
+    qi:listedBy qi:corp_600941 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国移动" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601006 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601006" ;
+    qi:listedBy qi:corp_601006 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "大秦铁路" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601012 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601012" ;
+    qi:listedBy qi:corp_601012 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "隆基绿能" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601166 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601166" ;
+    qi:listedBy qi:corp_601166 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "兴业银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601288 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601288" ;
+    qi:listedBy qi:corp_601288 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "农业银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601318 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601318" ;
+    qi:listedBy qi:corp_601318 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国平安" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601398 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601398" ;
+    qi:listedBy qi:corp_601398 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "工商银行" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601601 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601601" ;
+    qi:listedBy qi:corp_601601 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国太保" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601628 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601628" ;
+    qi:listedBy qi:corp_601628 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国人寿" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601857 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601857" ;
+    qi:listedBy qi:corp_601857 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国石油" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601888 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601888" ;
+    qi:listedBy qi:corp_601888 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中国中免" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601899 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601899" ;
+    qi:listedBy qi:corp_601899 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "紫金矿业" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_601919 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "601919" ;
+    qi:listedBy qi:corp_601919 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "中远海控" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603259 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603259" ;
+    qi:listedBy qi:corp_603259 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "药明康德" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:stk_603501 a qi:Stock ;
+    qi:caliber "上海证券交易所 上市 A 股标的" ;
+    qi:code "603501" ;
+    qi:listedBy qi:corp_603501 ;
+    qi:memberOf qi:idx_sh000300,
+        qi:idx_sh000906 ;
+    qi:name "韦尔股份" ;
+    qi:sourcedFrom qi:src_local_sqlite .
+
+qi:idx_sh000300 a qi:Index ;
+    qi:alias "沪深 300 指数" ;
+    qi:caliber "上海证券交易所 编制的 沪深 300 指数" ;
+    qi:code "sh000300" ;
+    qi:name "沪深300" .
+
+qi:idx_sh000905 a qi:Index ;
+    qi:alias "中证 500 指数" ;
+    qi:caliber "上海证券交易所 编制的 中证 500 指数" ;
+    qi:code "sh000905" ;
+    qi:name "中证500" .
+
+qi:idx_sh000906 a qi:Index ;
+    qi:alias "中证 800 指数" ;
+    qi:caliber "上海证券交易所 编制的 中证 800 指数" ;
+    qi:code "sh000906" ;
+    qi:name "中证800" .
+

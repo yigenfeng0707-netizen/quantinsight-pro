@@ -17,3 +17,5 @@ akshare>=1.12.0
 baostock>=0.8.8
 snownlp==0.12.3
 reportlab>=4.0.0
+# 语义层（本体/指标/因子注册表）
+rdflib>=7.0.0

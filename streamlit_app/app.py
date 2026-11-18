@@ -1383,6 +1383,7 @@ page_options = [
     '🔄 宏观因子融合',
     '📡 信号验证中心',
     '🔍 语义检索',
+    '🧭 语义目录',
     '📊 行业分析',
     '👤 个人中心',
 ]
@@ -3333,6 +3334,17 @@ elif page == '🔍 语义检索':
                 <p>输入自然语言查询，点击"搜索"开始语义检索</p>
             </div>
             """, unsafe_allow_html=True)
+
+# ============== 页面：语义目录（本体/指标/因子）==============
+elif page == '🧭 语义目录':
+    from ui_themes import render_page_header
+    render_page_header('语义目录', '投研领域本体 · 指标口径注册表 · 因子透明目录', '🧭')
+    try:
+        from features.semantic_browser import render_semantic_browser
+        render_semantic_browser()
+    except Exception as e:
+        st.error(f'❌ 语义目录装载失败: {type(e).__name__}: {str(e)[:200]}')
+        st.info('本体文件位于 `semantic/`（ontology.ttl / metrics.ttl / factors.ttl / entities.ttl）')
 
 # ============== 页面：行业分析 ==============
 elif page == '📊 行业分析':

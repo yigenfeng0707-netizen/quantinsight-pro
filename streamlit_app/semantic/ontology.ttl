@@ -1,0 +1,155 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix qi:   <http://quantinsight.pro/ontology/> .
+
+## =====================================================================
+## QuantInsight Pro 投研领域本体（TBox）
+## 版本: 1.0 · 2026-11 · License: MIT
+## 范围: A 股投研领域 —— 标的、公司、指数、行业、指标、因子、数据源
+## 设计原则: 概念先行于表结构 —— 指标/因子的口径与绑定独立于具体存储
+## =====================================================================
+
+qi: a owl:Ontology ;
+    rdfs:label "QuantInsight Pro 投研领域本体" ;
+    owl:versionInfo "1.0" ;
+    rdfs:comment "把'AI 问答可接地的概念'从硬编码关键词与正则模板中外置为本体，支撑实体链接、指标解析与确定性取数。" .
+
+## ===================== 类（Classes） =====================
+
+qi:FinancialConcept a owl:Class ;
+    rdfs:label "金融概念" ; rdfs:comment "可被自然语言指称的领域概念基类。" .
+
+qi:Corporation a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "上市公司" .
+
+qi:Stock a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "交易标的" ;
+    rdfs:comment "A 股交易标的，6 位代码标识。" .
+
+qi:Index a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "指数" .
+
+qi:Industry a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "行业" .
+
+qi:Metric a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "指标" ;
+    rdfs:comment "带统一定义（口径）的可量化指标。问答接地的基本单元。" .
+
+qi:Factor a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "因子" ;
+    rdfs:comment "选股/评分用因子，每个因子有可读公式与数据依赖。" .
+
+qi:FactorCategory a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "因子大类" .
+
+qi:DataSource a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "数据源" ;
+    rdfs:comment "行情/财务数据的来源（本地库或外部接口）。" .
+
+qi:ReportPeriod a owl:Class ;
+    rdfs:subClassOf qi:FinancialConcept ;
+    rdfs:label "报告期" ;
+    rdfs:comment "财务指标的期间语义（年报/半年报/季报/TTM）。" .
+
+## ===================== 对象关系（Object Properties） =====================
+
+qi:listedBy a owl:ObjectProperty ;
+    rdfs:domain qi:Stock ; rdfs:range qi:Corporation ;
+    rdfs:label "上市于" .
+
+qi:tradedAs a owl:ObjectProperty ;
+    rdfs:domain qi:Corporation ; rdfs:range qi:Stock ;
+    rdfs:label "交易代码为" ; owl:inverseOf qi:listedBy .
+
+qi:memberOf a owl:ObjectProperty ;
+    rdfs:domain qi:Stock ; rdfs:range qi:Index ;
+    rdfs:label "成分股属于" .
+
+qi:hasConstituent a owl:ObjectProperty ;
+    rdfs:domain qi:Index ; rdfs:range qi:Stock ;
+    rdfs:label "成分股包含" ; owl:inverseOf qi:memberOf .
+
+qi:classifiedInto a owl:ObjectProperty ;
+    rdfs:domain qi:Stock ; rdfs:range qi:Industry ;
+    rdfs:label "所属行业" .
+
+qi:inCategory a owl:ObjectProperty ;
+    rdfs:domain qi:Factor ; rdfs:range qi:FactorCategory ;
+    rdfs:label "属于因子大类" .
+
+qi:computedFrom a owl:ObjectProperty ;
+    rdfs:domain qi:Factor ; rdfs:range qi:Metric ;
+    rdfs:label "计算自指标" ;
+    rdfs:comment "因子依赖哪些底层指标计算。" .
+
+qi:measuredBy a owl:ObjectProperty ;
+    rdfs:domain qi:Corporation ; rdfs:range qi:Metric ;
+    rdfs:label "被指标度量" ;
+    rdfs:comment "公司维度与财务指标的挂接（如茅台—营业收入）。" .
+
+qi:sourcedFrom a owl:ObjectProperty ;
+    rdfs:label "数据来源于" ;
+    rdfs:comment "domain 无限制：任何实体都可挂接数据源。" .
+
+qi:reportedIn a owl:ObjectProperty ;
+    rdfs:domain qi:Metric ; rdfs:range qi:ReportPeriod ;
+    rdfs:label "报告期语义" ;
+    rdfs:comment "财务指标的期间口径（年报/TTM 等）。" .
+
+## ===================== 数据属性（Datatype Properties） =====================
+
+qi:code a owl:DatatypeProperty ;
+    rdfs:label "代码" ; rdfs:range xsd:string ;
+    rdfs:comment "6 位股票代码 / 指数代码 / 行业代码。" .
+
+qi:name a owl:DatatypeProperty ;
+    rdfs:label "名称" ; rdfs:range xsd:string .
+
+qi:alias a owl:DatatypeProperty ;
+    rdfs:label "别名" ; rdfs:range xsd:string ;
+    rdfs:comment "简称、口语称呼、旧称。用于实体链接。" .
+
+qi:formula a owl:DatatypeProperty ;
+    rdfs:label "公式" ; rdfs:range xsd:string ;
+    rdfs:comment "因子/计算型指标的可读公式。" .
+
+qi:caliber a owl:DatatypeProperty ;
+    rdfs:label "口径" ; rdfs:range xsd:string ;
+    rdfs:comment "指标的统计口径定义。引用链中展示给用户的'数据怎么算来的'。" .
+
+qi:unit a owl:DatatypeProperty ;
+    rdfs:label "单位" ; rdfs:range xsd:string ;
+    rdfs:comment "元 / % / 手 / 亿元 等。" .
+
+qi:timeGrain a owl:DatatypeProperty ;
+    rdfs:label "时间粒度" ; rdfs:range xsd:string ;
+    rdfs:comment "daily 日粒度 / period 期间 / point_in_time 时点。" .
+
+qi:bindingTable a owl:DatatypeProperty ;
+    rdfs:label "绑定表" ; rdfs:range xsd:string ;
+    rdfs:comment "指标落库的表名（stock_history / financials 等）。" .
+
+qi:bindingColumn a owl:DatatypeProperty ;
+    rdfs:label "绑定字段" ; rdfs:range xsd:string .
+
+qi:bindingApi a owl:DatatypeProperty ;
+    rdfs:label "绑定接口" ; rdfs:range xsd:string ;
+    rdfs:comment "未落库指标的按需取数接口（akshare 函数名）。" .
+
+qi:evalType a owl:DatatypeProperty ;
+    rdfs:label "对应题型" ; rdfs:range xsd:string ;
+    rdfs:comment "benchmark 评测题型标记（T1–T9），通用性证据。" .
+
+qi:deprecated a owl:DatatypeProperty ;
+    rdfs:label "已弃用" ; rdfs:range xsd:boolean .

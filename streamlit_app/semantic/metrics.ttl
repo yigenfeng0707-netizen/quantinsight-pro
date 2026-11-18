@@ -1,0 +1,232 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix qi:   <http://quantinsight.pro/ontology/> .
+
+## =====================================================================
+## 指标注册表（ABox · Metric 实例）
+## 问答接地的指标单元：每条带统一口径与数据绑定。
+## 口径文本会随引用链展示给用户（"这个数怎么算出来的"）。
+## 生成：手工维护（口径即文档）; 版本 1.0 · 2026-11
+## =====================================================================
+
+## ---------------- 行情类（stock_history 落库，日粒度） ----------------
+
+qi:m_close a qi:Metric ;
+    qi:name "收盘价" ; qi:alias "最新价", "股价", "价格" ;
+    qi:unit "元" ; qi:timeGrain "daily" ;
+    qi:caliber "不复权口径下的当日收盘价；落库为前复权序列（akshare stock_zh_a_hist, qfq），问答时以库内口径为准" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "close" ;
+    qi:evalType "T1" .
+
+qi:m_open a qi:Metric ;
+    qi:name "开盘价" ; qi:alias "开盘" ;
+    qi:unit "元" ; qi:timeGrain "daily" ;
+    qi:caliber "当日开盘价（前复权序列）" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "open" ;
+    qi:evalType "T1" .
+
+qi:m_high a qi:Metric ;
+    qi:name "最高价" ; qi:alias "日内最高价", "当日最高" ;
+    qi:unit "元" ; qi:timeGrain "daily" ;
+    qi:caliber "当日最高价（前复权序列）" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "high" ;
+    qi:evalType "T1,T2" .
+
+qi:m_low a qi:Metric ;
+    qi:name "最低价" ; qi:alias "当日最低" ;
+    qi:unit "元" ; qi:timeGrain "daily" ;
+    qi:caliber "当日最低价（前复权序列）" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "low" ;
+    qi:evalType "T1" .
+
+qi:m_volume a qi:Metric ;
+    qi:name "成交量" ; qi:alias "成交股数", "量" ;
+    qi:unit "手" ; qi:timeGrain "daily" ;
+    qi:caliber "当日成交股数（单位：手）" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "volume" ;
+    qi:evalType "T1" .
+
+qi:m_amount a qi:Metric ;
+    qi:name "成交额" ; qi:alias "成交金额" ;
+    qi:unit "元" ; qi:timeGrain "daily" ;
+    qi:caliber "当日成交金额（单位：元）" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "amount" ;
+    qi:evalType "T1" .
+
+qi:m_pct_change a qi:Metric ;
+    qi:name "涨跌幅" ; qi:alias "涨幅", "跌幅", "当日涨幅", "当日涨跌幅" ;
+    qi:unit "%" ; qi:timeGrain "daily" ;
+    qi:caliber "(今收盘 − 昨收盘) / 昨收盘 × 100；库内字段直接记录，筛选 TOP-N 排序基于该字段降序" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "pct_change" ;
+    qi:evalType "T1,T3,T4" .
+
+qi:m_turnover a qi:Metric ;
+    qi:name "换手率" ; qi:alias "换手" ;
+    qi:unit "%" ; qi:timeGrain "daily" ;
+    qi:caliber "当日成交量 / 流通股本 × 100；区间均值用于多跳题目的流动性筛选" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "turnover" ;
+    qi:evalType "T1,T5" .
+
+## ---------------- 计算类（由行情序列确定性计算） ----------------
+
+qi:m_interval_return a qi:Metric ;
+    qi:name "区间涨跌幅" ; qi:alias "期间涨幅", "阶段涨幅", "区间收益率" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "(末日收盘 / 首日收盘 − 1) × 100；首日须在窗口内且收盘价非空，至少 30 个交易日" ;
+    qi:formula "(close[end] / close[start] - 1) * 100" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "close" ;
+    qi:evalType "T2,T5" .
+
+qi:m_interval_high a qi:Metric ;
+    qi:name "区间最高价" ; qi:alias "期间最高价" ;
+    qi:unit "元" ; qi:timeGrain "period" ;
+    qi:caliber "窗口内 high 字段的最大值（至少 30 个交易日）" ;
+    qi:formula "max(high[start:end])" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "high" ;
+    qi:evalType "T2" .
+
+qi:m_max_drawdown a qi:Metric ;
+    qi:name "最大回撤" ; qi:alias "回撤", "买入持有最大回撤" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "按收盘价滚动峰值计算：max((peak_close − close) / peak_close) × 100，peak_close 为截至当日的滚动最高收盘价" ;
+    qi:formula "max((peak - close) / peak) * 100, peak = rolling max of close" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "close" ;
+    qi:evalType "T2" .
+
+qi:m_avg_turnover a qi:Metric ;
+    qi:name "平均换手率" ; qi:alias "区间平均换手率", "日均换手率" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "窗口内 turnover 字段的算术平均（空值剔除）" ;
+    qi:formula "mean(turnover[start:end])" ;
+    qi:bindingTable "stock_history" ; qi:bindingColumn "turnover" ;
+    qi:evalType "T5" .
+
+## ---------------- 时点行情类（实时快照，stock_profile / akshare 接口） ----------------
+
+qi:m_pe_ttm a qi:Metric ;
+    qi:name "市盈率" ; qi:alias "PE", "市盈率-动态", "动态市盈率" ;
+    qi:unit "倍" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "总市值 / 归母净利润(TTM)；取实时行情快照，非历史序列" ;
+    qi:bindingTable "stock_profile" ; qi:bindingColumn "市盈率-动态" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+qi:m_pb a qi:Metric ;
+    qi:name "市净率" ; qi:alias "PB" ;
+    qi:unit "倍" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "股价 / 每股净资产；取实时行情快照" ;
+    qi:bindingTable "stock_profile" ; qi:bindingColumn "市净率" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+qi:m_total_mv a qi:Metric ;
+    qi:name "总市值" ; qi:alias "市值" ;
+    qi:unit "元" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "总股本 × 最新股价；取实时行情快照" ;
+    qi:bindingTable "stock_profile" ; qi:bindingColumn "总市值" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+qi:m_circ_mv a qi:Metric ;
+    qi:name "流通市值" ; qi:alias "流通值" ;
+    qi:unit "元" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "流通股本 × 最新股价；取实时行情快照" ;
+    qi:bindingTable "stock_profile" ; qi:bindingColumn "流通市值" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+qi:m_volume_ratio a qi:Metric ;
+    qi:name "量比" ; qi:alias "量比" ;
+    qi:unit "倍" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "当日成交量 / 过去 5 日平均成交量；实时行情快照字段" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+qi:m_pct_60d a qi:Metric ;
+    qi:name "60日涨跌幅" ; qi:alias "近60日涨幅", "60日涨幅" ;
+    qi:unit "%" ; qi:timeGrain "point_in_time" ;
+    qi:caliber "过去 60 个交易日涨跌幅；实时行情快照字段" ;
+    qi:bindingApi "akshare.stock_zh_a_spot_em" ;
+    qi:evalType "T1" .
+
+## ---------------- 财务类（financials 表，报告期粒度，T2 入库） ----------------
+
+qi:m_revenue a qi:Metric ;
+    qi:name "营业收入" ; qi:alias "营收", "营业总收入" ;
+    qi:unit "元" ; qi:timeGrain "period" ;
+    qi:caliber "利润表营业收入，按报告期（年报/半年报/季报）披露；'最近一年' 取最新可用年报或 TTM 口径并注明" ;
+    qi:bindingTable "financials" ; qi:bindingColumn "revenue" ;
+    qi:bindingApi "akshare.stock_financial_abstract" ;
+    qi:evalType "T1" ; qi:reportedIn qi:rp_annual .
+
+qi:m_net_profit_parent a qi:Metric ;
+    qi:name "归母净利润" ; qi:alias "归属于母公司股东的净利润", "归母净利" ;
+    qi:unit "元" ; qi:timeGrain "period" ;
+    qi:caliber "归属于母公司所有者的净利润；亏损为负值，问答时如实呈现符号" ;
+    qi:bindingTable "financials" ; qi:bindingColumn "net_profit_parent" ;
+    qi:bindingApi "akshare.stock_financial_abstract" ;
+    qi:evalType "T1" ; qi:reportedIn qi:rp_annual .
+
+qi:m_net_profit a qi:Metric ;
+    qi:name "净利润" ; qi:alias "净利" ;
+    qi:unit "元" ; qi:timeGrain "period" ;
+    qi:caliber "净利润（含少数股东损益）；与归母净利润区分使用" ;
+    qi:bindingTable "financials" ; qi:bindingColumn "net_profit" ;
+    qi:bindingApi "akshare.stock_financial_abstract" ;
+    qi:evalType "T1" ; qi:reportedIn qi:rp_annual .
+
+qi:m_gross_margin a qi:Metric ;
+    qi:name "毛利率" ; qi:alias "销售毛利率" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "(营业收入 − 营业成本) / 营业成本 × 100 或 /营业收入 × 100，以数据源披露口径为准并注明" ;
+    qi:bindingTable "financials" ; qi:bindingColumn "gross_margin" ;
+    qi:bindingApi "akshare.stock_financial_abstract" ;
+    qi:evalType "T1" ; qi:reportedIn qi:rp_annual .
+
+## ---------------- 报告期语义 ----------------
+
+qi:rp_annual a qi:ReportPeriod ; qi:name "年报" ; qi:alias "年度报告" .
+qi:rp_semi_annual a qi:ReportPeriod ; qi:name "半年报" ; qi:alias "中报" .
+qi:rp_quarterly a qi:ReportPeriod ; qi:name "季报" ; qi:alias "一季报", "三季报" .
+qi:rp_ttm a qi:ReportPeriod ; qi:name "TTM" ; qi:alias "滚动十二个月" .
+
+## ---------------- 策略回测类（T6） ----------------
+
+qi:m_buy_hold_return a qi:Metric ;
+    qi:name "买入持有收益" ; qi:alias "买入持有收益率", "持有期收益" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "回测区间内一次性买入并持有至期末：(末日净值 − 1) × 100" ;
+    qi:formula "(nav_end - 1) * 100" ;
+    qi:evalType "T6" .
+
+qi:m_annualized_return a qi:Metric ;
+    qi:name "年化收益率" ; qi:alias "年化" ;
+    qi:unit "%" ; qi:timeGrain "period" ;
+    qi:caliber "(1 + 区间收益率) ** (252 / 交易日数) − 1，× 100" ;
+    qi:formula "(1 + r) ** (252 / N) - 1" ;
+    qi:evalType "T6" .
+
+qi:m_sharpe_ratio a qi:Metric ;
+    qi:name "夏普比率" ; qi:alias "夏普", "Sharpe" ;
+    qi:unit "" ; qi:timeGrain "period" ;
+    qi:caliber "(年化收益率 − 无风险利率) / 年化波动率；无风险利率取回测引擎默认值" ;
+    qi:formula "(annualized_r - rf) / annualized_vol" ;
+    qi:evalType "T6" .
+
+## ---------------- 数据源实例 ----------------
+
+qi:src_akshare_hist a qi:DataSource ;
+    qi:name "akshare 行情接口" ;
+    qi:alias "akshare", "东方财富行情" ;
+    qi:caliber "akshare.stock_zh_a_hist，前复权日线，A 股全市场" .
+
+qi:src_akshare_fin a qi:DataSource ;
+    qi:name "akshare 财报接口" ;
+    qi:alias "akshare 财务", "东方财富财务" ;
+    qi:caliber "akshare.stock_financial_abstract，上市公司财报摘要" .
+
+qi:src_local_sqlite a qi:DataSource ;
+    qi:name "本地行情库" ;
+    qi:alias "qi_data.db", "stock_history" ;
+    qi:caliber "quantinsight 本地 SQLite 库（data/qi_data.db），问答接地的首选源" .
